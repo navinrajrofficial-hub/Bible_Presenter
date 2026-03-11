@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Slide Presenter</title>
+<!-- Offline-safe: no external font CDN needed -->
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- HIDDEN FILE INPUT for import -->
+<input type="file" id="file-import-input" accept=".prsn,.json" style="display:none">
+
+<!-- TOP BAR -->
+<div id="topbar">
+  <div class="logo">Presenter</div>
+  <div class="tb-sep"></div>
+  <button onclick="addSlide('html')">+ HTML Slide</button>
+  <button onclick="addSlide('simple')">+ Text Slide</button>
+  <button class="vasanam-btn" onclick="openVasanamModal()">✦ வசனம்</button>
+  <div class="tb-sep"></div>
+  <button class="export-btn" onclick="openExportModal()" title="Export slides to a .prsn file">⬇ Export</button>
+  <button class="import-btn" onclick="triggerImport()" title="Import slides from a .prsn file">⬆ Import</button>
+  <div class="tb-sep"></div>
+  <button class="primary" onclick="startPresent()">▶ Present</button>
+  <button id="btn-bible-panel" class="bible-btn" onclick="toggleBiblePanel()">📖 Tamil Bible</button>
+  <button id="btn-song-panel" class="song-btn" onclick="toggleSongPanel()">🎵 Song Book</button>
+  <button class="danger" onclick="deleteCurrentSlide()">✕ Delete</button>
+  <div id="save-indicator">● saved</div>
+  <div id="slide-counter">— / —</div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+
+  <!-- SLIDE LIST -->
+  <div id="slide-list">
+    <div class="add-slide-btn" onclick="addSlide('html')" title="Add HTML slide">+</div>
+  </div>
+
+  <!-- CENTER -->
+  <div id="center">
+    <div id="preview-area">
+      <iframe id="preview-frame" sandbox="allow-scripts allow-same-origin"></iframe>
+      <div id="preview-loading"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+  <!-- EDITOR PANEL -->
+  <div id="editor-panel">
+    <div id="editor-tabs">
+      <div class="etab active" id="tab-html" onclick="switchTab('html')">HTML</div>
+      <div class="etab" id="tab-simple" onclick="switchTab('simple')">Simple</div>
+    </div>
+    <div id="editor-body">
+
+      <!-- HTML TAB -->
+      <div id="panel-html" style="display:flex;flex-direction:column;gap:10px;flex:1;overflow:hidden;">
+        <div>
+          <div class="field-label">Slide Name</div>
+          <input type="text" class="field-input" id="slide-name" placeholder="Untitled Slide" oninput="updateCurrentName(this.value)">
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+          <div class="field-label">HTML Code</div>
+          <textarea id="html-editor" spellcheck="false" placeholder="Paste your full HTML here..."></textarea>
+        </div>
+        <button class="apply-btn" onclick="applyHtml()">Apply →</button>
+      </div>
+
+      <!-- SIMPLE TAB -->
+      <div id="panel-simple" style="display:none;flex-direction:column;gap:10px;flex:1;overflow:hidden;">
+        <div id="simple-editor">
+          <div>
+            <div class="field-label">Title <span style="color:var(--muted);font-size:9px;">(optional)</span></div>
+            <input type="text" class="field-input" id="s-title" placeholder="Main Title">
+          </div>
+          <div>
+            <div class="field-label">Body Text</div>
+            <textarea class="field-input" id="s-body" rows="5" placeholder="Body content...&#10;• Use • for bullets&#10;• Line by line" style="resize:vertical;line-height:1.5;"></textarea>
+          </div>
+          <div>
+            <div class="field-label">Background</div>
+            <div class="color-row">
+              <input type="color" class="color-swatch" id="s-bg" value="#3c096c">
+              <input type="text" class="field-input" id="s-bg-text" value="#3c096c" style="flex:1;">
+            </div>
+          </div>
+          <div>
+            <div class="field-label">Text Color</div>
+            <div class="color-row">
+              <input type="color" class="color-swatch" id="s-color" value="#ffd700">
+              <input type="text" class="field-input" id="s-color-text" value="#ffd700" style="flex:1;">
+            </div>
+          </div>
+          <div>
+            <div class="field-label">Layout</div>
+            <select class="field-input" id="s-layout">
+              <option value="center">Centered</option>
+              <option value="left">Left Aligned</option>
+            </select>
+          </div>
+          <div>
+            <div class="field-label">Font Family</div>
+            <select class="field-input" id="s-font">
+              <option value="Noto Serif Tamil">Noto Serif Tamil (Tamil)</option>
+              <option value="Noto Sans Tamil">Noto Sans Tamil (Tamil Sans)</option>
+              <option value="Georgia">Georgia (Serif)</option>
+              <option value="Arial">Arial (Sans-serif)</option>
+              <option value="Courier New">Courier New (Mono)</option>
+              <option value="Trebuchet MS">Trebuchet MS</option>
+              <option value="Palatino Linotype">Palatino Linotype</option>
+            </select>
+          </div>
+          <button class="apply-btn" onclick="applySimple()">Apply →</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- EXPORT MODAL -->
+<div id="export-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:10000;align-items:center;justify-content:center;">
+  <div style="background:#18181b;border:1px solid #2a2a2e;border-radius:10px;width:380px;max-width:95vw;padding:24px;display:flex;flex-direction:column;gap:16px;">
+    <div style="font-family:'Playfair Display',serif;font-size:16px;color:#34d399;letter-spacing:0.04em;">⬇ Export Slides</div>
+
+    <!-- All slides option -->
+    <label id="export-opt-all" style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 12px;border:1px solid #2a2a2e;border-radius:6px;transition:border-color 0.15s;">
+      <input type="radio" name="export-mode" id="export-mode-all" value="all" checked style="accent-color:#34d399;cursor:pointer;">
+      <span style="font-size:12px;color:#f0ede8;">Export All Slides</span>
+      <span id="export-all-count" style="margin-left:auto;font-size:10px;color:#6b6b75;"></span>
+    </label>
+
+    <!-- Range option -->
+    <label id="export-opt-range" style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 12px;border:1px solid #2a2a2e;border-radius:6px;transition:border-color 0.15s;">
+      <input type="radio" name="export-mode" id="export-mode-range" value="range" style="accent-color:#34d399;cursor:pointer;">
+      <span style="font-size:12px;color:#f0ede8;">Page Range</span>
+    </label>
+
+    <!-- Range inputs (shown when range is selected) -->
+    <div id="export-range-inputs" style="display:none;flex-direction:row;align-items:center;gap:8px;padding:0 4px;">
+      <span style="font-size:11px;color:#6b6b75;white-space:nowrap;">From</span>
+      <input type="number" id="export-from" min="1" value="1" class="field-input" style="width:68px;text-align:center;" oninput="updateExportRangeInfo()">
+      <span style="font-size:11px;color:#6b6b75;">to</span>
+      <input type="number" id="export-to" min="1" value="1" class="field-input" style="width:68px;text-align:center;" oninput="updateExportRangeInfo()">
+      <span id="export-range-info" style="font-size:10px;color:#6b6b75;margin-left:4px;"></span>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:4px;">
+      <button class="apply-btn" style="flex:1;background:#34d399;color:#000;" onclick="doExport()">⬇ Export →</button>
+      <button onclick="closeExportModal()" style="flex:1;background:none;border:1px solid #2a2a2e;color:#6b6b75;font-family:'DM Mono',monospace;font-size:11px;padding:8px;border-radius:4px;cursor:pointer;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- IMPORT MODAL -->
+<div id="import-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:10000;align-items:center;justify-content:center;">
+  <div style="background:#18181b;border:1px solid #2a2a2e;border-radius:10px;width:400px;max-width:95vw;padding:24px;display:flex;flex-direction:column;gap:16px;">
+    <div style="font-family:'Playfair Display',serif;font-size:16px;color:#60a5fa;letter-spacing:0.04em;">⬆ Import Slides</div>
+    <div id="import-modal-info" style="font-size:12px;color:#6b6b75;"></div>
+
+    <!-- Replace option -->
+    <label id="import-opt-replace" style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:12px;border:1px solid #60a5fa;border-radius:6px;transition:border-color 0.15s;">
+      <input type="radio" name="import-mode" id="import-mode-replace" value="replace" checked style="accent-color:#60a5fa;cursor:pointer;margin-top:2px;flex-shrink:0;">
+      <div>
+        <div style="font-size:12px;color:#f0ede8;margin-bottom:3px;">Replace All</div>
+        <div style="font-size:10px;color:#6b6b75;">Discard current slides and load the imported file.</div>
+      </div>
+    </label>
+
+    <!-- Append option -->
+    <label id="import-opt-append" style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:12px;border:1px solid #2a2a2e;border-radius:6px;transition:border-color 0.15s;">
+      <input type="radio" name="import-mode" id="import-mode-append" value="append" style="accent-color:#60a5fa;cursor:pointer;margin-top:2px;flex-shrink:0;">
+      <div>
+        <div style="font-size:12px;color:#f0ede8;margin-bottom:3px;">Append to End</div>
+        <div style="font-size:10px;color:#6b6b75;">Keep all existing slides and add imported slides at the end.</div>
+      </div>
+    </label>
+
+    <div style="display:flex;gap:10px;margin-top:4px;">
+      <button class="apply-btn" style="flex:1;background:#60a5fa;color:#000;" onclick="confirmImport()">⬆ Import →</button>
+      <button onclick="closeImportModal()" style="flex:1;background:none;border:1px solid #2a2a2e;color:#6b6b75;font-family:'DM Mono',monospace;font-size:11px;padding:8px;border-radius:4px;cursor:pointer;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- VASANAM MODAL -->
+<div id="vasanam-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:10000;align-items:center;justify-content:center;">
+  <div style="background:#18181b;border:1px solid #2a2a2e;border-radius:10px;width:400px;max-width:95vw;padding:24px;display:flex;flex-direction:column;gap:14px;">
+    <div style="font-family:'Playfair Display',serif;font-size:16px;color:#a78bfa;letter-spacing:0.04em;">✦ வசனம் சேர்க்கவும்</div>
+    <div>
+      <div class="field-label">வசன உரை (Verse Text)</div>
+      <textarea class="field-input" id="vs-text" rows="4" placeholder="இங்கே வசனம் தட்டச்சு செய்யவும்..." style="resize:vertical;line-height:1.6;font-family:'Noto Serif Tamil',serif;font-size:14px;"></textarea>
+    </div>
+    <div>
+      <div class="field-label">வசன குறிப்பு (Reference) — e.g. மத்தேயு 21:13</div>
+      <input type="text" class="field-input" id="vs-ref" placeholder="மத்தேயு 21:13">
+    </div>
+    <div style="display:flex;gap:10px;">
+      <div style="flex:1;">
+        <div class="field-label">Background</div>
+        <div class="color-row">
+          <input type="color" class="color-swatch" id="vs-bg" value="#3c096c">
+          <input type="text" class="field-input" id="vs-bg-text" value="#3c096c" style="flex:1;">
+        </div>
+      </div>
+      <div style="flex:1;">
+        <div class="field-label">Text Color</div>
+        <div class="color-row">
+          <input type="color" class="color-swatch" id="vs-color" value="#ffd700">
+          <input type="text" class="field-input" id="vs-color-text" value="#ffd700" style="flex:1;">
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="field-label">Font Size</div>
+      <select class="field-input" id="vs-fontsize">
+        <option value="small">Small</option>
+        <option value="medium" selected>Medium</option>
+        <option value="large">Large</option>
+        <option value="xlarge">Extra Large</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:4px;">
+      <button class="apply-btn" style="flex:1;" onclick="addVasanamSlide()">சேர்க்கவும் →</button>
+      <button onclick="closeVasanamModal()" style="flex:1;background:none;border:1px solid #2a2a2e;color:#6b6b75;font-family:'DM Mono',monospace;font-size:11px;padding:8px;border-radius:4px;cursor:pointer;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- BIBLE PANEL (right-side drawer) -->
+<div id="bible-panel">
+  <div id="bible-panel-header">
+    <div class="bp-title">📖 தமிழ் வேதாகமம்</div>
+    <button class="bp-close" onclick="toggleBiblePanel()">✕</button>
+  </div>
+  <div id="bible-panel-body">
+    <div class="bp-field">
+      <div class="bp-label">ஆகமம் (Book)</div>
+      <select class="bp-select tamil" id="bp-book" onchange="bpOnBookChange()">
+        <option value="">— ஆகமம் தேர்ந்தெடுக்கவும் —</option>
+      </select>
+    </div>
+    <div class="bp-field">
+      <div class="bp-label">அதிகாரம் (Chapter)</div>
+      <select class="bp-select" id="bp-chapter" onchange="bpOnChapterChange()" disabled>
+        <option value="">— அதிகாரம் —</option>
+      </select>
+    </div>
+    <div class="bp-field">
+      <div class="bp-label">வசனம் (Verse) — optional</div>
+      <select class="bp-select" id="bp-verse" onchange="bpOnVerseChange()" disabled>
+        <option value="">— எல்லா வசனங்கள் —</option>
+      </select>
+    </div>
+    <div id="bp-verse-preview">
+      <div id="bp-preview-empty">ஆகமம் மற்றும் அதிகாரம்<br>தேர்ந்தெடுக்கவும்</div>
+      <div id="bp-preview-text" style="display:none;"></div>
+      <div id="bp-preview-ref" style="display:none;"></div>
+    </div>
+  </div>
+  <div id="bible-panel-footer">
+    <button class="bp-btn present-btn" onclick="bpShowFullscreen()">▶ Show Fullscreen</button>
+    <button class="bp-btn add-btn" onclick="bpAddAsSlide()">✦ Add as Slide</button>
+  </div>
+</div>
+
+<!-- SONG BOOK PANEL (right-side drawer) -->
+<div id="song-panel">
+  <div id="song-panel-header">
+    <div class="sp-title">🎵 பாடல் புத்தகம்</div>
+    <button class="sp-close" onclick="toggleSongPanel()">✕</button>
+  </div>
+  <div id="song-panel-body">
+    <!-- Collapsible song picker -->
+    <div id="sp-picker">
+      <div id="sp-picker-header" onclick="spTogglePicker()">
+        <span id="sp-picker-label">பாடல் தேர்ந்தெடுக்கவும்</span>
+        <span id="sp-picker-arrow">▼</span>
+      </div>
+      <div id="sp-picker-body">
+        <input type="text" class="sp-search" id="sp-search" placeholder="பாடல் பெயர் / எண் தேடுக..." oninput="spOnSearch()">
+        <select class="sp-select tamil" id="sp-song" size="6" onchange="spOnSongChange()">
+        </select>
+      </div>
+    </div>
+    <!-- Song content preview -->
+    <div id="sp-song-preview">
+      <div id="sp-preview-empty">பாடல் தேர்ந்தெடுக்கவும்</div>
+      <div id="sp-preview-title" style="display:none;"></div>
+      <div id="sp-preview-artist" style="display:none;"></div>
+      <div id="sp-preview-text" style="display:none;"></div>
+      <div id="sp-preview-ref" style="display:none;"></div>
+    </div>
+  </div>
+  <div id="song-panel-footer">
+    <button class="sp-btn present-btn" onclick="spShowFullscreen()">▶ Show Fullscreen</button>
+    <button class="sp-btn add-btn" onclick="spAddAsSlide()">✦ Add as Slide</button>
+  </div>
+</div>
+
+<!-- PRESENT OVERLAY -->
+<div id="present-overlay">
+  <iframe id="present-iframe" sandbox="allow-scripts allow-same-origin"></iframe>
+  <div id="present-controls-zone">
+    <div id="present-controls">
+      <button class="pc-btn" onclick="presentNav(-1)">← Prev</button>
+      <div id="present-indicator" onclick="showGotoInput()">1 / 1</div>
+      <button class="pc-btn" onclick="presentNav(1)">Next →</button>
+      <button id="present-back-btn" class="pc-btn back" onclick="presentGoBack()" style="display:none">↩ Back</button>
+      <button class="pc-btn exit" onclick="exitPresent()">✕ Exit</button>
+    </div>
+  </div>
+</div>
+
+<div id="transition-veil"></div>
+<div id="toast"></div>
+
+<script src="song_content.js"></script>
+<script src="app.js"></script>
+<script src="bible_content.js"></script>
+</body>
+</html>
