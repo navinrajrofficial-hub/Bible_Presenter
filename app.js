@@ -810,7 +810,6 @@ function injectAutoFit(iframe) {
           }
           vt.style.fontSize = lo + 'px';
           if (vr) vr.style.fontSize = (lo * 0.32) + 'px';
-          if (!document.querySelector('.sky')) vt.style.webkitTextStroke = Math.max(3, lo * 0.06) + 'px rgba(180,130,0,0.45)';
         }
         autoFit();
         window.addEventListener('resize', autoFit);
@@ -1355,7 +1354,8 @@ function _spBuildSlideHtml() {
   const song = songContent[_spSongId];
   const text = song.content;
   const ref = `${song.title}  (Song #${_spSongId})`;
-  return createVasanamHtml(text, ref, '#1a1a2e', '#34d399', 'medium');
+  const songSlideBg = 'linear-gradient(180deg,#0b0f26 0%,#111936 52%,#1a2647 100%)';
+  return createVasanamHtml(text, ref, songSlideBg, '#f8fafc', 'medium');
 }
 
 function _spBuildPageHtml() {
@@ -1373,7 +1373,7 @@ function _spBuildPageHtml() {
     @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+Tamil&display=swap');
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      background: #1a1a2e; color: #e0e0e0;
+      background: linear-gradient(180deg,#0b0f26 0%,#111936 52%,#1a2647 100%); color: #f8fafc;
       font-family: 'Noto Serif Tamil', serif;
       padding: 40px 60px 60px;
       line-height: 2.2;
@@ -1383,7 +1383,7 @@ function _spBuildPageHtml() {
     body::-webkit-scrollbar-thumb { background: rgba(52,211,153,0.3); border-radius: 3px; }
     h1 { color: #34d399; font-size: 28px; margin-bottom: 8px; line-height: 1.4; }
     .content { font-size: 20px; }
-    .ref { text-align: right; color: #34d399; font-size: 13px; margin-top: 30px; padding-top: 12px; border-top: 1px solid rgba(52,211,153,0.2); font-family: monospace; }
+    .ref { text-align: right; color: #34d399; font-size: 13px; margin-top: 30px; padding-top: 12px; border-top: 1px solid rgba(52,211,153,0.25); font-family: monospace; }
   </style></head><body>
     <h1>${song.title.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</h1>
     ${artistLine}
@@ -1397,11 +1397,13 @@ function spShowFullscreen() {
   const html = _spBuildPageHtml();
   if (!html) { showToast('Song content not available', 'error'); return; }
   const song = songContent[_spSongId];
-  document.getElementById('present-overlay').classList.add('active');
+  const overlay = document.getElementById('present-overlay');
+  overlay.classList.add('active', 'panel-fs');
   document.body.style.overflow = 'hidden';
   const pif = document.getElementById('present-iframe');
   pif.srcdoc = html;
   document.getElementById('present-indicator').textContent = song.title;
+  _spPopulateVerses(song);
 }
 
 function spAddAsSlide() {
@@ -1416,6 +1418,150 @@ function spAddAsSlide() {
   renderAll(); renderPreview(); renderEditor();
   scheduleSave();
   showToast(`✓ Slide added: ${name}`, 'success');
+}
+
+// ══════════════════════════════════════════════════
+//  SONG STAGING PANEL (split verses → queue → main slides)
+// ══════════════════════════════════════════════════
+let _spVerses = [];   // split verse texts for current song
+let _spQueue  = [];   // queued items: { text, name }
+
+function _spSplitVerses(content) {
+  return content
+    .replace(/\r\n/g, '\n')
+    .replace(/[ \t]+$/gm, '')
+    .split(/\n\s*\n/)
+    .map(v => v.trim())
+    .filter(v => v.length > 0);
+}
+
+function _spPopulateVerses(song) {
+  _spVerses = _spSplitVerses(song.content);
+  _spQueue = [];
+  document.getElementById('sp-fs-title-text').textContent = song.title + ' (#' + _spSongId + ')';
+  const container = document.getElementById('sp-fs-verses');
+  container.innerHTML = '';
+  _spVerses.forEach((v, i) => {
+    const div = document.createElement('div');
+    div.className = 'sp-fs-verse';
+    const preview = v.length > 80 ? v.slice(0, 80) + '…' : v;
+    div.innerHTML =
+      '<span class="sp-fs-verse-text">' + _esc(preview).replace(/\n/g, ' ') + '</span>' +
+      '<button class="sp-fs-verse-add" onclick="spQueueAdd(' + i + ')" title="Add to queue">➕</button>';
+    container.appendChild(div);
+  });
+  _spRenderQueue();
+}
+
+function _esc(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function spQueueAdd(verseIdx) {
+  const text = _spVerses[verseIdx];
+  if (!text) return;
+  const num = _spQueue.length + 1;
+  _spQueue.push({ text, name: 'Verse ' + num });
+  _spRenderQueue();
+}
+
+function _spRenderQueue() {
+  const container = document.getElementById('sp-fs-queue');
+  const countEl = document.getElementById('sp-fs-queue-count');
+  countEl.textContent = _spQueue.length;
+  container.innerHTML = '';
+  if (_spQueue.length === 0) {
+    container.innerHTML = '<div class="sp-fs-empty">No slides queued yet</div>';
+    return;
+  }
+  _spQueue.forEach((item, i) => {
+    const el = document.createElement('div');
+    el.className = 'sp-fs-item';
+    el.id = 'sp-fs-item-' + i;
+    const preview = item.text.length > 60 ? item.text.slice(0, 60).replace(/\n/g, ' ') + '…' : item.text.replace(/\n/g, ' ');
+    el.innerHTML =
+      '<div class="sp-fs-item-row">' +
+        '<span class="sp-fs-item-name">' + _esc(preview) + '</span>' +
+        '<div class="sp-fs-item-btns">' +
+          '<button onclick="spQueueMove(' + i + ',-1)" title="Move up"' + (i === 0 ? ' disabled' : '') + '>▲</button>' +
+          '<button onclick="spQueueMove(' + i + ',1)" title="Move down"' + (i === _spQueue.length - 1 ? ' disabled' : '') + '>▼</button>' +
+          '<button class="sp-fs-edit" onclick="spQueueEdit(' + i + ')" title="Edit">✎</button>' +
+          '<button onclick="spQueueCopy(' + i + ')" title="Copy">⧉</button>' +
+          '<button class="sp-fs-remove" onclick="spQueueRemove(' + i + ')" title="Remove">✕</button>' +
+        '</div>' +
+      '</div>';
+    container.appendChild(el);
+  });
+}
+
+function spQueueMove(idx, dir) {
+  const target = idx + dir;
+  if (target < 0 || target >= _spQueue.length) return;
+  const temp = _spQueue[idx];
+  _spQueue[idx] = _spQueue[target];
+  _spQueue[target] = temp;
+  _spRenderQueue();
+}
+
+function spQueueRemove(idx) {
+  _spQueue.splice(idx, 1);
+  _spRenderQueue();
+}
+
+function spQueueCopy(idx) {
+  const copy = { text: _spQueue[idx].text, name: _spQueue[idx].name + ' (copy)' };
+  _spQueue.splice(idx + 1, 0, copy);
+  _spRenderQueue();
+}
+
+function spQueueEdit(idx) {
+  const el = document.getElementById('sp-fs-item-' + idx);
+  if (!el) return;
+  if (el.classList.contains('editing')) {
+    // close editor
+    el.classList.remove('editing');
+    const ed = el.querySelector('.sp-fs-editor');
+    if (ed) ed.remove();
+    return;
+  }
+  el.classList.add('editing');
+  const editor = document.createElement('div');
+  editor.className = 'sp-fs-editor';
+  editor.innerHTML =
+    '<textarea class="sp-fs-ta">' + _esc(_spQueue[idx].text) + '</textarea>' +
+    '<button class="sp-fs-save-btn" onclick="spQueueSave(' + idx + ')">Save</button>';
+  el.appendChild(editor);
+  const ta = editor.querySelector('.sp-fs-ta');
+  ta.focus();
+}
+
+function spQueueSave(idx) {
+  const el = document.getElementById('sp-fs-item-' + idx);
+  if (!el) return;
+  const ta = el.querySelector('.sp-fs-ta');
+  if (ta) _spQueue[idx].text = ta.value;
+  _spRenderQueue();
+}
+
+function spCommitAllToMain() {
+  if (_spQueue.length === 0) { showToast('Queue is empty', 'error'); return; }
+  const song = songContent[_spSongId];
+  const songName = song ? song.title : 'Song';
+  const songSlideBg = 'linear-gradient(180deg,#0b0f26 0%,#111936 52%,#1a2647 100%)';
+  _spQueue.forEach((item, i) => {
+    const ref = songName + '  (Song #' + _spSongId + ')';
+    const html = createVasanamHtml(item.text, ref, songSlideBg, '#f8fafc', 'medium');
+    const slide = { id: Date.now() + Math.random(), type: 'html', name: songName + ' - ' + (i + 1), html };
+    slides.push(slide);
+  });
+  currentIdx = slides.length - 1;
+  renderAll(); renderPreview(); renderEditor();
+  scheduleSave();
+  const count = _spQueue.length;
+  _spQueue = [];
+  _spRenderQueue();
+  exitPresent();
+  showToast('✓ ' + count + ' slides added from ' + songName, 'success');
 }
 
 // ══════════════════════════════════════════════════
@@ -1553,7 +1699,8 @@ function presentNav(dir) {
 }
 
 function exitPresent() {
-  document.getElementById('present-overlay').classList.remove('active');
+  const overlay = document.getElementById('present-overlay');
+  overlay.classList.remove('active', 'panel-fs');
   document.body.style.overflow = '';
   releaseWakeLock();
 }
