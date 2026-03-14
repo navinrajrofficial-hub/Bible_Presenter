@@ -311,6 +311,56 @@ window.addEventListener('resize', autoFit);
 <\/body><\/html>`;
 }
 
+// ── ANIME (Static dark navy gradient) version of Vasanam slide ──
+function createAnimeVasanamHtml(verseText, verseRef) {
+  return `<!DOCTYPE html><html lang="ta"><head><meta charset="UTF-8">
+<style>
+@font-face{font-family:'Noto Serif Tamil';src:local('Noto Serif Tamil'),local('Nirmala UI'),local('Vijaya'),local('Latha'),local('Tamil Sangam MN');font-weight:400 900;}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;}
+body{background:linear-gradient(180deg,#020510 0%,#0a1628 40%,#162a50 70%,#1b3a5c 100%);display:flex;align-items:center;justify-content:center;font-family:'Noto Serif Tamil',serif;padding:1.2vw;position:relative;}
+.sky{position:absolute;inset:0;z-index:0;}
+.verse-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;gap:0.6vh;overflow:hidden;position:relative;z-index:5;}
+.verse-text{font-weight:900;color:#ffffff;text-align:center;line-height:1.22;word-break:break-word;width:100%;text-shadow:0 2px 10px rgba(0,0,0,0.8);}
+.verse-ref{color:#ffffff;opacity:0.9;font-style:italic;letter-spacing:2px;text-align:right;align-self:flex-end;padding-right:1vw;font-weight:900;text-shadow:0 2px 6px rgba(0,0,0,0.6);}
+<\/style><\/head><body>
+<div class="sky"><\/div>
+<div class="verse-wrap" id="vwrap">
+  <div class="verse-text" id="vtext">${verseText}<\/div>
+  ${verseRef ? `<div class="verse-ref" id="vref">— ${verseRef}<\/div>` : ''}
+<\/div>
+<script>
+var MAX_FONT = 130;
+function autoFit() {
+  var wrap = document.getElementById('vwrap');
+  var vt   = document.getElementById('vtext');
+  var vr   = document.getElementById('vref');
+  if (!wrap || !vt) return;
+  var availW = wrap.clientWidth;
+  var availH = wrap.clientHeight;
+  if (availH < 10 || availW < 10) { setTimeout(autoFit, 100); return; }
+  vt.style.width = '100%';
+  var lo = 8, hi = Math.min(availH, MAX_FONT);
+  for (var i = 0; i < 30; i++) {
+    var mid = (lo + hi) / 2;
+    vt.style.fontSize = mid + 'px';
+    if (vr) vr.style.fontSize = (mid * 0.32) + 'px';
+    var needed = vt.scrollHeight + (vr ? vr.offsetHeight + mid * 0.2 : 0);
+    if (needed > availH || vt.scrollWidth > vt.clientWidth + 1) {
+      hi = mid;
+    } else {
+      lo = mid;
+    }
+  }
+  vt.style.fontSize = lo + 'px';
+  if (vr) vr.style.fontSize = (lo * 0.32) + 'px';
+}
+document.fonts ? document.fonts.ready.then(autoFit) : window.addEventListener('load', autoFit);
+window.addEventListener('resize', autoFit);
+<\/script>
+<\/body><\/html>`;
+}
+
 // ══════════════════════════════════════════════════
 //  SLIDE DATA HELPERS
 // ══════════════════════════════════════════════════
@@ -760,7 +810,7 @@ function injectAutoFit(iframe) {
           }
           vt.style.fontSize = lo + 'px';
           if (vr) vr.style.fontSize = (lo * 0.32) + 'px';
-          vt.style.webkitTextStroke = Math.max(3, lo * 0.06) + 'px rgba(180,130,0,0.45)';
+          if (!document.querySelector('.sky')) vt.style.webkitTextStroke = Math.max(3, lo * 0.06) + 'px rgba(180,130,0,0.45)';
         }
         autoFit();
         window.addEventListener('resize', autoFit);
@@ -1168,6 +1218,8 @@ function _bpBuildSlideHtml() {
   const text = document.getElementById('bp-preview-text').textContent;
   const ref  = document.getElementById('bp-preview-ref').textContent;
   if (!text || text.includes('இன்னும் சேர்க்கப்படவில்லை')) return null;
+  const anime = document.getElementById('bp-anime-check').checked;
+  if (anime) return createAnimeVasanamHtml(text, ref);
   return createVasanamHtml(text, ref, '#3c096c', '#ffd700', 'medium');
 }
 
