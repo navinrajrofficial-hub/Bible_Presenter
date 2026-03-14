@@ -9,6 +9,15 @@
 </head>
 <body>
 
+<!-- ANIMATED APP BACKGROUND -->
+<div id="app-bg">
+  <div class="app-orb app-orb1"></div>
+  <div class="app-orb app-orb2"></div>
+  <div class="app-orb app-orb3"></div>
+  <div class="app-orb app-orb4"></div>
+  <div class="app-orb app-orb5"></div>
+</div>
+
 <!-- HIDDEN FILE INPUT for import -->
 <input type="file" id="file-import-input" accept=".prsn,.json" style="display:none">
 
@@ -30,6 +39,9 @@
   <div id="save-indicator">● saved</div>
   <div id="slide-counter">— / —</div>
 </div>
+
+<!-- FOOTER -->
+<div id="footer-bar"><span class="footer-icon">✨</span> Specially designed for <span id="footer-church">'Good Samarian Jesus Prayer House'</span></div>
 
 <!-- MAIN -->
 <div id="main">
@@ -260,8 +272,9 @@
       <div id="bp-preview-ref" style="display:none;"></div>
     </div>
   </div>
-  <div id="bible-panel-footer">
-    <button class="bp-btn present-btn" onclick="bpShowFullscreen()">▶ Show Fullscreen</button>
+  <div id="bible-panel-footer">    <label id="bp-anime-toggle" title="Animated cinematic background when added as slide">
+      <input type="checkbox" id="bp-anime-check"> ✨ Anime Effect
+    </label>    <button class="bp-btn present-btn" onclick="bpShowFullscreen()">▶ Show Fullscreen</button>
     <button class="bp-btn add-btn" onclick="bpAddAsSlide()">✦ Add as Slide</button>
   </div>
 </div>
@@ -310,6 +323,23 @@
       <button class="pc-btn" onclick="presentNav(1)">Next →</button>
       <button id="present-back-btn" class="pc-btn back" onclick="presentGoBack()" style="display:none">↩ Back</button>
       <button class="pc-btn exit" onclick="exitPresent()">✕ Exit</button>
+    </div>
+  </div>
+
+  <!-- SONG FULLSCREEN STAGING PANEL (visible only in panel-fs mode) -->
+  <div id="sp-fs-panel">
+    <div id="sp-fs-header">
+      <div id="sp-fs-title-text">Song</div>
+    </div>
+
+    <div class="sp-fs-section-label">VERSES <span class="sp-fs-hint">— click ➕ to queue</span></div>
+    <div id="sp-fs-verses"><div class="sp-fs-empty">No song selected</div></div>
+
+    <div class="sp-fs-section-label">QUEUE (<span id="sp-fs-queue-count">0</span>)</div>
+    <div id="sp-fs-queue"><div class="sp-fs-empty">No slides queued yet</div></div>
+
+    <div id="sp-fs-footer">
+      <button id="sp-fs-commit-btn" onclick="spCommitAllToMain()">✦ Add All to Main Slides</button>
     </div>
   </div>
 </div>

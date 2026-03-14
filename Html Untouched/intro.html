@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>நல்ல சமாரியன் இயேசு ஜெப வீடு</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Tamil:wght@400;700;900&family=Cinzel+Decorative:wght@700;900&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #000;
+    font-family: 'Noto Serif Tamil', serif;
+  }
+
+  .slide {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+    background: radial-gradient(ellipse at 20% 50%, #1a0a00 0%, #0d0500 40%, #000000 100%);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #particles {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 1;
+  }
+
+  .glow-bg {
+    position: absolute;
+    width: 70vw;
+    height: 70vh;
+    background: radial-gradient(ellipse, rgba(212,160,23,0.18) 0%, transparent 70%);
+    border-radius: 50%;
+    z-index: 2;
+    animation: pulseGlow 3s ease-in-out infinite;
+  }
+
+  @keyframes pulseGlow {
+    0%, 100% { transform: scale(1); opacity: 0.7; }
+    50% { transform: scale(1.1); opacity: 1; }
+  }
+
+  .ornament-top, .ornament-bottom {
+    position: absolute;
+    width: 80%;
+    height: 2px;
+    left: 10%;
+    z-index: 3;
+    background: linear-gradient(90deg, transparent, #c8952a, #f5d97a, #ffeead, #f5d97a, #c8952a, transparent);
+    animation: lineReveal 1.5s ease forwards;
+    transform-origin: center;
+    transform: scaleX(0);
+  }
+  .ornament-top { top: 15vh; animation-delay: 0.3s; }
+  .ornament-bottom { bottom: 15vh; animation-delay: 0.5s; }
+
+  @keyframes lineReveal {
+    to { transform: scaleX(1); }
+  }
+
+  .ornament-top::before, .ornament-top::after,
+  .ornament-bottom::before, .ornament-bottom::after {
+    content: '◆';
+    position: absolute;
+    top: -10px;
+    font-size: 16px;
+    color: #f5d97a;
+    text-shadow: 0 0 10px #ffd700, 0 0 20px #ffd700;
+  }
+  .ornament-top::before, .ornament-bottom::before { left: -8px; }
+  .ornament-top::after, .ornament-bottom::after { right: -8px; }
+
+  .cross-wrap {
+    position: relative;
+    z-index: 4;
+    margin-bottom: 1.5vh;
+    animation: dropIn 1s cubic-bezier(0.34,1.56,0.64,1) forwards;
+    opacity: 0;
+    animation-delay: 0.2s;
+  }
+
+  @keyframes dropIn {
+    from { opacity: 0; transform: translateY(-40px) scale(0.6); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .cross {
+    font-size: clamp(36px, 5vh, 60px);
+    color: #f5d97a;
+    text-shadow: 0 0 10px #ffd700, 0 0 30px #ffa500, 0 0 60px rgba(255,165,0,0.5);
+    animation: crossGlow 2.5s ease-in-out infinite;
+    display: block;
+    text-align: center;
+  }
+
+  @keyframes crossGlow {
+    0%, 100% { text-shadow: 0 0 10px #ffd700, 0 0 30px #ffa500, 0 0 60px rgba(255,165,0,0.4); }
+    50%       { text-shadow: 0 0 20px #ffd700, 0 0 50px #ffa500, 0 0 90px rgba(255,200,0,0.7); }
+  }
+
+  .subtitle-top {
+    position: relative;
+    z-index: 4;
+    font-family: 'Cinzel Decorative', serif;
+    font-size: clamp(10px, 1.4vw, 18px);
+    font-weight: 700;
+    letter-spacing: 8px;
+    color: #c8952a;
+    text-transform: uppercase;
+    margin-bottom: 1.5vh;
+    opacity: 0;
+    animation: fadeUp 1s ease forwards;
+    animation-delay: 0.6s;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .main-title {
+    position: relative;
+    z-index: 4;
+    text-align: center;
+    line-height: 1.2;
+    opacity: 0;
+    animation: titleReveal 1.2s cubic-bezier(0.22,1,0.36,1) forwards;
+    animation-delay: 0.9s;
+    width: 100%;
+    padding: 0 12vw;
+  }
+
+  @keyframes titleReveal {
+    from { opacity: 0; transform: scale(0.85) translateY(30px); filter: blur(8px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+  }
+
+  .title-line1 {
+    display: block;
+    font-size: clamp(28px, 4.8vw, 72px);
+    font-weight: 900;
+    background: linear-gradient(180deg, #fff5c0 0%, #f5d97a 35%, #c8952a 65%, #8b5e0a 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 2px 12px rgba(255,180,0,0.6));
+    letter-spacing: 2px;
+    white-space: nowrap;
+  }
+
+  .title-line2 {
+    display: block;
+    font-size: clamp(24px, 4vw, 60px);
+    font-weight: 700;
+    background: linear-gradient(180deg, #fffbe8 0%, #f5d97a 40%, #b8780a 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 2px 10px rgba(255,160,0,0.5));
+    margin-top: 4px;
+    white-space: nowrap;
+  }
+
+  .main-title::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -150%;
+    width: 60%; height: 100%;
+    background: linear-gradient(110deg, transparent 30%, rgba(255,255,220,0.25) 50%, transparent 70%);
+    animation: shineSweep 4s ease-in-out infinite;
+    animation-delay: 2s;
+    pointer-events: none;
+  }
+
+  @keyframes shineSweep {
+    0%   { left: -150%; }
+    50%  { left: 150%; }
+    100% { left: 150%; }
+  }
+
+  .verse {
+    position: relative;
+    z-index: 4;
+    margin-top: 2.5vh;
+    font-family: 'Noto Serif Tamil', serif;
+    font-size: clamp(12px, 1.4vw, 20px);
+    color: rgba(245,217,122,0.75);
+    letter-spacing: 2px;
+    font-style: italic;
+    opacity: 0;
+    animation: fadeUp 1s ease forwards;
+    animation-delay: 1.8s;
+    text-align: center;
+    padding: 0 5vw;
+  }
+
+  .corner {
+    position: absolute;
+    width: clamp(50px, 6vw, 90px);
+    height: clamp(50px, 6vw, 90px);
+    z-index: 5;
+    opacity: 0;
+    animation: cornerFade 1s ease forwards;
+    animation-delay: 1.4s;
+  }
+  .corner svg { width: 100%; height: 100%; }
+  .corner.tl { top: 20px; left: 20px; }
+  .corner.tr { top: 20px; right: 20px; transform: scaleX(-1); }
+  .corner.bl { bottom: 20px; left: 20px; transform: scaleY(-1); }
+  .corner.br { bottom: 20px; right: 20px; transform: scale(-1,-1); }
+
+  @keyframes cornerFade {
+    to { opacity: 1; }
+  }
+
+  .candle {
+    position: absolute;
+    z-index: 3;
+    font-size: clamp(24px, 3vw, 44px);
+    opacity: 0;
+    animation: candleIn 1s ease forwards;
+  }
+  .candle.left  { left: 5vw;  top: 50%; transform: translateY(-50%); animation-delay: 1.6s; }
+  .candle.right { right: 5vw; top: 50%; transform: translateY(-50%); animation-delay: 1.7s; }
+
+  @keyframes candleIn {
+    from { opacity: 0; transform: translateY(calc(-50% + 15px)); }
+    to   { opacity: 1; transform: translateY(-50%); }
+  }
+
+  .flame {
+    display: inline-block;
+    animation: flicker 1.2s ease-in-out infinite alternate;
+    filter: drop-shadow(0 0 10px #ff9900) drop-shadow(0 0 20px #ff6600);
+  }
+  @keyframes flicker {
+    0%   { transform: rotate(-4deg) scaleY(1); }
+    100% { transform: rotate(4deg) scaleY(1.1); }
+  }
+</style>
+</head>
+<body>
+<div class="slide">
+  <canvas id="particles"></canvas>
+
+  <div class="glow-bg"></div>
+
+  <div class="ornament-top"></div>
+  <div class="ornament-bottom"></div>
+
+  <!-- Corner decorations -->
+  <div class="corner tl">
+    <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M5 75 L5 5 L75 5" stroke="url(#g1)" stroke-width="2" fill="none"/>
+      <path d="M5 5 L25 25" stroke="url(#g1)" stroke-width="1.5" fill="none"/>
+      <circle cx="5" cy="5" r="4" fill="#f5d97a"/>
+      <circle cx="5" cy="75" r="3" fill="#c8952a"/>
+      <circle cx="75" cy="5" r="3" fill="#c8952a"/>
+      <defs>
+        <linearGradient id="g1" x1="0" y1="0" x2="80" y2="80">
+          <stop offset="0%" stop-color="#f5d97a"/>
+          <stop offset="100%" stop-color="#c8952a"/>
+        </linearGradient>
+      </defs>
+    </svg>
+  </div>
+  <div class="corner tr">
+    <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M5 75 L5 5 L75 5" stroke="url(#g2)" stroke-width="2" fill="none"/>
+      <path d="M5 5 L25 25" stroke="url(#g2)" stroke-width="1.5" fill="none"/>
+      <circle cx="5" cy="5" r="4" fill="#f5d97a"/>
+      <circle cx="5" cy="75" r="3" fill="#c8952a"/>
+      <circle cx="75" cy="5" r="3" fill="#c8952a"/>
+      <defs>
+        <linearGradient id="g2" x1="0" y1="0" x2="80" y2="80">
+          <stop offset="0%" stop-color="#f5d97a"/>
+          <stop offset="100%" stop-color="#c8952a"/>
+        </linearGradient>
+      </defs>
+    </svg>
+  </div>
+  <div class="corner bl">
+    <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M5 75 L5 5 L75 5" stroke="url(#g3)" stroke-width="2" fill="none"/>
+      <circle cx="5" cy="5" r="4" fill="#f5d97a"/>
+      <defs>
+        <linearGradient id="g3" x1="0" y1="0" x2="80" y2="80">
+          <stop offset="0%" stop-color="#f5d97a"/>
+          <stop offset="100%" stop-color="#c8952a"/>
+        </linearGradient>
+      </defs>
+    </svg>
+  </div>
+  <div class="corner br">
+    <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M5 75 L5 5 L75 5" stroke="url(#g4)" stroke-width="2" fill="none"/>
+      <circle cx="5" cy="5" r="4" fill="#f5d97a"/>
+      <defs>
+        <linearGradient id="g4" x1="0" y1="0" x2="80" y2="80">
+          <stop offset="0%" stop-color="#f5d97a"/>
+          <stop offset="100%" stop-color="#c8952a"/>
+        </linearGradient>
+      </defs>
+    </svg>
+  </div>
+
+  <div class="cross-wrap">
+    <span class="cross">✝</span>
+  </div>
+
+  <div class="subtitle-top">Welcome to</div>
+
+  <div class="main-title">
+    <span class="title-line1">நல்ல சமாரியன் இயேசு</span>
+    <span class="title-line2">ஜெப வீடு</span>
+  </div>
+
+  <div class="verse">❝ என்னுடைய வீடு ஜெபவீடு என்னப்படும் ❞ — மத்தேயு 21:13</div>
+</div>
+
+<script>
+const canvas = document.getElementById('particles');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+const particles = [];
+const count = 150;
+
+function initParticles() {
+  particles.length = 0;
+  for (let i = 0; i < count; i++) {
+    particles.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      r: Math.random() * 2 + 0.5,
+      dx: (Math.random() - 0.5) * 0.4,
+      dy: -Math.random() * 0.6 - 0.2,
+      alpha: Math.random(),
+      alphaDir: Math.random() > 0.5 ? 0.008 : -0.008,
+      gold: Math.random() > 0.5
+    });
+  }
+}
+initParticles();
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  particles.forEach(p => {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fillStyle = p.gold
+      ? `rgba(245,217,122,${p.alpha})`
+      : `rgba(255,200,80,${p.alpha * 0.6})`;
+    ctx.fill();
+
+    p.x += p.dx;
+    p.y += p.dy;
+    p.alpha += p.alphaDir;
+    if (p.alpha >= 1 || p.alpha <= 0) p.alphaDir *= -1;
+    if (p.y < -5) p.y = canvas.height + 5;
+    if (p.x < -5) p.x = canvas.width + 5;
+    if (p.x > canvas.width + 5) p.x = -5;
+  });
+  requestAnimationFrame(draw);
+}
+draw();
+</script>
+</body>
+</html>

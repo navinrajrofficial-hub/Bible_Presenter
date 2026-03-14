@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>சர்வதேச மகளிர் தினம்</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Tamil:wght@400;600;700;900&family=Playfair+Display:ital,wght@0,700;0,900;1,700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --rose: #e8175d;
+    --deep: #8b0040;
+    --blush: #f7c5d5;
+    --cream: #fff8f2;
+    --gold: #c9963b;
+    --dark: #0f0008;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: var(--dark);
+    font-family: 'Noto Serif Tamil', serif;
+  }
+
+  .stage {
+    width: 100vw; height: 100vh;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Deep cinematic background */
+  .bg {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 50% 40%, #2a001a 0%, #0f0008 60%, #000 100%);
+    z-index: 0;
+  }
+
+  /* Diagonal accent band */
+  .band {
+    position: absolute;
+    width: 200%;
+    height: 38vh;
+    background: linear-gradient(90deg, transparent 0%, rgba(232,23,93,0.06) 30%, rgba(232,23,93,0.12) 50%, rgba(232,23,93,0.06) 70%, transparent 100%);
+    top: 50%; left: -50%;
+    transform: translateY(-50%) rotate(-4deg);
+    z-index: 1;
+  }
+
+  /* Canvas for particles */
+  canvas {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  /* Thin horizontal rule top/bottom */
+  .rule {
+    position: absolute;
+    left: 6vw; right: 6vw;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--rose), rgba(201,150,59,0.8), var(--rose), transparent);
+    z-index: 5;
+    transform: scaleX(0);
+    transform-origin: center;
+    animation: ruleIn 1.2s cubic-bezier(0.77,0,0.18,1) forwards;
+  }
+  .rule.top { top: 12vh; animation-delay: 0.4s; }
+  .rule.bottom { bottom: 12vh; animation-delay: 0.6s; }
+  @keyframes ruleIn { to { transform: scaleX(1); } }
+
+  /* Corner marks */
+  .mark {
+    position: absolute;
+    width: 28px; height: 28px;
+    z-index: 6;
+    opacity: 0;
+    animation: markIn 0.8s ease forwards 1s;
+  }
+  .mark::before, .mark::after {
+    content: '';
+    position: absolute;
+    background: var(--rose);
+  }
+  .mark::before { width: 100%; height: 1px; top: 50%; left: 0; }
+  .mark::after  { width: 1px; height: 100%; left: 50%; top: 0; }
+  .mark.tl { top: calc(12vh - 14px); left: 6vw; }
+  .mark.tr { top: calc(12vh - 14px); right: 6vw; }
+  .mark.bl { bottom: calc(12vh - 14px); left: 6vw; }
+  .mark.br { bottom: calc(12vh - 14px); right: 6vw; }
+  @keyframes markIn { to { opacity: 0.7; } }
+
+  /* Main content */
+  .content {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    padding: 0 8vw;
+    width: 100%;
+  }
+
+  /* March 8 tag */
+  .dateline {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(10px, 1.1vw, 15px);
+    font-style: italic;
+    color: var(--gold);
+    letter-spacing: 6px;
+    opacity: 0;
+    animation: slideDown 0.9s ease forwards 0.5s;
+    margin-bottom: 2.5vh;
+  }
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Venus / female symbol SVG */
+  .symbol-wrap {
+    opacity: 0;
+    animation: popIn 1s cubic-bezier(0.34,1.56,0.64,1) forwards 0.8s;
+    margin-bottom: 2vh;
+  }
+  @keyframes popIn {
+    from { opacity: 0; transform: scale(0.4) rotate(-20deg); }
+    to   { opacity: 1; transform: scale(1) rotate(0deg); }
+  }
+  .symbol-wrap svg {
+    width: clamp(36px, 5vh, 56px);
+    height: clamp(36px, 5vh, 56px);
+    filter: drop-shadow(0 0 14px rgba(232,23,93,0.8)) drop-shadow(0 0 30px rgba(232,23,93,0.4));
+  }
+
+  /* Big headline */
+  .headline {
+    opacity: 0;
+    animation: reveal 1.3s cubic-bezier(0.22,1,0.36,1) forwards 1.1s;
+    margin-bottom: 1.5vh;
+  }
+  @keyframes reveal {
+    from { opacity: 0; transform: translateY(40px) scale(0.92); filter: blur(12px); }
+    to   { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+  }
+
+  .h-line1 {
+    display: block;
+    font-family: 'Noto Serif Tamil', serif;
+    font-size: clamp(30px, 5.5vw, 78px);
+    font-weight: 900;
+    background: linear-gradient(135deg, #fff0f4 0%, #ffb3cc 25%, #e8175d 55%, #8b0040 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.15;
+    letter-spacing: 1px;
+    filter: drop-shadow(0 4px 20px rgba(232,23,93,0.5));
+  }
+
+  .h-line2 {
+    display: block;
+    font-family: 'Noto Serif Tamil', serif;
+    font-size: clamp(22px, 4vw, 58px);
+    font-weight: 700;
+    background: linear-gradient(135deg, #ffd6e7 0%, #ff8ab2 40%, #c9963b 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.2;
+    margin-top: 0.4vh;
+    filter: drop-shadow(0 2px 14px rgba(201,150,59,0.5));
+  }
+
+  /* Thin gold divider */
+  .divider {
+    width: clamp(80px, 20vw, 220px);
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    opacity: 0;
+    animation: fadeUp 0.8s ease forwards 2s;
+    margin: 2vh 0;
+    position: relative;
+  }
+  .divider::before {
+    content: '♦';
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--gold);
+    font-size: 10px;
+    background: transparent;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Tagline Tamil */
+  .tagline {
+    font-size: clamp(11px, 1.4vw, 18px);
+    color: rgba(247,197,213,0.85);
+    letter-spacing: 3px;
+    font-style: italic;
+    font-weight: 400;
+    opacity: 0;
+    animation: fadeUp 1s ease forwards 2.3s;
+    line-height: 1.6;
+    max-width: 70vw;
+    text-align: center;
+  }
+
+  /* Date stamp bottom */
+  .stamp {
+    position: absolute;
+    bottom: 6vh;
+    right: 7vw;
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(9px, 0.9vw, 13px);
+    color: rgba(201,150,59,0.55);
+    letter-spacing: 4px;
+    font-style: italic;
+    z-index: 10;
+    opacity: 0;
+    animation: fadeUp 1s ease forwards 2.8s;
+  }
+
+  /* Shimmer sweep on headline */
+  .headline::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -200%;
+    width: 60%; height: 100%;
+    background: linear-gradient(110deg, transparent, rgba(255,255,255,0.08), transparent);
+    animation: shimmer 5s ease-in-out infinite 3s;
+    pointer-events: none;
+  }
+  @keyframes shimmer {
+    0%   { left: -200%; }
+    40%  { left: 200%; }
+    100% { left: 200%; }
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="bg"></div>
+  <div class="band"></div>
+  <canvas id="c"></canvas>
+
+  <div class="rule top"></div>
+  <div class="rule bottom"></div>
+  <div class="mark tl"></div>
+  <div class="mark tr"></div>
+  <div class="mark bl"></div>
+  <div class="mark br"></div>
+
+  <div class="content">
+    <div class="dateline">MARCH 8 · 2026 · INTERNATIONAL WOMEN'S DAY</div>
+
+    <div class="headline">
+      <span class="h-line1">சர்வதேச மகளிர் தினம்</span>
+      <span class="h-line2">வாழ்த்துக்கள்!</span>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="tagline">
+      ஒவ்வொரு பெண்ணும் கடவுளின் அற்புத படைப்பு
+    </div>
+  </div>
+
+  <div class="stamp">Women's Day · மகளிர் தினம்</div>
+</div>
+
+<script>
+const c = document.getElementById('c');
+const ctx = c.getContext('2d');
+
+function resize() { c.width = window.innerWidth; c.height = window.innerHeight; }
+resize();
+window.addEventListener('resize', resize);
+
+// Two types: small rose petals (drawn) + soft light dots
+const particles = [];
+
+for (let i = 0; i < 55; i++) {
+  particles.push({
+    type: 'petal',
+    x: Math.random() * c.width,
+    y: Math.random() * c.height,
+    size: Math.random() * 7 + 3,
+    dx: (Math.random() - 0.5) * 0.35,
+    dy: -Math.random() * 0.5 - 0.15,
+    rot: Math.random() * 360,
+    rd: (Math.random() - 0.5) * 0.6,
+    alpha: Math.random() * 0.5 + 0.1,
+    ad: (Math.random() > 0.5 ? 1 : -1) * 0.004,
+    hue: Math.random() * 40 + 330, // pink to rose range
+  });
+}
+
+for (let i = 0; i < 70; i++) {
+  particles.push({
+    type: 'dot',
+    x: Math.random() * c.width,
+    y: Math.random() * c.height,
+    r: Math.random() * 1.8 + 0.4,
+    dx: (Math.random() - 0.5) * 0.25,
+    dy: -Math.random() * 0.4 - 0.1,
+    alpha: Math.random() * 0.4 + 0.05,
+    ad: (Math.random() > 0.5 ? 1 : -1) * 0.003,
+    gold: Math.random() > 0.6,
+  });
+}
+
+function drawPetal(ctx, x, y, size, rot, alpha, hue) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(x, y);
+  ctx.rotate(rot * Math.PI / 180);
+  ctx.beginPath();
+  // Simple ellipse-petal shape
+  ctx.ellipse(0, -size / 2, size * 0.38, size * 0.55, 0, 0, Math.PI * 2);
+  ctx.fillStyle = `hsl(${hue}, 85%, 68%)`;
+  ctx.fill();
+  ctx.restore();
+}
+
+function draw() {
+  ctx.clearRect(0, 0, c.width, c.height);
+  particles.forEach(p => {
+    if (p.type === 'petal') {
+      drawPetal(ctx, p.x, p.y, p.size, p.rot, p.alpha, p.hue);
+      p.rot += p.rd;
+    } else {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = p.gold
+        ? `rgba(201,150,59,${p.alpha})`
+        : `rgba(232,23,93,${p.alpha})`;
+      ctx.fill();
+    }
+    p.x += p.dx;
+    p.y += p.dy;
+    p.alpha += p.ad;
+    if (p.alpha > 0.65 || p.alpha < 0.03) p.ad *= -1;
+    if (p.y < -20) p.y = c.height + 20;
+    if (p.x < -20) p.x = c.width + 20;
+    if (p.x > c.width + 20) p.x = -20;
+  });
+  requestAnimationFrame(draw);
+}
+draw();
+</script>
+</body>
+</html>
