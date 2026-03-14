@@ -308,6 +308,7 @@
     </div>
   </div>
   <div id="song-panel-footer">
+    <button class="sp-btn new-song-btn" onclick="spOpenNewSongEditor()">➕ New Song</button>
     <button class="sp-btn present-btn" onclick="spShowFullscreen()">▶ Show Fullscreen</button>
     <button class="sp-btn add-btn" onclick="spAddAsSlide()">✦ Add as Slide</button>
   </div>
@@ -332,6 +333,25 @@
       <div id="sp-fs-title-text">Song</div>
     </div>
 
+    <div id="sp-fs-db-edit">
+      <div class="sp-fs-db-row">
+        <label class="sp-fs-db-label" for="sp-db-title">Title</label>
+        <input id="sp-db-title" class="sp-fs-db-input tamil" type="text" placeholder="Song title">
+      </div>
+      <div class="sp-fs-db-row">
+        <label class="sp-fs-db-label" for="sp-db-artist">Artist (optional)</label>
+        <input id="sp-db-artist" class="sp-fs-db-input" type="text" placeholder="Artist">
+      </div>
+      <div class="sp-fs-db-row">
+        <label class="sp-fs-db-label" for="sp-db-content">Lyrics</label>
+        <textarea id="sp-db-content" class="sp-fs-db-ta tamil" placeholder="Song lyrics..."></textarea>
+      </div>
+      <div class="sp-fs-db-actions">
+        <button class="sp-fs-db-btn save" onclick="spSaveCurrentSongToDb()">💾 Save Current</button>
+        <button class="sp-fs-db-btn add" onclick="spSaveAsNewSongToDb()">➕ Save As New</button>
+      </div>
+    </div>
+
     <div class="sp-fs-section-label">VERSES <span class="sp-fs-hint">— click ➕ to queue</span></div>
     <div id="sp-fs-verses"><div class="sp-fs-empty">No song selected</div></div>
 
@@ -347,7 +367,7 @@
 <div id="transition-veil"></div>
 <div id="toast"></div>
 
-<script src="song_content.js"></script>
+<script src="song_content.js?v=1"></script>
 <script src="app.js"></script>
 <script src="bible_content.js"></script>
 </body>

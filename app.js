@@ -1256,6 +1256,148 @@ let _spOpen = false;
 let _spSongId = null;
 let _spSongKeys = [];   // sorted array of song IDs
 let _spFilteredKeys = []; // currently visible IDs after search
+let _spSongDbFileHandle = null; // File System Access API handle
+let _spSongDbIdbHandle  = null; // IDB-restored handle waiting for permission grant
+let _spFsEditorMode = 'edit'; // 'edit' | 'new'
+
+// ── IndexedDB helpers: persist FileSystemFileHandle + local songs ────────────
+function _spIdbUpgrade(e) {
+  const db = e.target.result;
+  if (!db.objectStoreNames.contains('handles'))    db.createObjectStore('handles');
+  if (!db.objectStoreNames.contains('localSongs')) db.createObjectStore('localSongs');
+}
+
+function _spIdbOpen() {
+  return new Promise((res, rej) => {
+    const req = indexedDB.open('BiblePresenterDb', 2);
+    req.onupgradeneeded = _spIdbUpgrade;
+    req.onsuccess = e => res(e.target.result);
+    req.onerror   = () => rej(req.error);
+  });
+}
+
+async function _spIdbPutHandle(handle) {
+  try {
+    const db = await _spIdbOpen();
+    await new Promise((res, rej) => {
+      const tx = db.transaction('handles', 'readwrite');
+      tx.objectStore('handles').put(handle, 'songContent');
+      tx.oncomplete = () => { db.close(); res(); };
+      tx.onerror   = () => { db.close(); rej(tx.error); };
+    });
+  } catch (_) {}
+}
+
+async function _spIdbGetHandle() {
+  try {
+    const db = await _spIdbOpen();
+    return await new Promise(res => {
+      const tx = db.transaction('handles', 'readonly');
+      const get = tx.objectStore('handles').get('songContent');
+      get.onsuccess = () => { db.close(); res(get.result || null); };
+      get.onerror   = () => { db.close(); res(null); };
+    });
+  } catch (_) { return null; }
+}
+
+async function _spIdbSaveSong(id, song) {
+  try {
+    const db = await _spIdbOpen();
+    await new Promise((res, rej) => {
+      const tx = db.transaction('localSongs', 'readwrite');
+      tx.objectStore('localSongs').put(song, id);
+      tx.oncomplete = () => { db.close(); res(); };
+      tx.onerror   = () => { db.close(); rej(tx.error); };
+    });
+  } catch (_) {}
+}
+
+async function _spIdbLoadAllSongs() {
+  try {
+    const db = await _spIdbOpen();
+    return await new Promise(res => {
+      const tx    = db.transaction('localSongs', 'readonly');
+      const all   = {};
+      const cur   = tx.objectStore('localSongs').openCursor();
+      cur.onsuccess = ev => {
+        const c = ev.target.result;
+        if (c) { all[c.key] = c.value; c.continue(); }
+      };
+      tx.oncomplete = () => { db.close(); res(all); };
+      tx.onerror    = () => { db.close(); res({}); };
+    });
+  } catch (_) { return {}; }
+}
+
+// ── Pure JS file writing (File System Access API) ──
+
+async function _spGetFileHandle() {
+  // Reuse existing handle
+  if (_spSongDbFileHandle) return _spSongDbFileHandle;
+  // Try IDB-stored handle
+  if (_spSongDbIdbHandle) {
+    try {
+      const perm = await _spSongDbIdbHandle.requestPermission({ mode: 'readwrite' });
+      if (perm === 'granted') {
+        _spSongDbFileHandle = _spSongDbIdbHandle;
+        _spSongDbIdbHandle = null;
+        return _spSongDbFileHandle;
+      }
+    } catch (_) {}
+  }
+  // Ask user to pick the file (first time only)
+  if (!window.showSaveFilePicker) return null;
+  try {
+    _spSongDbFileHandle = await window.showSaveFilePicker({
+      suggestedName: 'song_content.js',
+      types: [{ description: 'JavaScript', accept: { 'text/javascript': ['.js'] } }]
+    });
+    _spIdbPutHandle(_spSongDbFileHandle);
+    return _spSongDbFileHandle;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function _spWriteFile(jsText) {
+  const handle = await _spGetFileHandle();
+  if (handle) {
+    const writable = await handle.createWritable();
+    await writable.write(jsText);
+    await writable.close();
+    return true;
+  }
+  return false;
+}
+
+async function _spAppendToFile(id, song) {
+  const handle = await _spGetFileHandle();
+  if (!handle) return false;
+  const file = await handle.getFile();
+  const text = await file.text();
+  const patched = _spAppendSongEntryToJsText(text, id, song);
+  if (!patched) return false;
+  const writable = await handle.createWritable();
+  await writable.write(patched);
+  await writable.close();
+  return true;
+}
+
+
+async function _spTrySilentHandleRestore() {
+  if (_spSongDbFileHandle) return true;
+  const h = await _spIdbGetHandle();
+  if (!h) return false;
+  try {
+    const perm = await h.queryPermission({ mode: 'readwrite' });
+    if (perm === 'granted') {
+      _spSongDbFileHandle = h;
+      return true;
+    }
+    _spSongDbIdbHandle = h; // save for requestPermission on next user gesture
+  } catch (_) {}
+  return false;
+}
 
 // Build the song list on load
 (function spInit() {
@@ -1263,6 +1405,21 @@ let _spFilteredKeys = []; // currently visible IDs after search
   _spSongKeys = Object.keys(songContent).map(Number).sort((a, b) => a - b);
   _spFilteredKeys = _spSongKeys.slice();
   spPopulateList(_spFilteredKeys);
+
+  setTimeout(async () => {
+    try {
+      // Load locally-saved songs from IDB and merge into songContent
+      const local = await _spIdbLoadAllSongs();
+      const localIds = Object.keys(local).map(Number);
+      if (localIds.length) {
+        localIds.forEach(id => { songContent[id] = local[id]; });
+        _spSongKeys = Object.keys(songContent).map(Number).sort((a, b) => a - b);
+        _spFilteredKeys = _spSongKeys.slice();
+        spPopulateList(_spFilteredKeys);
+      }
+      await _spTrySilentHandleRestore();
+    } catch (e) {}
+  }, 300);
 })();
 
 function spPopulateList(keys) {
@@ -1310,6 +1467,7 @@ function spOnSongChange() {
   const val = document.getElementById('sp-song').value;
   _spSongId = val !== '' ? Number(val) : null;
   spUpdatePreview();
+  spSyncFsEditorFromCurrentSong();
   // Collapse picker and update label when song selected
   if (_spSongId !== null && songContent[_spSongId]) {
     const song = songContent[_spSongId];
@@ -1403,7 +1561,210 @@ function spShowFullscreen() {
   const pif = document.getElementById('present-iframe');
   pif.srcdoc = html;
   document.getElementById('present-indicator').textContent = song.title;
+  spSetFsEditorMode('edit');
+  spSyncFsEditorFromCurrentSong();
   _spPopulateVerses(song);
+}
+
+function spSetFsEditorMode(mode) {
+  _spFsEditorMode = mode === 'new' ? 'new' : 'edit';
+  const saveCurrentBtn = document.querySelector('.sp-fs-db-btn.save');
+  if (saveCurrentBtn) saveCurrentBtn.style.display = _spFsEditorMode === 'new' ? 'none' : '';
+}
+
+function spOpenNewSongEditor() {
+  const overlay = document.getElementById('present-overlay');
+  overlay.classList.add('active', 'panel-fs');
+  document.body.style.overflow = 'hidden';
+  spSetFsEditorMode('new');
+
+  const pif = document.getElementById('present-iframe');
+  pif.srcdoc = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    html,body{width:100%;height:100%;overflow:hidden}
+    body{display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#0b0f26 0%,#111936 52%,#1a2647 100%);color:#f8fafc;font-family:'Noto Serif Tamil','Nirmala UI',serif;padding:4vw}
+    .box{text-align:center;max-width:900px}
+    h1{font-size:48px;line-height:1.25;color:#7dd3fc;margin-bottom:12px}
+    p{font-size:26px;line-height:1.7;opacity:0.92}
+  <\/style></head><body><div class="box"><h1>➕ New Song</h1><p>Use the editor on the right panel and click <b>Save As New</b>.</p></div></body></html>`;
+
+  document.getElementById('present-indicator').textContent = 'New Song';
+  document.getElementById('sp-fs-title-text').textContent = 'New Song (unsaved)';
+
+  const titleEl = document.getElementById('sp-db-title');
+  const artistEl = document.getElementById('sp-db-artist');
+  const contentEl = document.getElementById('sp-db-content');
+  if (titleEl) titleEl.value = '';
+  if (artistEl) artistEl.value = '';
+  if (contentEl) contentEl.value = '';
+  if (titleEl) titleEl.focus();
+
+  _spQueue = [];
+  _spVerses = [];
+  document.getElementById('sp-fs-verses').innerHTML = '<div class="sp-fs-empty">New song mode — enter lyrics and save as new</div>';
+  _spRenderQueue();
+}
+
+function spSyncFsEditorFromCurrentSong() {
+  const titleEl = document.getElementById('sp-db-title');
+  const artistEl = document.getElementById('sp-db-artist');
+  const contentEl = document.getElementById('sp-db-content');
+  if (!titleEl || !artistEl || !contentEl) return;
+  if (_spSongId === null || !songContent[_spSongId]) {
+    titleEl.value = '';
+    artistEl.value = '';
+    contentEl.value = '';
+    return;
+  }
+  const song = songContent[_spSongId];
+  titleEl.value = song.title || '';
+  artistEl.value = song.artist || '';
+  contentEl.value = song.content || '';
+}
+
+function _spReadFsEditorSongInput() {
+  const titleEl = document.getElementById('sp-db-title');
+  const artistEl = document.getElementById('sp-db-artist');
+  const contentEl = document.getElementById('sp-db-content');
+  if (!titleEl || !artistEl || !contentEl) return null;
+  const title = titleEl.value.trim();
+  const artist = artistEl.value.trim();
+  const content = contentEl.value.replace(/\r\n/g, '\n').trim();
+  if (!content) { showToast('Lyrics content is required', 'error'); return null; }
+  const firstLine = content.split('\n').map(l => l.trim()).find(Boolean) || '';
+  const resolvedTitle = title || firstLine.slice(0, 80) || 'New Song';
+  return { title: resolvedTitle, artist, content };
+}
+
+function _spRefreshSongListAndSelect(songId) {
+  _spSongKeys = Object.keys(songContent).map(Number).sort((a, b) => a - b);
+  // If search is active, keep it; if song is hidden by filter, reset search.
+  spOnSearch();
+  const sel = document.getElementById('sp-song');
+  let found = false;
+  for (let i = 0; i < sel.options.length; i++) {
+    if (Number(sel.options[i].value) === songId) { found = true; break; }
+  }
+  if (!found) {
+    document.getElementById('sp-search').value = '';
+    _spFilteredKeys = _spSongKeys.slice();
+    spPopulateList(_spFilteredKeys);
+  }
+  sel.value = String(songId);
+  _spSongId = songId;
+  spUpdatePreview();
+  const song = songContent[_spSongId];
+  if (song) document.getElementById('sp-picker-label').textContent = `#${_spSongId} — ${song.title}`;
+  if (document.getElementById('present-overlay').classList.contains('panel-fs') && song) {
+    const html = _spBuildPageHtml();
+    if (html) document.getElementById('present-iframe').srcdoc = html;
+    document.getElementById('present-indicator').textContent = song.title;
+    _spPopulateVerses(song);
+  }
+}
+
+function _spEscTpl(str) {
+  return String(str || '')
+    .replace(/\\/g, '\\\\')
+    .replace(/`/g, '\\`')
+    .replace(/\$\{/g, '\\${');
+}
+
+function _spBuildSongContentJsText() {
+  const ids = Object.keys(songContent).map(Number).sort((a, b) => a - b);
+  const lines = [];
+  lines.push('// ══════════════════════════════════════════════════════');
+  lines.push('//  Tamil Songs Content — Auto-generated from app editor');
+  lines.push('//  Total: ' + ids.length + ' songs');
+  lines.push('// ══════════════════════════════════════════════════════');
+  lines.push('');
+  lines.push('const songContent = {');
+  ids.forEach((id, idx) => {
+    const s = songContent[id] || {};
+    lines.push('');
+    lines.push('  // ── Song ' + id + ' ───────────────────────────────────────');
+    lines.push('  ' + id + ': {');
+    lines.push('    title: `' + _spEscTpl(s.title || '') + '`,');
+    lines.push('    artist: ' + JSON.stringify(s.artist || '') + ',');
+    lines.push('    content: `' + _spEscTpl(s.content || '') + '`');
+    lines.push('  }' + (idx < ids.length - 1 ? ',' : ''));
+  });
+  lines.push('');
+  lines.push('};');
+  return lines.join('\n') + '\n';
+}
+
+function _spBuildSongEntryBlock(id, song) {
+  return [
+    '  // ── Song ' + id + ' ───────────────────────────────────────',
+    '  ' + id + ': {',
+    '    title: `' + _spEscTpl(song.title || '') + '`,',
+    '    artist: ' + JSON.stringify(song.artist || '') + ',',
+    '    content: `' + _spEscTpl(song.content || '') + '`',
+    '  }'
+  ].join('\n');
+}
+
+function _spAppendSongEntryToJsText(existingText, id, song) {
+  const closeMatch = existingText.match(/}\s*;\s*$/);
+  if (!closeMatch) return null;
+  const closeIndex = closeMatch.index;
+  const beforeCloseTrimmed = existingText.slice(0, closeIndex).replace(/\s+$/,'');
+  const lastChar = beforeCloseTrimmed.slice(-1);
+  const block = _spBuildSongEntryBlock(id, song);
+  const sep = (lastChar === '{' || lastChar === ',') ? '\n\n' : ',\n\n';
+  return beforeCloseTrimmed + sep + block + '\n\n};\n';
+}
+
+async function spSaveCurrentSongToDb() {
+  if (_spSongId === null || !songContent[_spSongId]) {
+    showToast('Select a song first', 'error');
+    return;
+  }
+
+  const input = _spReadFsEditorSongInput();
+  if (!input) return;
+  const updated = { title: input.title, artist: input.artist, content: input.content };
+  songContent[_spSongId] = updated;
+  await _spIdbSaveSong(_spSongId, updated);
+  _spRefreshSongListAndSelect(_spSongId);
+  spSyncFsEditorFromCurrentSong();
+
+  try {
+    const wrote = await _spWriteFile(_spBuildSongContentJsText());
+    if (wrote) {
+      showToast(`✓ Song #${_spSongId} saved to song_content.js`, 'success');
+    } else {
+      showToast(`✓ Song #${_spSongId} saved in memory (browser blocked file save)`, 'info', 4000);
+    }
+  } catch (e) {
+    _spSongDbFileHandle = null;
+    showToast('File save failed — try again', 'error');
+  }
+}
+
+async function spSaveAsNewSongToDb() {
+  const input = _spReadFsEditorSongInput();
+  if (!input) return;
+
+  const nextId  = _spSongKeys.length ? _spSongKeys[_spSongKeys.length - 1] + 1 : 0;
+  const newSong = { title: input.title, artist: input.artist, content: input.content };
+  songContent[nextId] = newSong;
+  _spRefreshSongListAndSelect(nextId);
+  spSetFsEditorMode('edit');
+  spSyncFsEditorFromCurrentSong();
+
+  try {
+    const wrote = await _spAppendToFile(nextId, newSong);
+    if (wrote) {
+      showToast(`✓ Song #${nextId} saved to song_content.js`, 'success');
+    } else {
+      showToast(`✓ Song #${nextId} added (pick song_content.js to save permanently)`, 'info', 4000);
+    }
+  } catch (e) {
+    _spSongDbFileHandle = null;
+    showToast('File save failed — try again', 'error');
+  }
 }
 
 function spAddAsSlide() {

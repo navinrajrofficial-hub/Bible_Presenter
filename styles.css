@@ -330,14 +330,19 @@ body {
 
 .thumb-label {
   position: absolute;
-  top: 3px;
-  left: 4px;
+  top: 0;
+  left: 0;
+  right: 0;
   font-size: 8px;
-  color: var(--muted);
-  max-width: 120px;
+  color: #fff;
+  background: rgba(0,0,0,0.75);
+  padding: 3px 6px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-weight: 600;
+  z-index: 10;
+  letter-spacing: 0.03em;
 }
 
 /* ── MOVE UP / DOWN BUTTONS ── */
@@ -783,6 +788,7 @@ select.field-input { cursor: pointer; }
 #toast.show { opacity: 1; transform: translateY(0); }
 #toast.success { border-color: #34d399; color: #34d399; }
 #toast.error   { border-color: #f87171; color: #f87171; }
+#toast.info    { border-color: #7dd3fc; color: #7dd3fc; }
 
 /* ── BIBLE PANEL (right-side drawer) ── */
 #bible-panel {
@@ -1258,6 +1264,17 @@ select.sp-select.tamil { font-family: 'Noto Serif Tamil', serif; font-size: 11.5
   color: var(--accent);
   box-shadow: 0 4px 15px rgba(245,166,35,0.15);
 }
+.sp-btn.new-song-btn {
+  background: linear-gradient(135deg, rgba(56,189,248,0.2), rgba(52,211,153,0.2));
+  border-color: rgba(56,189,248,0.45);
+  color: #7dd3fc;
+  font-weight: 600;
+}
+.sp-btn.new-song-btn:hover {
+  border-color: #38bdf8;
+  color: #e0f2fe;
+  box-shadow: 0 4px 15px rgba(56,189,248,0.25);
+}
 
 .song-btn {
   background: linear-gradient(135deg, rgba(52,211,153,0.08), rgba(6,182,212,0.06));
@@ -1316,6 +1333,65 @@ select.sp-select.tamil { font-family: 'Noto Serif Tamil', serif; font-size: 11.5
   line-height: 1.4;
   word-break: break-word;
 }
+
+#sp-fs-db-edit {
+  padding: 10px 10px 8px;
+  border-bottom: 1px solid rgba(52,211,153,0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  flex-shrink: 0;
+}
+.sp-fs-db-row { display: flex; flex-direction: column; gap: 3px; }
+.sp-fs-db-label {
+  color: #6b6b75;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.sp-fs-db-input,
+.sp-fs-db-ta {
+  width: 100%;
+  background: rgba(0,0,0,0.42);
+  border: 1px solid rgba(52,211,153,0.2);
+  color: #f0ede8;
+  border-radius: 5px;
+  padding: 6px 7px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10.5px;
+}
+.sp-fs-db-input.tamil,
+.sp-fs-db-ta.tamil {
+  font-family: 'Noto Serif Tamil', 'Nirmala UI', serif;
+  font-size: 11px;
+}
+.sp-fs-db-input:focus,
+.sp-fs-db-ta:focus {
+  outline: none;
+  border-color: rgba(52,211,153,0.55);
+}
+.sp-fs-db-ta {
+  min-height: 88px;
+  max-height: 130px;
+  resize: vertical;
+  line-height: 1.45;
+}
+.sp-fs-db-actions,
+.sp-fs-db-btn {
+  border: none;
+  border-radius: 5px;
+  padding: 6px 8px;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 0.03em;
+  transition: opacity 0.15s, transform 0.15s;
+}
+.sp-fs-db-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+.sp-fs-db-btn:active { transform: translateY(0); opacity: 1; }
+.sp-fs-db-btn.save { background: linear-gradient(135deg, #22c55e, #10b981); color: #02110a; flex: 1; }
+.sp-fs-db-btn.add  { background: linear-gradient(135deg, #38bdf8, #06b6d4); color: #021018; flex: 1; }
 
 .sp-fs-section-label {
   padding: 8px 13px 5px;
