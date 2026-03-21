@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>நன்றி - நல்ல சமாரியன் இயேசு ஜெப வீடு</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Tamil:wght@400;700;900&family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Lora:ital,wght@1,400;1,600&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:100%;height:100%;overflow:hidden}
+
+  .stage{
+    width:100vw;height:100vh;
+    position:relative;overflow:hidden;
+  }
+
+  /* ── SKY GRADIENT BACKGROUND ── */
+  .sky{
+    position:absolute;inset:0;
+    background:linear-gradient(
+      175deg,
+      #1a0533 0%,
+      #3d1060 12%,
+      #7b2d8b 25%,
+      #c2527a 40%,
+      #e8845a 55%,
+      #f5b973 68%,
+      #fde8b0 80%,
+      #fff8e7 92%,
+      #ffffff 100%
+    );
+    z-index:0;
+  }
+
+  /* ── SUN GLOW ── */
+  .sun-glow{
+    position:absolute;
+    bottom:-15vh;
+    left:50%;
+    transform:translateX(-50%);
+    width:60vw;height:60vw;
+    border-radius:50%;
+    background:radial-gradient(circle,
+      rgba(255,240,180,0.9) 0%,
+      rgba(255,210,100,0.6) 25%,
+      rgba(255,170,60,0.3) 50%,
+      rgba(255,130,30,0.1) 70%,
+      transparent 100%
+    );
+    z-index:1;
+    animation:sunPulse 4s ease-in-out infinite;
+  }
+  @keyframes sunPulse{
+    0%,100%{transform:translateX(-50%) scale(1);opacity:.9}
+    50%{transform:translateX(-50%) scale(1.06);opacity:1}
+  }
+
+  /* ── LIGHT RAYS ── */
+  canvas.rays{position:absolute;inset:0;z-index:2;pointer-events:none}
+  canvas.petals{position:absolute;inset:0;z-index:4;pointer-events:none}
+  canvas.doves{position:absolute;inset:0;z-index:5;pointer-events:none}
+
+  /* ── HORIZON MIST ── */
+  .mist{
+    position:absolute;
+    bottom:0;left:0;right:0;
+    height:30vh;
+    background:linear-gradient(to top,
+      rgba(255,248,230,0.7) 0%,
+      rgba(255,240,200,0.3) 50%,
+      transparent 100%
+    );
+    z-index:3;
+  }
+
+  /* ── CONTENT ── */
+  .content{
+    position:absolute;inset:0;z-index:10;
+    display:flex;flex-direction:column;
+    align-items:center;justify-content:center;
+  }
+
+  /* ── CARD ── */
+  .card{
+    background:rgba(255,255,255,0.13);
+    backdrop-filter:blur(18px);
+    -webkit-backdrop-filter:blur(18px);
+    border:1px solid rgba(255,255,255,0.35);
+    border-radius:24px;
+    padding:clamp(24px,4vh,50px) clamp(32px,6vw,90px);
+    display:flex;flex-direction:column;
+    align-items:center;gap:0;
+    box-shadow:
+      0 8px 60px rgba(120,40,80,0.25),
+      0 2px 20px rgba(255,160,80,0.2),
+      inset 0 1px 0 rgba(255,255,255,0.5);
+    opacity:0;
+    animation:cardReveal 1.2s cubic-bezier(.22,1,.36,1) forwards .4s;
+    position:relative;
+    overflow:hidden;
+  }
+  .card::before{
+    content:'';
+    position:absolute;inset:0;
+    background:linear-gradient(135deg,
+      rgba(255,255,255,0.18) 0%,
+      rgba(255,200,120,0.08) 50%,
+      rgba(255,255,255,0.05) 100%
+    );
+    border-radius:24px;
+    pointer-events:none;
+  }
+  @keyframes cardReveal{
+    from{opacity:0;transform:translateY(30px) scale(.97)}
+    to{opacity:1;transform:translateY(0) scale(1)}
+  }
+
+  /* ── DOVE ICON (CSS) ── */
+  .dove-row{
+    display:flex;align-items:center;gap:1.2vw;
+    margin-bottom:1.2vh;
+    opacity:0;animation:fadeUp .9s ease forwards .8s;
+  }
+  .dove-emoji{
+    font-size:clamp(24px,3.5vw,50px);
+    animation:doveWing 2.5s ease-in-out infinite;
+    filter:drop-shadow(0 2px 8px rgba(180,100,40,.4));
+  }
+  .dove-emoji:nth-child(2){animation-delay:.4s}
+  .dove-emoji:nth-child(3){animation-delay:.8s}
+  @keyframes doveWing{
+    0%,100%{transform:translateY(0) rotate(-3deg)}
+    50%{transform:translateY(-8px) rotate(3deg)}
+  }
+
+  /* ── TOP SCRIPT ── */
+  .script-top{
+    font-family:'Lora',serif;
+    font-style:italic;font-weight:400;
+    font-size:clamp(10px,1.3vw,17px);
+    letter-spacing:8px;
+    text-transform:uppercase;
+    color:rgba(120,50,20,0.75);
+    margin-bottom:1.2vh;
+    opacity:0;animation:fadeUp .8s ease forwards 1s;
+  }
+
+  /* ── DIVIDER ── */
+  .divider{
+    display:flex;align-items:center;gap:1.2vw;
+    margin-bottom:1.8vh;
+    opacity:0;animation:fadeUp .8s ease forwards 1.2s;
+    width:100%;
+  }
+  .div-line{
+    flex:1;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(180,100,40,.5),transparent);
+  }
+  .div-flower{font-size:clamp(10px,1.4vw,18px);color:rgba(200,80,60,.7)}
+
+  /* ── MAIN THANKS ── */
+  .thanks{
+    font-family:'Noto Serif Tamil',serif;
+    font-size:clamp(68px,12vw,180px);
+    font-weight:900;
+    line-height:1;
+    letter-spacing:8px;
+    background:linear-gradient(
+      160deg,
+      #4a1530 0%,
+      #8b2252 18%,
+      #c0392b 34%,
+      #e84393 50%,
+      #8b2252 66%,
+      #4a1530 80%,
+      #8b2252 100%
+    );
+    background-size:250% auto;
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+    filter:drop-shadow(0 4px 20px rgba(180,40,80,.3));
+    opacity:0;
+    animation:thankReveal 1.1s cubic-bezier(.34,1.56,.64,1) forwards 1.4s,
+              thankFlow 5s ease-in-out infinite 2.5s;
+    margin-bottom:.5vh;
+  }
+  @keyframes thankReveal{
+    from{opacity:0;transform:scale(.6);filter:blur(15px) drop-shadow(0 4px 20px rgba(180,40,80,.3))}
+    to{opacity:1;transform:scale(1);filter:blur(0) drop-shadow(0 4px 20px rgba(180,40,80,.3))}
+  }
+  @keyframes thankFlow{
+    0%,100%{background-position:0% center}
+    50%{background-position:100% center}
+  }
+
+  /* ── SUBTITLE ── */
+  .subtitle{
+    font-family:'Noto Serif Tamil',serif;
+    font-size:clamp(14px,2.2vw,30px);
+    font-weight:700;
+    color:rgba(90,20,40,0.85);
+    letter-spacing:3px;
+    margin-bottom:1.8vh;
+    opacity:0;animation:fadeUp .9s ease forwards 1.9s;
+    text-shadow:0 1px 10px rgba(255,180,120,.4);
+  }
+
+  /* ── VERSE BOX ── */
+  .verse-box{
+    background:rgba(255,230,180,0.25);
+    border:1px solid rgba(200,120,60,.3);
+    border-radius:14px;
+    padding:clamp(10px,1.5vh,18px) clamp(16px,3vw,40px);
+    margin-bottom:1.6vh;
+    opacity:0;animation:fadeUp .9s ease forwards 2.2s;
+    max-width:70vw;
+    text-align:center;
+  }
+  .verse-text{
+    font-family:'Lora',serif;
+    font-style:italic;
+    font-size:clamp(12px,1.5vw,20px);
+    color:rgba(80,30,20,0.9);
+    line-height:1.8;
+    letter-spacing:1px;
+  }
+  .verse-ref{
+    font-family:'Lora',serif;
+    font-size:clamp(10px,1.1vw,15px);
+    color:rgba(140,60,30,.7);
+    letter-spacing:3px;
+    margin-top:.5vh;
+  }
+
+  /* ══════════════════════════════════════════
+     ANIME CHURCH NAME — full rework
+  ══════════════════════════════════════════ */
+  .church-wrapper{
+    position:relative;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    opacity:0;
+    animation:churchEntrance 1s cubic-bezier(.34,1.56,.64,1) forwards 2.7s;
+    margin-top:.3vh;
+  }
+  @keyframes churchEntrance{
+    from{opacity:0;transform:scale(.5) rotate(-12deg)}
+    to{opacity:1;transform:scale(1) rotate(0deg)}
+  }
+
+  /* white backing so text stays clean */
+  .church-bg{
+    position:absolute;
+    inset:3px;
+    border-radius:46px;
+    background:rgba(10,6,30,0.88);
+    z-index:1;
+  }
+
+  /* the actual text */
+  .church{
+    position:relative;
+    z-index:2;
+    font-family:'Noto Serif Tamil',serif;
+    font-weight:900;
+    font-size:clamp(11px,1.45vw,20px);
+    letter-spacing:3px;
+    padding:clamp(6px,1vh,12px) clamp(18px,2.5vw,36px);
+    white-space:nowrap;
+
+    /* animated rainbow gradient text */
+    background:linear-gradient(
+      90deg,
+      #ff6ec7 0%,
+      #ffbe00 18%,
+      #ff4d4d 36%,
+      #a259ff 54%,
+      #ff6ec7 72%,
+      #ffbe00 90%,
+      #ff4d4d 100%
+    );
+    background-size:300% auto;
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+    background-clip:text;
+    animation:rainbowShift 3s linear infinite;
+
+    /* neon glow */
+    filter:drop-shadow(0 0 6px rgba(255,110,200,.7))
+           drop-shadow(0 0 14px rgba(162,89,255,.5));
+  }
+  @keyframes rainbowShift{
+    0%{background-position:0% center}
+    100%{background-position:300% center}
+  }
+
+  /* sparkle dots orbiting the badge */
+  .church-sparks{
+    position:absolute;
+    inset:0;
+    border-radius:50px;
+    z-index:3;
+    pointer-events:none;
+    overflow:visible;
+  }
+  .spark{
+    position:absolute;
+    width:clamp(4px,0.6vw,8px);
+    height:clamp(4px,0.6vw,8px);
+    border-radius:50%;
+    top:50%;left:50%;
+    transform-origin:0 0;
+  }
+  .spark:nth-child(1){background:#ff6ec7;animation:orbitSpark 2.4s linear infinite 0s}
+  .spark:nth-child(2){background:#ffbe00;animation:orbitSpark 2.4s linear infinite .4s}
+  .spark:nth-child(3){background:#ff9900;animation:orbitSpark 2.4s linear infinite .8s}
+  .spark:nth-child(4){background:#a259ff;animation:orbitSpark 2.4s linear infinite 1.2s}
+  .spark:nth-child(5){background:#ff4d4d;animation:orbitSpark 2.4s linear infinite 1.6s}
+  .spark:nth-child(6){background:#39ff14;animation:orbitSpark 2.4s linear infinite 2.0s}
+  @keyframes orbitSpark{
+    0%  {transform:rotate(0deg)   translateX(clamp(22px,3.5vw,48px)) scale(1)}
+    50% {transform:rotate(180deg) translateX(clamp(22px,3.5vw,48px)) scale(1.5)}
+    100%{transform:rotate(360deg) translateX(clamp(22px,3.5vw,48px)) scale(1)}
+  }
+
+  /* ── PETAL BOTTOM DECORATION ── */
+  .petal-row{
+    position:absolute;
+    bottom:-2px;left:0;right:0;
+    display:flex;justify-content:center;
+    gap:.5vw;overflow:hidden;
+    z-index:11;
+    pointer-events:none;
+  }
+  .petal-static{
+    font-size:clamp(16px,2.5vw,36px);
+    opacity:.55;
+    animation:petalSway 3s ease-in-out infinite;
+    transform-origin:bottom center;
+  }
+  .petal-static:nth-child(2n){animation-delay:.5s}
+  .petal-static:nth-child(3n){animation-delay:1s}
+  .petal-static:nth-child(4n){animation-delay:1.5s}
+  @keyframes petalSway{
+    0%,100%{transform:rotate(-6deg)}
+    50%{transform:rotate(6deg)}
+  }
+
+  @keyframes fadeUp{
+    from{opacity:0;transform:translateY(18px)}
+    to{opacity:1;transform:translateY(0)}
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <!-- SKY -->
+  <div class="sky"></div>
+  <div class="sun-glow"></div>
+
+  <!-- CANVASES -->
+  <canvas class="rays" id="cRays"></canvas>
+  <canvas class="petals" id="cPetals"></canvas>
+  <div class="mist"></div>
+  <canvas class="doves" id="cDoves"></canvas>
+
+  <!-- CONTENT -->
+  <div class="content">
+    <div class="card">
+
+      <div class="dove-row">
+        <span class="dove-emoji">🕊️</span>
+        <span class="dove-emoji">✝</span>
+        <span class="dove-emoji">🕊️</span>
+      </div>
+
+      <div class="script-top">வாருங்கள் • மீண்டும் சந்திப்போம்</div>
+
+      <div class="divider">
+        <div class="div-line"></div>
+        <span class="div-flower">🌸</span>
+        <div class="div-line"></div>
+      </div>
+
+      <div class="thanks">நன்றி</div>
+      <div class="subtitle">ஆராதனையில் கலந்துகொண்டதற்கு</div>
+
+      <div class="verse-box">
+        <div class="verse-text">
+          ❝ கர்த்தர் உங்களை ஆசீர்வதித்து உங்களைக் காப்பாராக ❞
+        </div>
+        <div class="verse-ref">— எண்ணாகமம் 6:24</div>
+      </div>
+
+      <!-- ANIME CHURCH NAME BADGE -->
+      <div class="church-wrapper">
+        <div class="church-bg"></div>
+
+        <div class="church">நல்ல சமாரியன் இயேசு ஜெப வீடு</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- PETAL GROUND ROW -->
+  <div class="petal-row">
+    <span class="petal-static">🌸</span><span class="petal-static">🌺</span>
+    <span class="petal-static">🌸</span><span class="petal-static">🌼</span>
+    <span class="petal-static">🌸</span><span class="petal-static">🌺</span>
+    <span class="petal-static">🌸</span><span class="petal-static">🌼</span>
+    <span class="petal-static">🌸</span><span class="petal-static">🌺</span>
+    <span class="petal-static">🌸</span><span class="petal-static">🌼</span>
+    <span class="petal-static">🌸</span><span class="petal-static">🌺</span>
+    <span class="petal-static">🌸</span>
+  </div>
+
+</div>
+
+<script>
+/* ══════════════════
+   LIGHT RAYS
+══════════════════ */
+(function(){
+  const cv=document.getElementById('cRays');
+  const cx=cv.getContext('2d');
+  let W,H,t=0;
+  function resize(){W=cv.width=innerWidth;H=cv.height=innerHeight;}
+  resize();addEventListener('resize',resize);
+
+  const RAYS=Array.from({length:18},(_,i)=>({
+    angle: (i/18)*Math.PI - Math.PI/2 + (Math.random()-.5)*.3,
+    width: 2+Math.random()*6,
+    alpha: .04+Math.random()*.08,
+    speed: (.002+Math.random()*.003)*(Math.random()>.5?1:-1),
+    length: .5+Math.random()*.6
+  }));
+
+  const OX=W*.5, OY=H*1.1;
+
+  function draw(){
+    t+=1;
+    cx.clearRect(0,0,W,H);
+    RAYS.forEach(r=>{
+      r.angle+=r.speed;
+      const ax=Math.cos(r.angle)*W*r.length+OX;
+      const ay=Math.sin(r.angle)*W*r.length+OY;
+      const bx=Math.cos(r.angle+.04)*W*r.length+OX;
+      const by=Math.sin(r.angle+.04)*W*r.length+OY;
+
+      cx.save();
+      const g=cx.createLinearGradient(OX,OY,ax,ay);
+      g.addColorStop(0,`rgba(255,220,130,${r.alpha*2})`);
+      g.addColorStop(.4,`rgba(255,200,100,${r.alpha})`);
+      g.addColorStop(1,'rgba(255,220,130,0)');
+      cx.beginPath();
+      cx.moveTo(OX,OY);
+      cx.lineTo(ax,ay);
+      cx.lineTo(bx,by);
+      cx.closePath();
+      cx.fillStyle=g;
+      cx.fill();
+      cx.restore();
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* ══════════════════
+   FALLING PETALS
+══════════════════ */
+(function(){
+  const cv=document.getElementById('cPetals');
+  const cx=cv.getContext('2d');
+  let W,H,t=0;
+  function resize(){W=cv.width=innerWidth;H=cv.height=innerHeight;}
+  resize();addEventListener('resize',resize);
+
+  const COLORS=[
+    [255,182,193],[255,160,180],[255,200,210],
+    [255,220,180],[255,240,200],[240,150,160],
+    [255,210,230],[200,160,200]
+  ];
+
+  class Petal{
+    constructor(fromTop){this.reset(fromTop);}
+    reset(fromTop){
+      this.x=Math.random()*W;
+      this.y=fromTop ? -20 : Math.random()*H;
+      this.size=Math.random()*14+6;
+      this.speedY=Math.random()*.8+.3;
+      this.speedX=(Math.random()-.5)*.5;
+      this.rot=Math.random()*Math.PI*2;
+      this.rotSpeed=(Math.random()-.5)*.03;
+      this.sway=Math.random()*2+1;
+      this.swaySpeed=Math.random()*.02+.01;
+      this.swayOffset=Math.random()*Math.PI*2;
+      this.c=COLORS[Math.floor(Math.random()*COLORS.length)];
+      this.alpha=Math.random()*.7+.3;
+      this.shape=Math.floor(Math.random()*3);
+    }
+    update(){
+      this.y+=this.speedY;
+      this.x+=this.speedX+Math.sin(t*this.swaySpeed+this.swayOffset)*this.sway*.1;
+      this.rot+=this.rotSpeed;
+      if(this.y>H+20)this.reset(true);
+      if(this.x<-20)this.x=W+20;
+      if(this.x>W+20)this.x=-20;
+    }
+    draw(cx){
+      cx.save();
+      cx.translate(this.x,this.y);
+      cx.rotate(this.rot);
+      cx.globalAlpha=this.alpha;
+      const [r,g,b]=this.c;
+      cx.fillStyle=`rgba(${r},${g},${b},1)`;
+      cx.shadowColor=`rgba(${r},${g},${b},.5)`;
+      cx.shadowBlur=4;
+      if(this.shape===0){
+        cx.beginPath();cx.ellipse(0,0,this.size*.4,this.size,0,0,Math.PI*2);cx.fill();
+      }else if(this.shape===1){
+        cx.beginPath();
+        cx.moveTo(0,-this.size);
+        cx.bezierCurveTo(this.size*.6,-this.size*.3,this.size*.6,this.size*.3,0,this.size*.5);
+        cx.bezierCurveTo(-this.size*.6,this.size*.3,-this.size*.6,-this.size*.3,0,-this.size);
+        cx.fill();
+      }else{
+        cx.beginPath();cx.arc(0,0,this.size*.5,0,Math.PI*2);cx.fill();
+      }
+      cx.fillStyle=`rgba(255,255,255,.25)`;
+      cx.beginPath();cx.ellipse(-this.size*.1,-this.size*.2,this.size*.15,this.size*.3,-.4,0,Math.PI*2);cx.fill();
+      cx.restore();
+    }
+  }
+
+  const petals=Array.from({length:60},()=>new Petal(false));
+  function draw(){t++;cx.clearRect(0,0,W,H);petals.forEach(p=>{p.update();p.draw(cx);});requestAnimationFrame(draw);}
+  draw();
+})();
+
+/* ══════════════════
+   FLYING DOVES
+══════════════════ */
+(function(){
+  const cv=document.getElementById('cDoves');
+  const cx=cv.getContext('2d');
+  let W,H,t=0;
+  function resize(){W=cv.width=innerWidth;H=cv.height=innerHeight;}
+  resize();addEventListener('resize',resize);
+
+  let ctx;
+  function drawDove(cx, x, y, size, wingPhase, alpha){
+    cx.save();
+    cx.globalAlpha=alpha;
+    cx.translate(x,y);
+    const wf=Math.sin(wingPhase);
+    cx.fillStyle='rgba(255,255,255,0.9)';
+    cx.shadowColor='rgba(200,180,255,0.6)';
+    cx.shadowBlur=size*1.5;
+    cx.beginPath();cx.ellipse(0,0,size*1.2,size*.55,0,0,Math.PI*2);cx.fill();
+    cx.beginPath();cx.arc(size*.9,-size*.1,size*.38,0,Math.PI*2);cx.fill();
+    cx.fillStyle='rgba(255,200,100,0.9)';
+    cx.beginPath();cx.moveTo(size*1.3,-size*.08);cx.lineTo(size*1.65,size*.02);cx.lineTo(size*1.3,size*.1);cx.closePath();cx.fill();
+    cx.fillStyle='rgba(60,30,30,0.8)';
+    cx.beginPath();cx.arc(size*1.02,-size*.16,size*.1,0,Math.PI*2);cx.fill();
+    cx.fillStyle='rgba(240,240,255,0.8)';
+    cx.beginPath();cx.moveTo(-size*.9,0);cx.lineTo(-size*1.6,-size*.3);cx.lineTo(-size*1.5,size*.05);cx.lineTo(-size*1.6,size*.35);cx.closePath();cx.fill();
+    cx.fillStyle='rgba(255,255,255,0.85)';
+    cx.beginPath();
+    const wy=-size*.3+wf*size*1.0;
+    cx.moveTo(-size*.2,-size*.1);cx.bezierCurveTo(0,wy-size*.5,size*.8,wy-size*.3,size*.5,-size*.05);cx.bezierCurveTo(size*.3,-size*.05,-size*.1,-size*.1,-size*.2,-size*.1);cx.fill();
+    cx.fillStyle='rgba(230,230,255,0.7)';
+    cx.beginPath();
+    const wy2=size*.3-wf*size*.8;
+    cx.moveTo(-size*.2,size*.1);cx.bezierCurveTo(0,wy2+size*.5,size*.8,wy2+size*.3,size*.5,size*.05);cx.bezierCurveTo(size*.3,size*.05,-size*.1,size*.1,-size*.2,size*.1);cx.fill();
+    cx.restore();
+  }
+
+  const DOVES=[
+    {x:.15,y:.22,size:18,speed:.0008,wingSpeed:.06,offset:0,  dir:1 ,alpha:.85},
+    {x:.70,y:.18,size:13,speed:.0006,wingSpeed:.08,offset:1.2,dir:1 ,alpha:.70},
+    {x:.35,y:.30,size:10,speed:.0007,wingSpeed:.07,offset:2.5,dir:-1,alpha:.60},
+    {x:.85,y:.25,size:15,speed:.0009,wingSpeed:.065,offset:.8,dir:1, alpha:.75},
+    {x:.05,y:.38,size:9, speed:.0005,wingSpeed:.09,offset:3.1,dir:1, alpha:.50},
+  ];
+
+  function draw(){
+    t++;
+    cx.clearRect(0,0,W,H);
+    DOVES.forEach(d=>{
+      d.x+=d.speed*d.dir;
+      if(d.x>1.15)d.x=-0.1;
+      if(d.x<-0.1)d.x=1.1;
+      const wingPhase=t*d.wingSpeed+d.offset;
+      drawDove(cx,d.x*W,d.y*H,d.size,wingPhase,d.alpha);
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+</script>
+</body>
+</html>

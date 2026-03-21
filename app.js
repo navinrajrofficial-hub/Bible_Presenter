@@ -268,7 +268,7 @@ body{
 }
 .verse-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;gap:0.6vh;overflow:hidden;}
 .verse-text{
-  font-weight:900;color:${col};text-align:center;line-height:1.22;word-break:break-word;width:100%;
+  font-weight:900;color:${col};text-align:center;line-height:1.22;word-break:break-word;width:100%;white-space:pre-wrap;
 }
 .verse-ref{
   color:${col};opacity:0.9;font-style:italic;letter-spacing:2px;text-align:right;align-self:flex-end;padding-right:1vw;
@@ -321,7 +321,7 @@ html,body{width:100%;height:100%;overflow:hidden;}
 body{background:linear-gradient(180deg,#020510 0%,#0a1628 40%,#162a50 70%,#1b3a5c 100%);display:flex;align-items:center;justify-content:center;font-family:'Noto Serif Tamil',serif;padding:1.2vw;position:relative;}
 .sky{position:absolute;inset:0;z-index:0;}
 .verse-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;gap:0.6vh;overflow:hidden;position:relative;z-index:5;}
-.verse-text{font-weight:900;color:#ffffff;text-align:center;line-height:1.22;word-break:break-word;width:100%;text-shadow:0 2px 10px rgba(0,0,0,0.8);}
+.verse-text{font-weight:900;color:#ffffff;text-align:center;line-height:1.22;word-break:break-word;width:100%;white-space:pre-wrap;text-shadow:0 2px 10px rgba(0,0,0,0.8);}
 .verse-ref{color:#ffffff;opacity:0.9;font-style:italic;letter-spacing:2px;text-align:right;align-self:flex-end;padding-right:1vw;font-weight:900;text-shadow:0 2px 6px rgba(0,0,0,0.6);}
 <\/style><\/head><body>
 <div class="sky"><\/div>
@@ -476,7 +476,36 @@ window.addEventListener('resize', autoFit);
 }
 
 function getHtml(slide) {
-  return slide.type === 'html' ? slide.html : simpleToHtml(slide);
+  if (slide.type !== 'html') return simpleToHtml(slide);
+  var html = slide.html || '';
+
+  // Normalize whitespace inside the verse-text block.
+  // If the author intentionally uses hard breaks (multiline lines), preserve them.
+  // If the input is wrapped at each word (common when pasting), collapse those
+  // line breaks back into spaces so text wraps normally.
+  html = html.replace(/(<div[^>]*\bverse-text\b[^>]*>)([\s\S]*?)(<\/div>)/gi, function(_, open, content, close) {
+    const normalized = content.replace(/\r\n?/g, '\n');
+    const lines = normalized.split('\n');
+
+    // Detect if the text is split into many very short lines (likely auto-wrapped).
+    const trimmedLines = lines.map(l => l.trim()).filter(l => l.length > 0);
+    const shortLineCount = trimmedLines.filter(l => l.length <= 10).length;
+    const shouldCollapse = trimmedLines.length > 2 && shortLineCount / trimmedLines.length > 0.6;
+
+    if (shouldCollapse) {
+      // Collapse to a single paragraph, letting normal wrapping decide line breaks.
+      return open + trimmedLines.join(' ') + close;
+    }
+
+    // Otherwise, preserve intentional line breaks (single newline -> line break)
+    // while still letting the browser wrap lines as needed.
+    const htmlLines = lines.map(l => l.trimEnd()).join('<br>');
+    return open + htmlLines + close;
+  });
+  var override = '<style>.verse-text{white-space:pre-line !important;word-break:normal !important;overflow-wrap:break-word !important;}</style>';
+  if (html.indexOf(override) !== -1) return html;
+  var hi = html.indexOf('</head>');
+  return hi !== -1 ? html.slice(0, hi) + override + html.slice(hi) : override + html;
 }
 
 // Thumbnail variant: animations fast-forwarded to final state so visible content
@@ -557,7 +586,33 @@ function buildThumb(s) {
   // Read dataset.idx at event time so handler is always correct after reorder
   btnUp.addEventListener('mousedown',   (e) => { e.stopPropagation(); e.preventDefault(); moveSlide(Number(thumb.dataset.idx), -1); });
   btnDown.addEventListener('mousedown', (e) => { e.stopPropagation(); e.preventDefault(); moveSlide(Number(thumb.dataset.idx),  1); });
-  moveWrap.appendChild(btnUp); moveWrap.appendChild(btnDown);
+  const posInput = document.createElement('input');
+  posInput.type = 'number';
+  posInput.className = 'thumb-pos-input';
+  posInput.title = 'Type position number + Enter to move';
+  posInput.min = 1;
+  posInput.addEventListener('click',     (e) => e.stopPropagation());
+  posInput.addEventListener('mousedown', (e) => e.stopPropagation());
+  posInput.addEventListener('focus', () => {
+    posInput.value = Number(thumb.dataset.idx) + 1;
+    posInput.select();
+  });
+  posInput.addEventListener('blur', () => {
+    posInput.value = Number(thumb.dataset.idx) + 1;
+  });
+  posInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault(); e.stopPropagation();
+      moveSlideToPos(Number(thumb.dataset.idx), parseInt(posInput.value, 10));
+      posInput.blur();
+    } else if (e.key === 'Escape') {
+      posInput.value = Number(thumb.dataset.idx) + 1;
+      posInput.blur();
+    } else {
+      e.stopPropagation();
+    }
+  });
+  moveWrap.appendChild(btnUp); moveWrap.appendChild(posInput); moveWrap.appendChild(btnDown);
   thumb.appendChild(moveWrap);
 
   thumbCache[sid] = thumb;
@@ -626,6 +681,8 @@ function renderAll() {
     thumb.className = 'thumb' + (i === currentIdx ? ' active' : '');
     thumb.querySelector('.thumb-num').textContent  = i + 1;
     thumb.querySelector('.thumb-label').textContent = s.name;
+    const pi = thumb.querySelector('.thumb-pos-input');
+    if (pi && document.activeElement !== pi) pi.value = i + 1;
 
     // Only call insertBefore if thumb is not already in the correct position.
     // Skipping unnecessary DOM moves prevents browsers from resetting srcdoc
@@ -662,6 +719,20 @@ function moveSlide(idx, dir) {
   slides[newIdx] = tmp;
   if (currentIdx === idx) currentIdx = newIdx;
   else if (currentIdx === newIdx) currentIdx = idx;
+  scheduleSave();
+  renderAll();
+  renderEditor();
+  renderPreview();
+}
+
+function moveSlideToPos(fromIdx, targetPos) {
+  const toIdx = Math.max(0, Math.min(targetPos - 1, slides.length - 1));
+  if (toIdx === fromIdx) return;
+  const [moved] = slides.splice(fromIdx, 1);
+  slides.splice(toIdx, 0, moved);
+  if (currentIdx === fromIdx) currentIdx = toIdx;
+  else if (fromIdx < toIdx && currentIdx > fromIdx && currentIdx <= toIdx) currentIdx--;
+  else if (fromIdx > toIdx && currentIdx >= toIdx && currentIdx < fromIdx) currentIdx++;
   scheduleSave();
   renderAll();
   renderEditor();
@@ -758,6 +829,8 @@ function renderList() {
     if (!el) return;
     el.dataset.idx = i;
     el.querySelector('.thumb-num').textContent = i + 1;
+    const pi = el.querySelector('.thumb-pos-input');
+    if (pi && document.activeElement !== pi) pi.value = i + 1;
     el.classList.toggle('active', i === currentIdx);
     list.insertBefore(el, addBtn);
   });
@@ -893,15 +966,49 @@ function selectSlide(i) {
   renderEditor();
 }
 
+function gotoSlide(inp) {
+  let n = parseInt(inp.value, 10);
+  inp.value = '';
+  if (isNaN(n) || !slides.length) return;
+  n = Math.max(1, Math.min(n, slides.length));
+  const idx = n - 1;
+  selectSlide(idx);
+  document.querySelector(`#slide-list .thumb[data-idx="${idx}"]`)?.scrollIntoView({ block: 'nearest' });
+  inp.blur();
+}
+
 // ══════════════════════════════════════════════════
 //  ACTIONS
 // ══════════════════════════════════════════════════
+let _pendingSlideType = null;
+let _pendingSlide = null;
+
 function addSlide(type) {
   const s = createSlide(type);
-  slides.splice(currentIdx + 1, 0, s);
-  currentIdx = currentIdx + 1;
+  slides.push(s);
+  currentIdx = slides.length - 1;
   renderAll(); renderPreview(); renderEditor();
   scheduleSave();
+}
+
+function confirmInsertSlide() {
+  const total = slides.length;
+  let pos = parseInt(document.getElementById('insert-position').value, 10);
+  if (isNaN(pos) || pos < 1) pos = 1;
+  if (pos > total + 1) pos = total + 1;
+  closeInsertModal();
+  const s = _pendingSlide || createSlide(_pendingSlideType);
+  _pendingSlide = null;
+  const idx = pos - 1;
+  slides.splice(idx, 0, s);
+  currentIdx = idx;
+  renderAll(); renderPreview(); renderEditor();
+  scheduleSave();
+  if (s.name) showToast(`✓ Slide added: ${s.name}`, 'success');
+}
+
+function closeInsertModal() {
+  document.getElementById('insert-modal').style.display = 'none';
 }
 
 function deleteCurrentSlide() {
@@ -1242,11 +1349,25 @@ function bpAddAsSlide() {
   if (!html) { showToast('Bible content not loaded yet — add verses first', 'error'); return; }
   const ref   = document.getElementById('bp-preview-ref').textContent;
   const slide = { id: Date.now() + Math.random(), type: 'html', name: ref, html };
-  slides.push(slide);
-  currentIdx = slides.length - 1;
-  renderAll(); renderPreview(); renderEditor();
-  scheduleSave();
-  showToast(`✓ Slide added: ${ref}`, 'success');
+  if (!slides.length) {
+    slides.push(slide);
+    currentIdx = 0;
+    renderAll(); renderPreview(); renderEditor();
+    scheduleSave();
+    showToast(`✓ Slide added: ${ref}`, 'success');
+    return;
+  }
+  _pendingSlide = slide;
+  _pendingSlideType = null;
+  const defaultPos = currentIdx + 2;
+  const inp = document.getElementById('insert-position');
+  inp.value = defaultPos;
+  inp.max = slides.length + 1;
+  document.getElementById('insert-modal-info').textContent =
+    `Current: slide ${currentIdx + 1} of ${slides.length}. Enter 1–${slides.length + 1}:`;
+  const modal = document.getElementById('insert-modal');
+  modal.style.display = 'flex';
+  inp.focus(); inp.select();
 }
 
 // ══════════════════════════════════════════════════
@@ -1807,7 +1928,7 @@ function _spPopulateVerses(song) {
     div.className = 'sp-fs-verse';
     const preview = v.length > 80 ? v.slice(0, 80) + '…' : v;
     div.innerHTML =
-      '<span class="sp-fs-verse-text">' + _esc(preview).replace(/\n/g, ' ') + '</span>' +
+      '<span class="sp-fs-verse-text">' + _esc(preview).replace(/\n/g, '<br>') + '</span>' +
       '<button class="sp-fs-verse-add" onclick="spQueueAdd(' + i + ')" title="Add to queue">➕</button>';
     container.appendChild(div);
   });

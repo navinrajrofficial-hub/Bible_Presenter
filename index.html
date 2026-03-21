@@ -48,6 +48,10 @@
 
   <!-- SLIDE LIST -->
   <div id="slide-list">
+    <input type="number" id="goto-input" class="field-input" min="1" placeholder="Go to #"
+      title="Type a slide number and press Enter"
+      style="font-size:11px;padding:4px 6px;text-align:center;width:100%;box-sizing:border-box;"
+      onkeydown="if(event.key==='Enter')gotoSlide(this)">
     <div class="add-slide-btn" onclick="addSlide('html')" title="Add HTML slide">+</div>
   </div>
 
@@ -360,6 +364,19 @@
 
     <div id="sp-fs-footer">
       <button id="sp-fs-commit-btn" onclick="spCommitAllToMain()">✦ Add All to Main Slides</button>
+    </div>
+  </div>
+</div>
+
+<!-- INSERT SLIDE MODAL -->
+<div id="insert-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:10000;align-items:center;justify-content:center;">
+  <div style="background:#18181b;border:1px solid #2a2a2e;border-radius:10px;width:300px;max-width:95vw;padding:24px;display:flex;flex-direction:column;gap:14px;">
+    <div style="font-family:'Playfair Display',serif;font-size:15px;color:#f5a623;letter-spacing:0.04em;">Insert Slide at Position</div>
+    <div id="insert-modal-info" style="font-size:11px;color:#6b6b75;"></div>
+    <input type="number" id="insert-position" class="field-input" min="1" style="text-align:center;font-size:16px;" onkeydown="if(event.key==='Enter')confirmInsertSlide()">
+    <div style="display:flex;gap:10px;margin-top:2px;">
+      <button class="apply-btn" style="flex:1;" onclick="confirmInsertSlide()">Insert →</button>
+      <button onclick="closeInsertModal()" style="flex:1;background:none;border:1px solid #2a2a2e;color:#6b6b75;font-family:'DM Mono',monospace;font-size:11px;padding:8px;border-radius:4px;cursor:pointer;">Cancel</button>
     </div>
   </div>
 </div>

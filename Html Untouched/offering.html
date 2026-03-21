@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>காணிக்கை - நல்ல சமாரியன் இயேசு ஜெப வீடு</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Tamil:wght@400;700;900&family=Lora:ital,wght@1,400;1,600&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:100%;height:100%;overflow:hidden}
+
+  .stage{
+    width:100vw;height:100vh;
+    position:relative;overflow:hidden;
+  }
+
+  /* ── WARM HARVEST SKY — deep olive → amber → golden cream ── */
+  .sky{
+    position:absolute;inset:0;
+    background:linear-gradient(
+      168deg,
+      #1a1200 0%,
+      #3b2600 10%,
+      #6b3d00 22%,
+      #a05c00 34%,
+      #c8820a 46%,
+      #e8ad30 58%,
+      #f5d06a 70%,
+      #faeaa0 82%,
+      #fff8d6 92%,
+      #fffdf0 100%
+    );
+    z-index:0;
+  }
+
+  /* ── GOLDEN GLOW from bottom center — like altar lamp ── */
+  .altar-glow{
+    position:absolute;
+    bottom:-18vh;left:50%;
+    transform:translateX(-50%);
+    width:70vw;height:70vw;
+    border-radius:50%;
+    background:radial-gradient(circle,
+      rgba(255,220,80,0.75) 0%,
+      rgba(255,180,30,0.45) 28%,
+      rgba(220,130,10,0.2) 55%,
+      transparent 78%
+    );
+    z-index:1;
+    animation:glowPulse 4s ease-in-out infinite;
+  }
+  @keyframes glowPulse{
+    0%,100%{transform:translateX(-50%) scale(1);opacity:.85}
+    50%{transform:translateX(-50%) scale(1.1);opacity:1}
+  }
+
+  /* canvases */
+  canvas.rays{position:absolute;inset:0;z-index:2;pointer-events:none}
+  canvas.coins{position:absolute;inset:0;z-index:4;pointer-events:none}
+  canvas.sparkle{position:absolute;inset:0;z-index:3;pointer-events:none}
+
+  .mist{
+    position:absolute;bottom:0;left:0;right:0;height:28vh;
+    background:linear-gradient(to top,
+      rgba(255,248,210,0.65) 0%,
+      rgba(255,235,150,0.25) 55%,
+      transparent 100%
+    );
+    z-index:3;
+  }
+
+  /* ── CONTENT ── */
+  .content{
+    position:absolute;inset:0;z-index:10;
+    display:flex;flex-direction:column;
+    align-items:center;justify-content:center;
+    padding:3vh 2vw;
+  }
+
+  /* ── CARD ── */
+  .card{
+    background:rgba(255,248,210,0.18);
+    backdrop-filter:blur(22px);
+    -webkit-backdrop-filter:blur(22px);
+    border:1px solid rgba(255,220,100,0.45);
+    border-radius:28px;
+    padding:clamp(20px,3.5vh,46px) clamp(28px,5vw,82px);
+    display:flex;flex-direction:column;
+    align-items:center;gap:0;
+    box-shadow:
+      0 8px 60px rgba(140,80,0,0.3),
+      0 2px 24px rgba(255,180,30,0.25),
+      inset 0 1px 0 rgba(255,255,255,0.6);
+    opacity:0;
+    animation:cardReveal 1.2s cubic-bezier(.22,1,.36,1) forwards .4s;
+    position:relative;
+    overflow:visible;
+  }
+  .card::before{
+    content:'';
+    position:absolute;inset:0;
+    background:linear-gradient(135deg,
+      rgba(255,255,200,0.22) 0%,
+      rgba(255,200,80,0.08) 50%,
+      rgba(255,255,200,0.05) 100%
+    );
+    border-radius:28px;
+    pointer-events:none;
+  }
+  @keyframes cardReveal{
+    from{opacity:0;transform:translateY(28px) scale(.97)}
+    to{opacity:1;transform:translateY(0) scale(1)}
+  }
+
+  /* ── ICON ROW ── */
+  .icon-row{
+    display:flex;align-items:center;gap:1.4vw;
+    margin-bottom:1.1vh;
+    opacity:0;animation:fadeUp .9s ease forwards .8s;
+  }
+  .icon-emoji{
+    font-size:clamp(22px,3.2vw,48px);
+    animation:iconFloat 3s ease-in-out infinite;
+    filter:drop-shadow(0 3px 10px rgba(180,100,0,.45));
+  }
+  .icon-emoji:nth-child(1){animation-delay:0s}
+  .icon-emoji:nth-child(2){animation-delay:.4s}
+  .icon-emoji:nth-child(3){animation-delay:.8s}
+  @keyframes iconFloat{
+    0%,100%{transform:translateY(0) scale(1)}
+    50%{transform:translateY(-10px) scale(1.08)}
+  }
+
+  /* ── SCRIPT TOP ── */
+  .script-top{
+    font-family:'Lora',serif;
+    font-style:italic;font-weight:400;
+    font-size:clamp(10px,1.2vw,16px);
+    letter-spacing:7px;
+    text-transform:uppercase;
+    color:rgba(100,55,0,0.72);
+    margin-bottom:1.1vh;
+    opacity:0;animation:fadeUp .8s ease forwards 1s;
+  }
+
+  /* ── DIVIDER ── */
+  .divider{
+    display:flex;align-items:center;gap:1.2vw;
+    margin-bottom:1.6vh;
+    opacity:0;animation:fadeUp .8s ease forwards 1.2s;
+    width:100%;
+  }
+  .div-line{
+    flex:1;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(180,110,0,.5),transparent);
+  }
+  .div-icon{font-size:clamp(10px,1.3vw,17px)}
+
+  /* ── MAIN TAMIL WORD ── */
+  .main-word{
+    font-family:'Noto Serif Tamil',serif;
+    font-size:clamp(58px,10.5vw,158px);
+    font-weight:900;
+    line-height:1.05;
+    letter-spacing:5px;
+    background:linear-gradient(
+      150deg,
+      #5c2e00 0%,
+      #9c5200 16%,
+      #d48000 30%,
+      #f5b800 46%,
+      #ffe066 58%,
+      #d48000 72%,
+      #9c5200 85%,
+      #5c2e00 100%
+    );
+    background-size:280% auto;
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+    filter:drop-shadow(0 4px 22px rgba(200,120,0,.4));
+    opacity:0;
+    animation:wordReveal 1.1s cubic-bezier(.34,1.56,.64,1) forwards 1.4s,
+              wordFlow 5s ease-in-out infinite 2.6s;
+    margin-bottom:.2vh;
+  }
+  @keyframes wordReveal{
+    from{opacity:0;transform:scale(.6);filter:blur(16px)}
+    to{opacity:1;transform:scale(1);filter:blur(0) drop-shadow(0 4px 22px rgba(200,120,0,.4))}
+  }
+  @keyframes wordFlow{
+    0%,100%{background-position:0% center}
+    50%{background-position:100% center}
+  }
+
+  /* ── ENGLISH SUBTITLE ── */
+  .subtitle{
+    font-family:'Noto Serif Tamil',serif;
+    font-size:clamp(13px,1.9vw,27px);
+    font-weight:700;
+    color:rgba(90,45,0,0.88);
+    letter-spacing:5px;
+    margin-bottom:1.7vh;
+    opacity:0;animation:fadeUp .9s ease forwards 1.9s;
+    text-shadow:0 1px 10px rgba(255,200,80,.5);
+    text-transform:uppercase;
+  }
+
+  /* ── VERSE BOX ── */
+  .verse-box{
+    background:rgba(255,220,100,0.2);
+    border:1px solid rgba(180,120,0,.32);
+    border-radius:14px;
+    padding:clamp(10px,1.4vh,18px) clamp(14px,2.6vw,36px);
+    margin-bottom:1.5vh;
+    opacity:0;animation:fadeUp .9s ease forwards 2.2s;
+    max-width:72vw;
+    text-align:center;
+  }
+  .verse-text{
+    font-family:'Lora',serif;
+    font-style:italic;
+    font-size:clamp(12px,1.45vw,20px);
+    color:rgba(70,30,0,0.92);
+    line-height:1.9;
+    letter-spacing:.8px;
+  }
+  .verse-ref{
+    font-family:'Lora',serif;
+    font-size:clamp(10px,1.05vw,14px);
+    color:rgba(130,70,0,.72);
+    letter-spacing:3px;
+    margin-top:.4vh;
+  }
+
+  /* ── CHURCH BADGE ── */
+  .church-wrapper{
+    position:relative;
+    display:inline-flex;
+    align-items:center;justify-content:center;
+    opacity:0;
+    animation:churchEntrance 1s cubic-bezier(.34,1.56,.64,1) forwards 2.7s;
+    margin-top:.3vh;
+  }
+  @keyframes churchEntrance{
+    from{opacity:0;transform:scale(.5) rotate(-10deg)}
+    to{opacity:1;transform:scale(1) rotate(0deg)}
+  }
+  .church-bg{
+    position:absolute;inset:3px;
+    border-radius:46px;
+    background:rgba(8,4,0,0.9);
+    z-index:1;
+  }
+  .church{
+    position:relative;z-index:2;
+    font-family:'Noto Serif Tamil',serif;
+    font-weight:900;
+    font-size:clamp(11px,1.4vw,19px);
+    letter-spacing:3px;
+    padding:clamp(6px,1vh,12px) clamp(18px,2.4vw,34px);
+    white-space:nowrap;
+    background:linear-gradient(
+      90deg,
+      #ffe066 0%,
+      #ff9f1c 18%,
+      #ffdd57 36%,
+      #ff6b6b 54%,
+      #ffe066 72%,
+      #ff9f1c 90%,
+      #ffdd57 100%
+    );
+    background-size:300% auto;
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+    background-clip:text;
+    animation:goldShift 3s linear infinite;
+    filter:drop-shadow(0 0 7px rgba(255,180,30,.8))
+           drop-shadow(0 0 16px rgba(255,120,0,.4));
+  }
+  @keyframes goldShift{
+    0%{background-position:0% center}
+    100%{background-position:300% center}
+  }
+
+  /* ── BOTTOM DECO ── */
+  .deco-row{
+    position:absolute;bottom:-2px;left:0;right:0;
+    display:flex;justify-content:center;gap:.45vw;
+    overflow:hidden;z-index:11;pointer-events:none;
+  }
+  .deco-item{
+    font-size:clamp(15px,2.2vw,32px);opacity:.5;
+    animation:decoSway 3.4s ease-in-out infinite;
+    transform-origin:bottom center;
+  }
+  .deco-item:nth-child(2n){animation-delay:.5s}
+  .deco-item:nth-child(3n){animation-delay:1.1s}
+  .deco-item:nth-child(4n){animation-delay:1.7s}
+  @keyframes decoSway{
+    0%,100%{transform:rotate(-5deg)}
+    50%{transform:rotate(5deg)}
+  }
+
+  @keyframes fadeUp{
+    from{opacity:0;transform:translateY(16px)}
+    to{opacity:1;transform:translateY(0)}
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <div class="sky"></div>
+  <div class="altar-glow"></div>
+
+  <canvas class="rays"    id="cRays"></canvas>
+  <canvas class="sparkle" id="cSparkle"></canvas>
+  <div class="mist"></div>
+  <canvas class="coins"   id="cCoins"></canvas>
+
+  <div class="content">
+    <div class="card">
+
+      <div class="icon-row">
+        <span class="icon-emoji">🙌</span>
+        <span class="icon-emoji">✝</span>
+        <span class="icon-emoji">💛</span>
+      </div>
+
+      <div class="script-top">கர்த்தருக்கு செலுத்துவோம் • Give Unto the Lord</div>
+
+      <div class="divider">
+        <div class="div-line"></div>
+        <span class="div-icon">🌾</span>
+        <div class="div-line"></div>
+      </div>
+
+      <div class="main-word">காணிக்கை</div>
+      <div class="subtitle">Offering</div>
+
+      <div class="verse-box">
+        <div class="verse-text">
+          ❝ அவரவர் மனதில் குறித்துக்கொண்டபடி கொடுக்கட்டும்;<br>
+          சலிப்போடு அல்ல, கட்டாயமாக அல்ல;<br>
+          சந்தோஷமாய்க் கொடுக்கிறவனிடத்தில் தேவன் பிரியப்படுகிறார். ❞
+        </div>
+        <div class="verse-ref">— 2 கொரிந்தியர் 9:7</div>
+      </div>
+
+      <div class="church-wrapper">
+        <div class="church-bg"></div>
+        <div class="church">நல்ல சமாரியன் இயேசு ஜெப வீடு</div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="deco-row">
+    <span class="deco-item">🌾</span><span class="deco-item">✨</span>
+    <span class="deco-item">🌾</span><span class="deco-item">💛</span>
+    <span class="deco-item">🌾</span><span class="deco-item">✨</span>
+    <span class="deco-item">🌾</span><span class="deco-item">💛</span>
+    <span class="deco-item">🌾</span><span class="deco-item">✨</span>
+    <span class="deco-item">🌾</span><span class="deco-item">💛</span>
+    <span class="deco-item">🌾</span><span class="deco-item">✨</span>
+    <span class="deco-item">🌾</span>
+  </div>
+
+</div>
+
+<script>
+/* ── GOLDEN RAYS from bottom ── */
+(function(){
+  const cv=document.getElementById('cRays');
+  const cx=cv.getContext('2d');
+  let W,H,t=0;
+  function resize(){W=cv.width=innerWidth;H=cv.height=innerHeight;}
+  resize();addEventListener('resize',resize);
+  const RAYS=Array.from({length:22},(_,i)=>({
+    angle:(i/22)*Math.PI*1.4 - Math.PI*.7 + (Math.random()-.5)*.25,
+    alpha:.04+Math.random()*.08,
+    speed:(.0018+Math.random()*.003)*(Math.random()>.5?1:-1),
+    length:.5+Math.random()*.6
+  }));
+  const OX=W*.5, OY=H*1.05;
+  function draw(){
+    t++;cx.clearRect(0,0,W,H);
+    RAYS.forEach(r=>{
+      r.angle+=r.speed;
+      const ax=Math.cos(r.angle)*W*r.length+OX;
+      const ay=Math.sin(r.angle)*W*r.length+OY;
+      const bx=Math.cos(r.angle+.035)*W*r.length+OX;
+      const by=Math.sin(r.angle+.035)*W*r.length+OY;
+      cx.save();
+      const g=cx.createLinearGradient(OX,OY,ax,ay);
+      g.addColorStop(0,`rgba(255,210,60,${r.alpha*2.2})`);
+      g.addColorStop(.35,`rgba(255,175,30,${r.alpha})`);
+      g.addColorStop(1,'rgba(255,210,60,0)');
+      cx.beginPath();cx.moveTo(OX,OY);cx.lineTo(ax,ay);cx.lineTo(bx,by);cx.closePath();
+      cx.fillStyle=g;cx.fill();cx.restore();
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* ── GOLDEN SPARKLE DUST ── */
+(function(){
+  const cv=document.getElementById('cSparkle');
+  const cx=cv.getContext('2d');
+  let W,H,t=0;
+  function resize(){W=cv.width=innerWidth;H=cv.height=innerHeight;}
+  resize();addEventListener('resize',resize);
+  const SPARKS=Array.from({length:70},()=>({
+    x:Math.random()*W,
+    y:Math.random()*H,
+    r:Math.random()*2+.5,
+    phase:Math.random()*Math.PI*2,
+    speed:Math.random()*.03+.015,
+    vy:-(Math.random()*.3+.1),
+    vx:(Math.random()-.5)*.15
+  }));
+  function draw(){
+    t++;cx.clearRect(0,0,W,H);
+    SPARKS.forEach(s=>{
+      s.y+=s.vy; s.x+=s.vx;
+      if(s.y<-10){s.y=H+10;s.x=Math.random()*W;}
+      const a=.2+.6*(.5+.5*Math.sin(t*s.speed+s.phase));
+      cx.save();
+      cx.globalAlpha=a;
+      cx.fillStyle='rgba(255,220,80,1)';
+      cx.shadowColor='rgba(255,180,0,.8)';
+      cx.shadowBlur=s.r*5;
+      cx.beginPath();cx.arc(s.x,s.y,s.r,0,Math.PI*2);cx.fill();
+      cx.restore();
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* ── FLOATING COINS ── */
+(function(){
+  const cv=document.getElementById('cCoins');
+  const cx=cv.getContext('2d');
+  let W,H,t=0;
+  function resize(){W=cv.width=innerWidth;H=cv.height=innerHeight;}
+  resize();addEventListener('resize',resize);
+
+  class Coin{
+    constructor(rand){
+      this.x=Math.random()*W;
+      this.y=rand?(Math.random()*H):(H+30);
+      this.r=Math.random()*9+5;
+      this.vy=-(Math.random()*.5+.2);
+      this.vx=(Math.random()-.5)*.3;
+      this.rot=Math.random()*Math.PI*2;
+      this.rotV=(Math.random()-.5)*.04;
+      this.alpha=Math.random()*.55+.25;
+      this.phase=Math.random()*Math.PI*2;
+    }
+    update(){
+      this.y+=this.vy;this.x+=this.vx;this.rot+=this.rotV;
+      this.alpha-=.0015;
+      if(this.alpha<=0||this.y<-30)Object.assign(this,new Coin(false));
+    }
+    draw(cx){
+      cx.save();
+      cx.translate(this.x,this.y);
+      cx.rotate(this.rot);
+      cx.globalAlpha=Math.max(0,this.alpha);
+      /* coin body */
+      const g=cx.createRadialGradient(-this.r*.3,-this.r*.3,0,0,0,this.r);
+      g.addColorStop(0,'rgba(255,240,120,1)');
+      g.addColorStop(.5,'rgba(220,170,20,1)');
+      g.addColorStop(1,'rgba(160,100,0,1)');
+      cx.fillStyle=g;
+      cx.shadowColor='rgba(255,200,0,.6)';
+      cx.shadowBlur=8;
+      cx.beginPath();cx.ellipse(0,0,this.r,this.r*.35,0,0,Math.PI*2);cx.fill();
+      /* shine */
+      cx.fillStyle='rgba(255,255,180,.45)';
+      cx.beginPath();cx.ellipse(-this.r*.25,-this.r*.05,this.r*.3,this.r*.1,-.3,0,Math.PI*2);cx.fill();
+      cx.restore();
+    }
+  }
+
+  const coins=Array.from({length:20},()=>new Coin(true));
+  function draw(){
+    t++;cx.clearRect(0,0,W,H);
+    if(t%55===0&&coins.length<28)coins.push(new Coin(false));
+    coins.forEach(c=>{c.update();c.draw(cx);});
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+</script>
+</body>
+</html>
