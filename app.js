@@ -1329,13 +1329,73 @@ function _bpBuildSlideHtml() {
   return createVasanamHtml(text, ref, '#3c096c', '#ffd700', 'medium');
 }
 
+function bpFsNav(dir) {
+  if (!_bpBook || !_bpChapter || !_bpVerse) return;
+  const books = Object.keys(bibleData);
+  let bIdx = books.indexOf(_bpBook);
+  let cNum = parseInt(_bpChapter);
+  let vNum = parseInt(_bpVerse);
+
+  function getVerseCount(book, chap) {
+    const data = bibleData[book];
+    const vpcArr = data.versesPerChapter;
+    let count = (vpcArr && vpcArr[chap - 1]) || 0;
+    if (!count && data.content && data.content[chap]) {
+        count = Object.keys(data.content[chap]).length;
+    }
+    return count;
+  }
+
+  if (dir === 1) {
+    vNum++;
+    let maxV = getVerseCount(_bpBook, cNum);
+    if (vNum > maxV) {
+      vNum = 1;
+      cNum++;
+      if (cNum > bibleData[_bpBook].chapters) {
+        cNum = 1;
+        bIdx++;
+        if (bIdx >= books.length) return; // end of bible
+        _bpBook = books[bIdx];
+      }
+    }
+  } else {
+    vNum--;
+    if (vNum < 1) {
+      cNum--;
+      if (cNum < 1) {
+        bIdx--;
+        if (bIdx < 0) return; // start of bible
+        _bpBook = books[bIdx];
+        cNum = bibleData[_bpBook].chapters;
+      }
+      vNum = getVerseCount(_bpBook, cNum);
+    }
+  }
+
+  // Update UI state so the preview generates correctly
+  document.getElementById('bp-book').value = _bpBook;
+  bpOnBookChange();
+
+  document.getElementById('bp-chapter').value = cNum;
+  bpOnChapterChange();
+
+  document.getElementById('bp-verse').value = vNum;
+  bpOnVerseChange();
+
+  // Now reload iframe by calling bpShowFullscreen
+  bpShowFullscreen();
+}
+
 function bpShowFullscreen() {
   if (!_bpBook || !_bpChapter) { showToast('வசனம் தேர்ந்தெடுக்கவும்', 'error'); return; }
   const html = _bpBuildSlideHtml();
   if (!html) { showToast('Bible content not loaded yet — add verses first', 'error'); return; }
   const ref = document.getElementById('bp-preview-ref').textContent;
   // Show overlay FIRST so the iframe has real dimensions when autoFit runs
-  document.getElementById('present-overlay').classList.add('active');
+  document.getElementById('bp-fs-prev').style.display = 'block';
+  document.getElementById('bp-fs-next').style.display = 'block';
+  document.getElementById('present-overlay').classList.add('active', 'bible-fs');
   document.body.style.overflow = 'hidden';
   const pif = document.getElementById('present-iframe');
   injectAutoFit(pif);
@@ -1676,7 +1736,10 @@ function spShowFullscreen() {
   const html = _spBuildPageHtml();
   if (!html) { showToast('Song content not available', 'error'); return; }
   const song = songContent[_spSongId];
+  document.getElementById('bp-fs-prev').style.display = 'none';
+  document.getElementById('bp-fs-next').style.display = 'none';
   const overlay = document.getElementById('present-overlay');
+  overlay.classList.remove('bible-fs');
   overlay.classList.add('active', 'panel-fs');
   document.body.style.overflow = 'hidden';
   const pif = document.getElementById('present-iframe');
@@ -2079,7 +2142,11 @@ function startPresent() {
   presentIdx = currentIdx;
   showPresentSlide();
   updateBackBtn();
-  document.getElementById('present-overlay').classList.add('active');
+  document.getElementById('bp-fs-prev').style.display = 'none';
+  document.getElementById('bp-fs-next').style.display = 'none';
+  const overlay = document.getElementById('present-overlay');
+  overlay.classList.remove('bible-fs');
+  overlay.classList.add('active');
   document.body.style.overflow = 'hidden';
   acquireWakeLock();
 }
@@ -2107,6 +2174,8 @@ function showPresentSlide() {
 }
 
 function showGotoInput() {
+  const overlay = document.getElementById('present-overlay');
+  if (overlay.classList.contains('bible-fs')) return;
   const ind = document.getElementById('present-indicator');
   const total = slides.length;
   const current = presentIdx + 1;
@@ -2182,7 +2251,7 @@ function presentNav(dir) {
 
 function exitPresent() {
   const overlay = document.getElementById('present-overlay');
-  overlay.classList.remove('active', 'panel-fs');
+  overlay.classList.remove('active', 'panel-fs', 'bible-fs');
   document.body.style.overflow = '';
   releaseWakeLock();
 }
@@ -2191,6 +2260,14 @@ function exitPresent() {
 document.addEventListener('keydown', e => {
   const overlay = document.getElementById('present-overlay');
   if (!overlay.classList.contains('active')) return;
+
+  if (overlay.classList.contains('bible-fs')) {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') bpFsNav(1);
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') bpFsNav(-1);
+    if (e.key === 'Escape') exitPresent();
+    return;
+  }
+
   if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') presentNav(1);
   if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') presentNav(-1);
   if (e.key === 'Backspace') presentGoBack();
