@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ஓசன்னா – குருத்தோலை ஞாயிறு</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Tamil:wght@400;700;900&family=Cormorant+Garamond:ital,wght@0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:100%;height:100%;overflow:hidden;background:#000}
+
+  .stage{
+    width:100vw;height:100vh;
+    position:relative;overflow:hidden;
+  }
+
+  /* ── VIDEO / FALLBACK BG ── */
+  .video-bg{
+    position:absolute;inset:0;z-index:0;
+    width:100%;height:100%;
+    object-fit:cover;object-position:center center;
+    transform: scale(1.35);
+  }
+
+  .photo-fallback{
+    position:absolute;inset:0;z-index:0;
+    background:
+      radial-gradient(ellipse at 60% 30%, #7a5c1e 0%, #3d2a08 30%, #1a1205 60%, #0d0a05 100%),
+      repeating-linear-gradient(120deg, transparent 0px, rgba(180,130,40,.04) 2px, transparent 4px);
+  }
+
+  /* ── LAYERED OVERLAYS (Heavily reduced to make video bright) ── */
+  .overlay{
+    position:absolute;inset:0;z-index:2;
+    background: linear-gradient(175deg, rgba(0,0,0,.15) 0%, transparent 35%, transparent 62%, rgba(0,0,0,.30) 100%);
+  }
+
+  /* Text Backdrop: Shrunk and made much more transparent */
+  .text-backdrop{
+    position:absolute;
+    left:50%;top:50%;
+    transform:translate(-50%,-50%);
+    width:75vw;height:55vh;
+    background:radial-gradient(ellipse, rgba(0,0,0,.45) 0%, rgba(0,0,0,.15) 45%, transparent 70%);
+    z-index:3;
+  }
+
+  .rays{
+    position:absolute;inset:0;z-index:3;
+    background:conic-gradient(from 260deg at 55% 38%, transparent 0deg, rgba(255,200,60,.020) 4deg, transparent 8deg, transparent 22deg, rgba(255,190,50,.015) 26deg, transparent 30deg, transparent 50deg, rgba(255,185,40,.012) 54deg, transparent 58deg, transparent 80deg, rgba(230,170,40,.010) 83deg, transparent 87deg, transparent 360deg);
+    animation:raysPulse 11s ease-in-out infinite;
+  }
+  @keyframes raysPulse{
+    0%,100%{opacity:.3;transform:rotate(0deg)}
+    50%    {opacity:.8;transform:rotate(1.5deg)}
+  }
+
+  .leaf{
+    position:absolute;z-index:5;
+    font-size:clamp(16px,2vw,28px);
+    opacity:0;
+    animation:leafFall linear infinite;
+    user-select:none;pointer-events:none;
+  }
+  .leaf:nth-child(1) {left:7%;  animation-duration:7s; animation-delay:0s;   font-size:22px; color:rgba(100,190,80,.75)}
+  .leaf:nth-child(2) {left:18%; animation-duration:9s; animation-delay:1.5s; font-size:18px; color:rgba(80,170,60,.65)}
+  .leaf:nth-child(3) {left:30%; animation-duration:6s; animation-delay:3s;   font-size:28px; color:rgba(110,200,90,.70)}
+  .leaf:nth-child(4) {left:45%; animation-duration:8s; animation-delay:0.8s; font-size:20px; color:rgba(90,180,70,.60)}
+  .leaf:nth-child(5) {left:58%; animation-duration:7.5s;animation-delay:2.2s;font-size:24px; color:rgba(105,195,85,.72)}
+  .leaf:nth-child(6) {left:70%; animation-duration:6.5s;animation-delay:4s;  font-size:20px; color:rgba(85,175,65,.65)}
+  .leaf:nth-child(7) {left:82%; animation-duration:9s; animation-delay:1s;   font-size:26px; color:rgba(115,205,95,.68)}
+  .leaf:nth-child(8) {left:91%; animation-duration:7s; animation-delay:3.5s; font-size:19px; color:rgba(95,185,75,.60)}
+  .leaf:nth-child(9) {left:13%; animation-duration:8.5s;animation-delay:5s;  font-size:22px; color:rgba(100,190,80,.65)}
+  .leaf:nth-child(10){left:55%; animation-duration:6s; animation-delay:6s;   font-size:30px; color:rgba(120,210,100,.70)}
+
+  @keyframes leafFall{
+    0%  {opacity:0;transform:translateY(-40px) rotate(-15deg) scale(.8)}
+    8%  {opacity:.8}
+    85% {opacity:.5}
+    100%{opacity:0;transform:translateY(105vh) rotate(340deg) scale(1.1) translateX(40px)}
+  }
+
+  .vignette{
+    position:absolute;inset:0;z-index:4;
+    background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,.40) 100%);
+  }
+
+  /* ── CONTENT ── */
+  .content{
+    position:absolute;inset:0;z-index:12;
+    display:flex;flex-direction:column;
+    align-items:center;justify-content:center;
+    gap:0;
+  }
+
+  /* ── LOOPING ANIMATION (Coming and Hiding) ── */
+  @keyframes movingInAndOut {
+    0%   { opacity: 0; transform: translateY(25px) scale(0.95); }
+    12%  { opacity: 1; transform: translateY(0) scale(1); }
+    75%  { opacity: 1; transform: translateY(-5px) scale(1); } /* Slow floating drift */
+    88%  { opacity: 0; transform: translateY(-25px) scale(1.05); }
+    100% { opacity: 0; transform: translateY(-25px) scale(1.05); }
+  }
+
+  /* Church Name */
+  .church-name{
+    font-family:'Noto Serif Tamil',serif;
+    font-weight:700;
+    font-size:clamp(14px,2.2vw,24px);
+    letter-spacing:1px;
+    color:rgba(255,235,160,1);
+    text-shadow:0 2px 6px rgba(0,0,0,1), 0 0 15px rgba(255,200,50,.5);
+    margin-bottom:1.5vh;
+    opacity:0; 
+    animation: movingInAndOut 14s infinite ease-in-out;
+    animation-delay: 0s;
+    text-align: center;
+  }
+
+  /* "புனித வாரம்" tag */
+  .eyebrow{
+    font-family:'Noto Serif Tamil',serif;
+    font-weight:700;
+    font-size:clamp(11px,1.3vw,16px);
+    letter-spacing:8px;
+    color:rgba(200,230,150,.95);
+    text-shadow:0 0 12px rgba(100,180,50,.55),0 2px 6px rgba(0,0,0,.95);
+    margin-bottom:1vh;
+    opacity:0; 
+    animation: movingInAndOut 14s infinite ease-in-out;
+    animation-delay: 0.5s;
+  }
+
+  .orn{
+    width:35vw;height:1px;margin-bottom:1.5vh;
+    opacity:0; 
+    background:linear-gradient(90deg, transparent, rgba(120,190,60,.40) 18%, rgba(200,255,80,.75) 50%, rgba(120,190,60,.40) 82%, transparent);
+    position:relative;
+    animation: movingInAndOut 14s infinite ease-in-out;
+    animation-delay: 0.8s;
+  }
+  .orn::before,.orn::after{
+    content:'🌿';position:absolute;top:-9px;font-size:12px;filter:drop-shadow(0 0 4px rgba(100,200,50,.70));
+  }
+  .orn::before{left:-10px}.orn::after{right:-10px}
+
+  /* ஓசன்னா (Size slightly reduced as requested) */
+  .hosanna-ta-wrap{
+    margin-bottom:1vh;
+    opacity:0;
+    animation: movingInAndOut 14s infinite ease-in-out;
+    animation-delay: 1.2s;
+  }
+  .hosanna-ta{
+    display:block;
+    font-family:'Noto Serif Tamil',serif;
+    font-size:clamp(32px,6.5vw,85px);
+    font-weight:900;letter-spacing:6px;
+    background:linear-gradient(90deg, #b8860b 0%, #fffacd 20%, #ffffff 38%, #fffacd 50%, #ffffff 68%, #fffacd 84%, #b8860b 100%);
+    background-size:200% auto;
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+    animation:goldShimmer 5s linear infinite;
+    filter: drop-shadow(0 2px 3px rgba(0,0,0,1)) drop-shadow(0 4px 15px rgba(0,0,0,.95)) drop-shadow(0 0 30px rgba(255,220,80,.25));
+  }
+
+  .orn2{
+    width:30vw;height:1px; margin-bottom:1.5vh;
+    opacity:0; 
+    background:linear-gradient(90deg, transparent, rgba(180,220,80,.38) 30%, rgba(255,255,150,.65) 60%, transparent);
+    animation: movingInAndOut 14s infinite ease-in-out;
+    animation-delay: 1.6s;
+  }
+
+  /* குருத்தோலை ஞாயிறு (Size slightly reduced) */
+  .title-wrap{
+    margin-bottom:1.5vh;
+    opacity:0;
+    animation: movingInAndOut 14s infinite ease-in-out;
+    animation-delay: 2.0s;
+  }
+  .title{
+    display:block;
+    font-family:'Noto Serif Tamil',serif;
+    font-size:clamp(22px,4vw,65px);
+    font-weight:900;line-height:1.2;
+    white-space:nowrap;letter-spacing:4px;
+    background:linear-gradient(90deg, #90d860 0%, #ffffff 18%, #e8ffcc 38%, #ffffff 50%, #e8ffcc 68%, #ffffff 84%, #90d860 100%);
+    background-size:200% auto;
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+    animation:greenShimmer 5s linear infinite;
+    filter: drop-shadow(0 2px 2px rgba(0,0,0,1)) drop-shadow(0 4px 12px rgba(0,0,0,.95)) drop-shadow(0 0 25px rgba(120,220,60,.20));
+  }
+
+  .orn3{
+    width:20vw;height:1px;margin-bottom:1.5vh;
+    opacity:0;
+    background:linear-gradient(90deg, transparent, rgba(200,150,40,.40) 30%, rgba(255,215,80,.72) 60%, transparent);
+    position:relative;
+    animation: movingInAndOut 14s infinite ease-in-out;
+    animation-delay: 2.4s;
+  }
+  .orn3::before,.orn3::after{
+    content:'✦';position:absolute;top:-7px;font-size:10px;color:rgba(255,215,80,.88);
+  }
+  .orn3::before{left:-6px}.orn3::after{right:-6px}
+
+  /* Verse */
+  .verse{
+    font-family:'Noto Serif Tamil',serif;
+    font-style:italic;font-weight:700;
+    font-size:clamp(10px,1.1vw,15px);
+    letter-spacing:1px;text-align:center;
+    padding:0 10vw;
+    color:rgba(255,255,255,1);
+    text-shadow: 0 1px 2px rgba(0,0,0,1), 0 3px 8px rgba(0,0,0,1), 0 0 15px rgba(0,0,0,.9);
+    opacity:0;
+    animation: movingInAndOut 14s infinite ease-in-out;
+    animation-delay: 2.8s;
+  }
+
+  /* Date badge */
+  .date{
+    margin-top:1.5vh;
+    font-family:'Noto Serif Tamil',serif;
+    font-style:normal;font-weight:700;
+    font-size:clamp(10px,1.1vw,14px);
+    letter-spacing:4px;
+    color:rgba(255,230,130,.95);
+    text-shadow:0 1px 6px rgba(0,0,0,1);
+    opacity:0;
+    animation: movingInAndOut 14s infinite ease-in-out;
+    animation-delay: 3.2s;
+  }
+
+  @keyframes goldShimmer{ 0%{background-position:0% center} 100%{background-position:200% center} }
+  @keyframes greenShimmer{ 0%{background-position:0% center} 100%{background-position:200% center} }
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <div class="photo-fallback"></div>
+
+  <video class="video-bg" autoplay muted loop playsinline>
+    <source src="palm_sunday_bg.mp4" type="video/mp4">
+  </video>
+
+  <div class="overlay"></div>
+  <div class="text-backdrop"></div>
+  <div class="rays"></div>
+  <div class="vignette"></div>
+
+  <!-- Falling palm leaves -->
+  <div class="leaf">🌿</div>
+  <div class="leaf">🍃</div>
+  <div class="leaf">🌿</div>
+  <div class="leaf">🍃</div>
+  <div class="leaf">🌿</div>
+  <div class="leaf">🍃</div>
+  <div class="leaf">🌿</div>
+  <div class="leaf">🍃</div>
+  <div class="leaf">🌿</div>
+  <div class="leaf">🍃</div>
+
+  <!-- Main content -->
+  <div class="content">
+    <div class="church-name">நல்ல சமாரியன் இயேசு ஜெப வீடு</div>
+    <div class="eyebrow">புனித வாரம்</div>
+    <div class="orn"></div>
+    <div class="hosanna-ta-wrap"><span class="hosanna-ta">ஓசன்னா!</span></div>
+    <div class="orn2"></div>
+    <div class="title-wrap"><span class="title">குருத்தோலை ஞாயிறு</span></div>
+    <div class="orn3"></div>
+    <div class="verse">❝ ஆசீர்வதிக்கப்பட்டவர் கர்த்தரின் நாமத்தினால் வருகிறவர் ❞ — மத்தேயு 21:9</div>
+
+  </div>
+
+</div>
+</body>
+</html>
