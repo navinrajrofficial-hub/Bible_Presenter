@@ -21,6 +21,7 @@
   --text: #f0ede8;
   --muted: #6b6b75;
   --panel: 320px;
+  --sp-panel-width: 35vw;
 }
 
 /* ── ANIMATED APP BACKGROUND ── */
@@ -1392,7 +1393,7 @@ select.sp-select.tamil { font-family: 'Noto Serif Tamil', serif; font-size: 11.5
   display: none;
   position: fixed;
   top: 0; right: 0;
-  width: 270px;
+  width: var(--sp-panel-width);
   height: 100vh;
   background: rgba(10,10,16,0.95);
   backdrop-filter: blur(14px);
@@ -1406,11 +1407,25 @@ select.sp-select.tamil { font-family: 'Noto Serif Tamil', serif; font-size: 11.5
 #present-overlay.panel-fs #sp-fs-panel { display: flex; }
 
 /* shrink the iframe so it doesn't go under the panel */
-#present-overlay.panel-fs #present-iframe { width: calc(100% - 270px); }
+#present-overlay.panel-fs #present-iframe { width: calc(100% - var(--sp-panel-width)); }
 
 /* re-center the controls bar in the remaining (non-panel) area */
 #present-overlay.panel-fs #present-controls-zone {
-  left: calc((100% - 270px) / 2);
+  left: calc((100% - var(--sp-panel-width)) / 2);
+}
+
+#sp-fs-resizer {
+  position: absolute;
+  top: 0; left: -6px;
+  width: 14px;
+  height: 100%;
+  cursor: ew-resize;
+  z-index: 10005;
+  background: transparent;
+  transition: background 0.2s;
+}
+#sp-fs-resizer:hover, #sp-fs-resizer.resizing {
+  background: rgba(52,211,153,0.4);
 }
 
 #sp-fs-header {
@@ -1449,14 +1464,14 @@ select.sp-select.tamil { font-family: 'Noto Serif Tamil', serif; font-size: 11.5
   border: 1px solid rgba(52,211,153,0.2);
   color: #f0ede8;
   border-radius: 5px;
-  padding: 6px 7px;
+  padding: 4px 6px;
   font-family: 'DM Mono', monospace;
-  font-size: 10.5px;
+  font-size: 9.5px;
 }
 .sp-fs-db-input.tamil,
 .sp-fs-db-ta.tamil {
   font-family: 'Noto Serif Tamil', 'Nirmala UI', serif;
-  font-size: 11px;
+  font-size: 10px;
 }
 .sp-fs-db-input:focus,
 .sp-fs-db-ta:focus {
@@ -1464,21 +1479,21 @@ select.sp-select.tamil { font-family: 'Noto Serif Tamil', serif; font-size: 11.5
   border-color: rgba(52,211,153,0.55);
 }
 .sp-fs-db-ta {
-  min-height: 88px;
-  max-height: 130px;
+  min-height: 45px;
+  max-height: 80px;
   resize: vertical;
-  line-height: 1.45;
+  line-height: 1.3;
 }
 .sp-fs-db-actions,
 .sp-fs-db-btn {
   border: none;
-  border-radius: 5px;
-  padding: 6px 8px;
+  border-radius: 3px;
+  padding: 4px 6px;
   cursor: pointer;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
   font-family: 'DM Mono', monospace;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
   transition: opacity 0.15s, transform 0.15s;
 }
 .sp-fs-db-btn:hover { opacity: 0.88; transform: translateY(-1px); }
@@ -1514,9 +1529,9 @@ select.sp-select.tamil { font-family: 'Noto Serif Tamil', serif; font-size: 11.5
 
 .sp-fs-verse {
   display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  padding: 5px 4px;
+  align-items: center; /* better alignment */
+  gap: 8px;
+  padding: 8px 6px;
   border-radius: 5px;
   border-bottom: 1px solid rgba(255,255,255,0.04);
   transition: background 0.15s;
@@ -1524,12 +1539,67 @@ select.sp-select.tamil { font-family: 'Noto Serif Tamil', serif; font-size: 11.5
 .sp-fs-verse:hover { background: rgba(52,211,153,0.06); }
 .sp-fs-verse-text {
   flex: 1;
-  color: #c4c4cc;
-  font-size: 10px;
+  color: #e4e4e6; /* slightly brighter */
+  font-size: 13px; /* bigger text */
   line-height: 1.5;
   word-break: break-word;
     white-space: pre-line;
 }
+
+.sp-fs-verse-ctrls {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* more spacing */
+}
+.sp-tag-group {
+  display: inline-flex;
+}
+.sp-tag-group input {
+  display: none;
+}
+.sp-tag-group label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px; /* bigger click target */
+  height: 26px; /* bigger click target */
+  border-radius: 4px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.15); /* better contrast */
+  font-size: 14px; /* bigger text */
+  cursor: pointer;
+  color: #c4c4cc;
+  font-weight: 800;
+  transition: all 0.15s;
+}
+.sp-tag-group input:checked + .lbl-m {
+  background: #34d399;
+  color: #000;
+  border-color: #34d399;
+}
+.sp-tag-group input:checked + .lbl-s {
+  background: #60a5fa;
+  color: #000;
+  border-color: #60a5fa;
+}
+.sp-ord-in {
+  width: 36px; /* wider for order input */
+  height: 26px; /* taller */
+  background: rgba(0,0,0,0.5);
+  border: 1px solid rgba(255,255,255,0.15); /* better contrast */
+  color: #fff;
+  border-radius: 4px;
+  text-align: center;
+  font-size: 14px; /* readable */
+  padding: 0;
+  -moz-appearance: textfield;
+}
+.sp-ord-in::-webkit-outer-spin-button,
+.sp-ord-in::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 .sp-fs-verse-add {
   background: none;
   border: none;
@@ -1653,20 +1723,48 @@ select.sp-select.tamil { font-family: 'Noto Serif Tamil', serif; font-size: 11.5
   padding: 10px 10px 14px;
   border-top: 1px solid rgba(52,211,153,0.15);
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
-#sp-fs-commit-btn {
+#sp-fs-present-controls {
+  display: flex;
+  gap: 8px;
   width: 100%;
+}
+#sp-fs-add-song-btn {
+  background: linear-gradient(135deg, #fbbf24, #d97706);
+  border: none;
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 12px 10px;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: all 0.2s;
+  text-align: center;
+}
+#sp-fs-add-song-btn:hover { opacity: 0.87; transform: translateY(-1px); }
+#sp-fs-add-song-btn:active { transform: translateY(0); opacity: 1; }
+
+#sp-fs-commit-btn, #sp-fs-temp-btn {
+  flex: 1;
   background: linear-gradient(135deg, #34d399, #06b6d4);
   border: none;
   color: #000;
   font-family: 'DM Mono', monospace;
   font-size: 11px;
   font-weight: 700;
-  padding: 10px;
+  padding: 10px 4px;
   border-radius: 7px;
   cursor: pointer;
   letter-spacing: 0.04em;
   transition: all 0.2s;
+  text-align: center;
 }
-#sp-fs-commit-btn:hover { opacity: 0.87; transform: translateY(-1px); box-shadow: 0 4px 18px rgba(52,211,153,0.3); }
-#sp-fs-commit-btn:active { transform: translateY(0); opacity: 1; }
+#sp-fs-temp-btn {
+  background: linear-gradient(135deg, #f5a623, #e05a2b); /* Distinguishable color for quick temp slide */
+  color: #fff;
+}
+#sp-fs-commit-btn:hover, #sp-fs-temp-btn:hover { opacity: 0.87; transform: translateY(-1px); box-shadow: 0 4px 18px rgba(52,211,153,0.3); }
+#sp-fs-commit-btn:active, #sp-fs-temp-btn:active { transform: translateY(0); opacity: 1; }

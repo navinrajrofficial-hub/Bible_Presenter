@@ -1,21 +1,31 @@
-slide verse sync to bible navigation => done
+slide verse sync to bible navigation => Done
 
 have the chapter in tanglish and exact as well e.g. Mathews matheyu for quick search? => Done
 
-in the song section, have main stance, coros , sub stance section?
-
-new song add feature and edit feature as well?
-
-in the songs full screen section, have a quick button, which should quickly temporary display a song slide for sudden new song case.
+in the song section, have main stance, coros , sub stance section, temp slide?  => Done
 
 
+in the songs full screen section, have a quick button, which should quickly temporary display a song slide for sudden new song case. => Done
+
+new song add feature and edit feature as well? => Done
+
+try to search in the English / tanglish / or use tamil keyboard kinda thing for song choose thing?
 
 make song content js file splitted and good performance?
 
+
+
 ==========
+
+MOBUL APP:
 create a mobile app which uses this psrn file to display in the tv.
 
 that app should have both songs, bible and presentation section as well.
 all the time always have the laptop as the backup.
 
 =======================
+
+GITHUB:
+publish it to the free tier web application?
+
+========================

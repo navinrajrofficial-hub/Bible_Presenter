@@ -8,6 +8,8 @@ let thumbDragged = false;
 let presentIdx = null;
 let activeTab = 'html';
 let saveTimer = null;
+let _tempBackupSlides = null;
+let _tempBackupIdx = -1;
 
 // ── LAZY THUMBNAIL LOADER ──
 // Only renders an iframe's srcdoc when the thumbnail scrolls into view.
@@ -49,6 +51,8 @@ function showToast(msg, type = 'success', duration = 2500) {
 const STORAGE_KEY = 'presenter_slides_v1';
 
 function scheduleSave() {
+  if (_tempBackupSlides) return; // Prevent overwriting DB with temporary presentation slides
+
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     // Run the actual localStorage write during browser idle time so it never
@@ -1667,148 +1671,7 @@ let _spOpen = false;
 let _spSongId = null;
 let _spSongKeys = [];   // sorted array of song IDs
 let _spFilteredKeys = []; // currently visible IDs after search
-let _spSongDbFileHandle = null; // File System Access API handle
-let _spSongDbIdbHandle  = null; // IDB-restored handle waiting for permission grant
 let _spFsEditorMode = 'edit'; // 'edit' | 'new'
-
-// ── IndexedDB helpers: persist FileSystemFileHandle + local songs ────────────
-function _spIdbUpgrade(e) {
-  const db = e.target.result;
-  if (!db.objectStoreNames.contains('handles'))    db.createObjectStore('handles');
-  if (!db.objectStoreNames.contains('localSongs')) db.createObjectStore('localSongs');
-}
-
-function _spIdbOpen() {
-  return new Promise((res, rej) => {
-    const req = indexedDB.open('BiblePresenterDb', 2);
-    req.onupgradeneeded = _spIdbUpgrade;
-    req.onsuccess = e => res(e.target.result);
-    req.onerror   = () => rej(req.error);
-  });
-}
-
-async function _spIdbPutHandle(handle) {
-  try {
-    const db = await _spIdbOpen();
-    await new Promise((res, rej) => {
-      const tx = db.transaction('handles', 'readwrite');
-      tx.objectStore('handles').put(handle, 'songContent');
-      tx.oncomplete = () => { db.close(); res(); };
-      tx.onerror   = () => { db.close(); rej(tx.error); };
-    });
-  } catch (_) {}
-}
-
-async function _spIdbGetHandle() {
-  try {
-    const db = await _spIdbOpen();
-    return await new Promise(res => {
-      const tx = db.transaction('handles', 'readonly');
-      const get = tx.objectStore('handles').get('songContent');
-      get.onsuccess = () => { db.close(); res(get.result || null); };
-      get.onerror   = () => { db.close(); res(null); };
-    });
-  } catch (_) { return null; }
-}
-
-async function _spIdbSaveSong(id, song) {
-  try {
-    const db = await _spIdbOpen();
-    await new Promise((res, rej) => {
-      const tx = db.transaction('localSongs', 'readwrite');
-      tx.objectStore('localSongs').put(song, id);
-      tx.oncomplete = () => { db.close(); res(); };
-      tx.onerror   = () => { db.close(); rej(tx.error); };
-    });
-  } catch (_) {}
-}
-
-async function _spIdbLoadAllSongs() {
-  try {
-    const db = await _spIdbOpen();
-    return await new Promise(res => {
-      const tx    = db.transaction('localSongs', 'readonly');
-      const all   = {};
-      const cur   = tx.objectStore('localSongs').openCursor();
-      cur.onsuccess = ev => {
-        const c = ev.target.result;
-        if (c) { all[c.key] = c.value; c.continue(); }
-      };
-      tx.oncomplete = () => { db.close(); res(all); };
-      tx.onerror    = () => { db.close(); res({}); };
-    });
-  } catch (_) { return {}; }
-}
-
-// ── Pure JS file writing (File System Access API) ──
-
-async function _spGetFileHandle() {
-  // Reuse existing handle
-  if (_spSongDbFileHandle) return _spSongDbFileHandle;
-  // Try IDB-stored handle
-  if (_spSongDbIdbHandle) {
-    try {
-      const perm = await _spSongDbIdbHandle.requestPermission({ mode: 'readwrite' });
-      if (perm === 'granted') {
-        _spSongDbFileHandle = _spSongDbIdbHandle;
-        _spSongDbIdbHandle = null;
-        return _spSongDbFileHandle;
-      }
-    } catch (_) {}
-  }
-  // Ask user to pick the file (first time only)
-  if (!window.showSaveFilePicker) return null;
-  try {
-    _spSongDbFileHandle = await window.showSaveFilePicker({
-      suggestedName: 'song_content.js',
-      types: [{ description: 'JavaScript', accept: { 'text/javascript': ['.js'] } }]
-    });
-    _spIdbPutHandle(_spSongDbFileHandle);
-    return _spSongDbFileHandle;
-  } catch (e) {
-    return null;
-  }
-}
-
-async function _spWriteFile(jsText) {
-  const handle = await _spGetFileHandle();
-  if (handle) {
-    const writable = await handle.createWritable();
-    await writable.write(jsText);
-    await writable.close();
-    return true;
-  }
-  return false;
-}
-
-async function _spAppendToFile(id, song) {
-  const handle = await _spGetFileHandle();
-  if (!handle) return false;
-  const file = await handle.getFile();
-  const text = await file.text();
-  const patched = _spAppendSongEntryToJsText(text, id, song);
-  if (!patched) return false;
-  const writable = await handle.createWritable();
-  await writable.write(patched);
-  await writable.close();
-  return true;
-}
-
-
-async function _spTrySilentHandleRestore() {
-  if (_spSongDbFileHandle) return true;
-  const h = await _spIdbGetHandle();
-  if (!h) return false;
-  try {
-    const perm = await h.queryPermission({ mode: 'readwrite' });
-    if (perm === 'granted') {
-      _spSongDbFileHandle = h;
-      return true;
-    }
-    _spSongDbIdbHandle = h; // save for requestPermission on next user gesture
-  } catch (_) {}
-  return false;
-}
 
 // Build the song list on load
 (function spInit() {
@@ -1828,7 +1691,9 @@ async function _spTrySilentHandleRestore() {
         _spFilteredKeys = _spSongKeys.slice();
         spPopulateList(_spFilteredKeys);
       }
-      await _spTrySilentHandleRestore();
+      if (typeof _spTrySilentHandleRestore === "function") {
+        await _spTrySilentHandleRestore();
+      }
     } catch (e) {}
   }, 300);
 })();
@@ -1984,6 +1849,105 @@ function spSetFsEditorMode(mode) {
   _spFsEditorMode = mode === 'new' ? 'new' : 'edit';
   const saveCurrentBtn = document.querySelector('.sp-fs-db-btn.save');
   if (saveCurrentBtn) saveCurrentBtn.style.display = _spFsEditorMode === 'new' ? 'none' : '';
+  
+  const presentControls = document.getElementById('sp-fs-present-controls');
+  const addSongBtn = document.getElementById('sp-fs-add-song-btn');
+  const updateSongBtn = document.getElementById('sp-fs-update-song-btn');
+  if (presentControls && addSongBtn) {
+    if (_spFsEditorMode === 'new') {
+      presentControls.style.display = 'none';
+      if (updateSongBtn) updateSongBtn.style.display = 'none';
+      addSongBtn.style.display = 'block';
+    } else {
+      presentControls.style.display = 'flex';
+      if (updateSongBtn) updateSongBtn.style.display = 'block';
+      addSongBtn.style.display = 'none';
+    }
+  }
+}
+
+async function spSaveNewSong() {
+  const songData = _spReadFsEditorSongInput();
+  if (!songData) return; // validation failed
+
+  const highestId = Math.max(0, ...Object.keys(songContent).map(Number));
+  const newId = highestId + 1;
+
+  try {
+    const payload = JSON.stringify({
+      id: newId,
+      title: songData.title || "",
+      artist: songData.artist || "",
+      content: songData.content || ""
+    });
+
+    const res = await fetch('http://localhost:7777/append', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: payload
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Server returned ${res.status}: ${errText}`);
+    }
+
+    // Successfully appended to the master JS file via SongSaver
+    songContent[newId] = songData;
+    showToast('✓ Song permanently saved to database!', 'success');
+    
+    // Switch to this new song and change to edit mode to show Presentation bounds
+    _spRefreshSongListAndSelect(newId);
+    spSetFsEditorMode('edit');
+    return;
+  } catch (err) {
+    console.error("SongSaver server not reachable:", err.message);
+    showToast('❌ Start SongSaver.bat first to save to script properly!', 'error');
+  }
+}
+
+async function spUpdateExistingSong() {
+  if (_spSongId === null || !songContent[_spSongId]) return;
+  const songData = _spReadFsEditorSongInput();
+  if (!songData) return;
+
+  if (!confirm(`Are you sure you want to permanently update the song "${songData.title}" in the database?`)) {
+    return;
+  }
+
+  try {
+    const payload = JSON.stringify({
+      id: _spSongId,
+      title: songData.title || "",
+      artist: songData.artist || "",
+      content: songData.content || ""
+    });
+
+    const res = await fetch('http://localhost:7777/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: payload
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Server returned ${res.status}: ${errText}`);
+    }
+
+    // Successfully updated in the master JS file via SongSaver
+    songContent[_spSongId] = songData;
+    showToast('✓ Song specifically updated in database!', 'success');
+    
+    // Refresh display
+    _spRefreshSongListAndSelect(_spSongId);
+    
+    // Optional: reload the preview
+    const pf = document.getElementById('present-iframe');
+    if (pf) pf.srcdoc = _spBuildPageHtml();
+  } catch (err) {
+    console.error("SongSaver server not reachable:", err.message);
+    showToast('❌ Update failed. Is Start_App.bat running?', 'error');
+  }
 }
 
 function spOpenNewSongEditor() {
@@ -2000,7 +1964,7 @@ function spOpenNewSongEditor() {
     .box{text-align:center;max-width:900px}
     h1{font-size:48px;line-height:1.25;color:#7dd3fc;margin-bottom:12px}
     p{font-size:26px;line-height:1.7;opacity:0.92}
-  <\/style></head><body><div class="box"><h1>➕ New Song</h1><p>Use the editor on the right panel and click <b>Save As New</b>.</p></div></body></html>`;
+  <\/style></head><body><div class="box"><h1>➕ New Song</h1><p>Use the editor on the right panel and click <b>Save Song to Database</b>.</p></div></body></html>`;
 
   document.getElementById('present-indicator').textContent = 'New Song';
   document.getElementById('sp-fs-title-text').textContent = 'New Song (unsaved)';
@@ -2084,103 +2048,6 @@ function _spEscTpl(str) {
     .replace(/\$\{/g, '\\${');
 }
 
-function _spBuildSongContentJsText() {
-  const ids = Object.keys(songContent).map(Number).sort((a, b) => a - b);
-  const lines = [];
-  lines.push('// ══════════════════════════════════════════════════════');
-  lines.push('//  Tamil Songs Content — Auto-generated from app editor');
-  lines.push('//  Total: ' + ids.length + ' songs');
-  lines.push('// ══════════════════════════════════════════════════════');
-  lines.push('');
-  lines.push('const songContent = {');
-  ids.forEach((id, idx) => {
-    const s = songContent[id] || {};
-    lines.push('');
-    lines.push('  // ── Song ' + id + ' ───────────────────────────────────────');
-    lines.push('  ' + id + ': {');
-    lines.push('    title: `' + _spEscTpl(s.title || '') + '`,');
-    lines.push('    artist: ' + JSON.stringify(s.artist || '') + ',');
-    lines.push('    content: `' + _spEscTpl(s.content || '') + '`');
-    lines.push('  }' + (idx < ids.length - 1 ? ',' : ''));
-  });
-  lines.push('');
-  lines.push('};');
-  return lines.join('\n') + '\n';
-}
-
-function _spBuildSongEntryBlock(id, song) {
-  return [
-    '  // ── Song ' + id + ' ───────────────────────────────────────',
-    '  ' + id + ': {',
-    '    title: `' + _spEscTpl(song.title || '') + '`,',
-    '    artist: ' + JSON.stringify(song.artist || '') + ',',
-    '    content: `' + _spEscTpl(song.content || '') + '`',
-    '  }'
-  ].join('\n');
-}
-
-function _spAppendSongEntryToJsText(existingText, id, song) {
-  const closeMatch = existingText.match(/}\s*;\s*$/);
-  if (!closeMatch) return null;
-  const closeIndex = closeMatch.index;
-  const beforeCloseTrimmed = existingText.slice(0, closeIndex).replace(/\s+$/,'');
-  const lastChar = beforeCloseTrimmed.slice(-1);
-  const block = _spBuildSongEntryBlock(id, song);
-  const sep = (lastChar === '{' || lastChar === ',') ? '\n\n' : ',\n\n';
-  return beforeCloseTrimmed + sep + block + '\n\n};\n';
-}
-
-async function spSaveCurrentSongToDb() {
-  if (_spSongId === null || !songContent[_spSongId]) {
-    showToast('Select a song first', 'error');
-    return;
-  }
-
-  const input = _spReadFsEditorSongInput();
-  if (!input) return;
-  const updated = { title: input.title, artist: input.artist, content: input.content };
-  songContent[_spSongId] = updated;
-  await _spIdbSaveSong(_spSongId, updated);
-  _spRefreshSongListAndSelect(_spSongId);
-  spSyncFsEditorFromCurrentSong();
-
-  try {
-    const wrote = await _spWriteFile(_spBuildSongContentJsText());
-    if (wrote) {
-      showToast(`✓ Song #${_spSongId} saved to song_content.js`, 'success');
-    } else {
-      showToast(`✓ Song #${_spSongId} saved in memory (browser blocked file save)`, 'info', 4000);
-    }
-  } catch (e) {
-    _spSongDbFileHandle = null;
-    showToast('File save failed — try again', 'error');
-  }
-}
-
-async function spSaveAsNewSongToDb() {
-  const input = _spReadFsEditorSongInput();
-  if (!input) return;
-
-  const nextId  = _spSongKeys.length ? _spSongKeys[_spSongKeys.length - 1] + 1 : 0;
-  const newSong = { title: input.title, artist: input.artist, content: input.content };
-  songContent[nextId] = newSong;
-  _spRefreshSongListAndSelect(nextId);
-  spSetFsEditorMode('edit');
-  spSyncFsEditorFromCurrentSong();
-
-  try {
-    const wrote = await _spAppendToFile(nextId, newSong);
-    if (wrote) {
-      showToast(`✓ Song #${nextId} saved to song_content.js`, 'success');
-    } else {
-      showToast(`✓ Song #${nextId} added (pick song_content.js to save permanently)`, 'info', 4000);
-    }
-  } catch (e) {
-    _spSongDbFileHandle = null;
-    showToast('File save failed — try again', 'error');
-  }
-}
-
 function spAddAsSlide() {
   if (_spSongId === null) { showToast('பாடல் தேர்ந்தெடுக்கவும்', 'error'); return; }
   const html = _spBuildSlideHtml();
@@ -2219,13 +2086,85 @@ function _spPopulateVerses(song) {
   _spVerses.forEach((v, i) => {
     const div = document.createElement('div');
     div.className = 'sp-fs-verse';
-    const preview = v.length > 80 ? v.slice(0, 80) + '…' : v;
+    const preview = v.length > 250 ? v.slice(0, 250) + '…' : v;
     div.innerHTML =
-      '<span class="sp-fs-verse-text">' + _esc(preview).replace(/\n/g, '<br>') + '</span>' +
-      '<button class="sp-fs-verse-add" onclick="spQueueAdd(' + i + ')" title="Add to queue">➕</button>';
+      '<div style="flex:1;"><span class="sp-fs-verse-text">' + _esc(preview).replace(/\n/g, '<br>') + '</span></div>' +
+      '<div class="sp-fs-verse-ctrls">' +
+        '<div class="sp-tag-group"><input type="radio" id="sp-m-'+i+'" name="sp-auto-main" value="'+i+'"><label for="sp-m-'+i+'" class="lbl-m" title="Set as Main Chorus">M</label></div>' +
+        '<div class="sp-tag-group"><input type="radio" id="sp-s-'+i+'" name="sp-auto-sub" value="'+i+'"><label for="sp-s-'+i+'" class="lbl-s" title="Set as Mid/Sub Chorus">m</label></div>' +
+        '<input type="number" id="sp-stz-'+i+'" class="sp-ord-in" min="1" placeholder="#" title="Stanza Order">' +
+        '<button class="sp-fs-verse-add" onclick="spQueueAdd(' + i + ')" title="Add to queue manually">➕</button>' +
+      '</div>';
     container.appendChild(div);
   });
   _spRenderQueue();
+}
+
+function spAutoGenerateQueue() {
+  const mainInput = document.querySelector('input[name="sp-auto-main"]:checked');
+  const subInput = document.querySelector('input[name="sp-auto-sub"]:checked');
+  
+  const mainIdx = mainInput ? parseInt(mainInput.value, 10) : -1;
+  const subIdx = subInput ? parseInt(subInput.value, 10) : -1;
+
+  // Gather all explicitly numbered stanzas
+  let stanzas = [];
+  for (let i = 0; i < _spVerses.length; i++) {
+    const numVal = parseInt(document.getElementById('sp-stz-'+i).value, 10);
+    if (!isNaN(numVal)) {
+      stanzas.push({ idx: i, order: numVal });
+    }
+  }
+
+  // If no order numbers were typed but we need standard order, assume non-choruses are stanzas
+  if (stanzas.length === 0) {
+    for (let i = 0; i < _spVerses.length; i++) {
+      if (i !== mainIdx && i !== subIdx) {
+        stanzas.push({ idx: i, order: stanzas.length + 1 });
+      }
+    }
+  }
+
+  // Sort stanzas by their given order
+  stanzas.sort((a, b) => a.order - b.order);
+
+  if (mainIdx === -1 && stanzas.length === 0) {
+    showToast("Please tag a Main Chorus (M) or type Stanza orders (#) to generate.", "error");
+    return;
+  }
+
+  _spQueue = [];
+
+  // Always start with Main Chorus if it exists
+  if (mainIdx !== -1) {
+    _spQueue.push({ text: _spVerses[mainIdx], name: 'Main Chorus' });
+  }
+
+  stanzas.forEach((stz, i) => {
+    // Add Sub Chorus if it exists
+    if (subIdx !== -1) {
+      _spQueue.push({ text: _spVerses[subIdx], name: 'Sub Chorus' });
+    }
+    
+    // Add the specific Stanza
+    _spQueue.push({ text: _spVerses[stz.idx], name: 'Stanza ' + stz.order });
+    
+    // If there's no sub chorus, we interleave the main chorus between stanzas
+    if (subIdx === -1 && mainIdx !== -1 && i < stanzas.length - 1) {
+      _spQueue.push({ text: _spVerses[mainIdx], name: 'Main Chorus' });
+    }
+  });
+
+  // End the sequence
+  if (subIdx !== -1) {
+    _spQueue.push({ text: _spVerses[subIdx], name: 'Sub Chorus' });
+  }
+  if (mainIdx !== -1) {
+    _spQueue.push({ text: _spVerses[mainIdx], name: 'Main Chorus' });
+  }
+
+  _spRenderQueue();
+  showToast("Queue Auto-Generated Successfully!", "success");
 }
 
 function _esc(s) {
@@ -2520,6 +2459,32 @@ function presentNav(dir) {
   }, 80); // wait 80 ms for burst key-presses to settle before loading iframe
 }
 
+function spShowTempSlides() {
+  if (_spQueue.length === 0) { showToast('Queue is empty', 'error'); return; }
+  const song = songContent[_spSongId];
+  const songName = song ? song.title : 'Song';
+  const songSlideBg = 'linear-gradient(180deg,#0b0f26 0%,#111936 52%,#1a2647 100%)';
+  
+  const tempSlides = [];
+  _spQueue.forEach((item, i) => {
+    const ref = songName + '  (Song #' + _spSongId + ')';
+    const html = createVasanamHtml(item.text, ref, songSlideBg, '#f8fafc', 'medium');
+    tempSlides.push({ id: Date.now() + Math.random(), type: 'html', name: songName + ' - ' + (i + 1), html });
+  });
+
+  _tempBackupSlides = [...slides];
+  _tempBackupIdx = currentIdx;
+
+  slides.length = 0;
+  slides.push(...tempSlides);
+  currentIdx = 0;
+
+  const overlay = document.getElementById('present-overlay');
+  overlay.classList.remove('panel-fs'); // hiding the song panel
+  
+  startPresent();
+}
+
 function exitPresent() {
   const overlay = document.getElementById('present-overlay');
   
@@ -2529,6 +2494,37 @@ function exitPresent() {
     document.getElementById('bp-fs-prev').style.display = 'none';
     document.getElementById('bp-fs-next').style.display = 'none';
     showPresentSlide();
+    return;
+  }
+
+  // Restore temp slides if active
+  if (_tempBackupSlides) {
+    slides.length = 0;
+    slides.push(..._tempBackupSlides);
+    currentIdx = _tempBackupIdx;
+    _tempBackupSlides = null;
+    _tempBackupIdx = -1;
+    
+    // Return back to the Song Panel presentation mode instead of full exit
+    overlay.classList.add('panel-fs');
+    presentIdx = null;
+    _presentPrevIdx = null;
+    updateBackBtn();
+    
+    const pif = document.getElementById('present-iframe');
+    if (_spSongId !== null && typeof _spBuildPageHtml === 'function') {
+      const html = _spBuildPageHtml();
+      if (html) {
+        pif.srcdoc = html;
+        const song = songContent[_spSongId];
+        if (song) document.getElementById('present-indicator').textContent = song.title;
+      }
+    } else {
+      pif.srcdoc = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>*{margin:0;padding:0;box-sizing:border-box}html,body{width:100%;height:100%;overflow:hidden}body{display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#0b0f26 0%,#111936 52%,#1a2647 100%);color:#f8fafc;font-family:'Noto Serif Tamil','Nirmala UI',serif;padding:4vw}.box{text-align:center;max-width:900px}h1{font-size:48px;line-height:1.25;color:#7dd3fc;margin-bottom:12px}p{font-size:26px;line-height:1.7;opacity:0.92}<\/style></head><body><div class="box"><h1>➕ New Song</h1><p>Use the editor on the right panel.</p></div></body></html>`;
+      document.getElementById('present-indicator').textContent = 'New Song';
+    }
+    
+    releaseWakeLock();
     return;
   }
 
@@ -2576,4 +2572,65 @@ document.addEventListener('keydown', e => {
   if (restored) {
     showToast('↩ Session restored from last save', 'success', 3000);
   }
+})();
+
+// ══════════════════════════════════════════════════
+//  SONG PANEL RESIZER
+// ══════════════════════════════════════════════════
+(function initSpResizer() {
+  const resizer = document.getElementById('sp-fs-resizer');
+  let isResizing = false;
+
+  if (!resizer) return;
+
+  function setDragCover(active) {
+    let cover = document.getElementById('sp-drag-cover');
+    if (active) {
+      if (!cover) {
+        cover = document.createElement('div');
+        cover.id = 'sp-drag-cover';
+        cover.style.cssText = 'position:fixed;inset:0;z-index:9999;cursor:ew-resize;';
+        document.body.appendChild(cover);
+      }
+      cover.style.display = 'block';
+      document.body.style.cursor = 'ew-resize';
+      resizer.classList.add('resizing');
+    } else {
+      if (cover) cover.style.display = 'none';
+      document.body.style.cursor = '';
+      resizer.classList.remove('resizing');
+    }
+  }
+
+  // Classic drag-to-resize
+  resizer.addEventListener('mousedown', (e) => {
+    isResizing = true;
+    setDragCover(true);
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!isResizing) return;
+    
+    // Calculate width from the right edge
+    let newWidth = window.innerWidth - e.clientX;
+    
+    // Constraints
+    if (newWidth < 250) newWidth = 250;
+    if (newWidth > window.innerWidth * 0.8) newWidth = window.innerWidth * 0.8;
+    
+    document.documentElement.style.setProperty('--sp-panel-width', newWidth + 'px');
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (isResizing) {
+      isResizing = false;
+      setDragCover(false);
+    }
+  });
+
+  // Also support double-click to quickly reset to default
+  resizer.addEventListener('dblclick', () => {
+    document.documentElement.style.setProperty('--sp-panel-width', '35vw');
+  });
 })();

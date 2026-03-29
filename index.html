@@ -36,8 +36,8 @@
   <button class="import-btn" onclick="triggerImport()" title="Import slides from a .prsn file">⬆ Import</button>
   <div class="tb-sep"></div>
   <button class="primary" onclick="startPresent()">▶ Present</button>
-  <button id="btn-bible-panel" class="bible-btn" onclick="toggleBiblePanel()">📖 Tamil Bible</button>
-  <button id="btn-song-panel" class="song-btn" onclick="toggleSongPanel()">🎵 Song Book</button>
+  <button id="btn-bible-panel" class="bible-btn" onclick="toggleBiblePanel()">📖 பரிசுத்த வேதாகமம்</button>
+  <button id="btn-song-panel" class="song-btn" onclick="toggleSongPanel()">🎵 பாடல் புத்தகம்</button>
   <button class="danger" onclick="deleteCurrentSlide()">✕ Delete</button>
   <button class="danger" style="background:#b91c1c;color:#fff;" onclick="openDeleteRangeModal()">✕ Delete Range</button>
   <div id="save-indicator">● saved</div>
@@ -339,6 +339,7 @@
 
   <!-- SONG FULLSCREEN STAGING PANEL (visible only in panel-fs mode) -->
   <div id="sp-fs-panel">
+    <div id="sp-fs-resizer"></div>
     <div id="sp-fs-header">
       <div id="sp-fs-title-text">Song</div>
     </div>
@@ -356,20 +357,24 @@
         <label class="sp-fs-db-label" for="sp-db-content">Lyrics</label>
         <textarea id="sp-db-content" class="sp-fs-db-ta tamil" placeholder="Song lyrics..."></textarea>
       </div>
-      <div class="sp-fs-db-actions">
-        <button class="sp-fs-db-btn save" onclick="spSaveCurrentSongToDb()">💾 Save Current</button>
-        <button class="sp-fs-db-btn add" onclick="spSaveAsNewSongToDb()">➕ Save As New</button>
-      </div>
     </div>
 
-    <div class="sp-fs-section-label">VERSES <span class="sp-fs-hint">— click ➕ to queue</span></div>
+    <div class="sp-fs-section-label" style="display:flex; justify-content:space-between; align-items:center;">
+      <span>VERSES <span class="sp-fs-hint">— click ➕ or Auto Build</span></span>
+      <button onclick="spAutoGenerateQueue()" style="font-size:9px; font-weight:bold; padding:2px 6px; background:#ffd700; color:#000; border:none; border-radius:3px; cursor:pointer;" title="Generate Sequence: Main > Sub > Stanza > Sub > Main">⚡ Auto Build</button>
+    </div>
     <div id="sp-fs-verses"><div class="sp-fs-empty">No song selected</div></div>
 
     <div class="sp-fs-section-label">QUEUE (<span id="sp-fs-queue-count">0</span>)</div>
     <div id="sp-fs-queue"><div class="sp-fs-empty">No slides queued yet</div></div>
 
     <div id="sp-fs-footer">
-      <button id="sp-fs-commit-btn" onclick="spCommitAllToMain()">✦ Add All to Main Slides</button>
+      <div id="sp-fs-present-controls">
+        <button id="sp-fs-commit-btn" onclick="spCommitAllToMain()">✦ Add All to Main Slides</button>
+        <button id="sp-fs-temp-btn" onclick="spShowTempSlides()" title="Present without adding to main slides">▶ Temp Slide</button>
+      </div>
+      <button id="sp-fs-update-song-btn" onclick="spUpdateExistingSong()" style="display: none; background: #3b82f6; color: #fff; width: 100%; border-radius: 6px; padding: 12px 10px; border: none; font-weight: 700; font-family: 'DM Mono', monospace; cursor: pointer; letter-spacing: 0.04em;">📝 Update Song in Database</button>
+      <button id="sp-fs-add-song-btn" onclick="spSaveNewSong()" style="display: none; background: #34d399; color: #000; width: 100%; border-radius: 6px;">➕ Save Song to Database</button>
     </div>
   </div>
 </div>

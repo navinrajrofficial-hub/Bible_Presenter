@@ -66,26 +66,96 @@ public class SongSaver {
                     String artist   = getJsonString(body, "artist");
                     String content  = getJsonString(body, "content");
 
-                    String entry = "\n\n  " + id + ": {\n"
+                    String entry = ",\n  " + id + ": {\n"
                                  + "    title: `" + escapeTemplate(title) + "`,\n"
-                                 + "    artist: \"" + escapeJsonString(artist) + "\",\n"
+                                 + "    artist: `" + escapeTemplate(artist) + "`,\n"
                                  + "    content: `" + escapeTemplate(content) + "`\n"
-                                 + "  },";
+                                 + "  }\n";
 
                     Path path = Paths.get(filePath);
                     String existing = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
-                    int closeIdx = existing.lastIndexOf("};");
-                    if (closeIdx < 0) {
-                        respond(exchange, 500, "ERROR: Could not find closing }; in " + filePath);
-                        return;
+                    
+                    // Look for the trailing "};" or just "}" at the end of the file.
+                    // We want to replace the last "}" with the new entry and a closing "};".
+                    
+                    // trim trailing whitespace/newlines from the file to make manipulation easier
+                    existing = existing.trim();
+                    
+                    if (existing.endsWith(";")) {
+                        existing = existing.substring(0, existing.length() - 1).trim();
                     }
-                    String updated = existing.substring(0, closeIdx) + entry + "\n\n};\n";
+                    if (existing.endsWith("}")) {
+                        existing = existing.substring(0, existing.length() - 1);
+                    } else {
+                         respond(exchange, 500, "ERROR: Could not find closing } in " + filePath);
+                         return;
+                    }
+
+                    // Remove any trailing comma from the existing last entry to prevent duplicates
+                     existing = existing.trim();
+                     if(existing.endsWith(",")) {
+                         existing = existing.substring(0, existing.length() - 1);
+                     }
+                    
+                    String updated = existing + entry + "};\n";
                     Files.write(path, updated.getBytes(StandardCharsets.UTF_8));
                     respond(exchange, 200, "OK");
                     System.out.println("[SongSaver] Appended song #" + id + " -> " + filePath);
                 } catch (Exception e) {
                     respond(exchange, 500, "ERROR: " + e.getMessage());
                     System.err.println("[SongSaver] Append failed: " + e.getMessage());
+                }
+            } else {
+                respond(exchange, 405, "Method Not Allowed");
+            }
+        });
+
+        // Update an existing song entry in song_content.js
+        server.createContext("/update", exchange -> {
+            addCors(exchange);
+            if ("OPTIONS".equals(exchange.getRequestMethod())) {
+                exchange.sendResponseHeaders(204, -1);
+                exchange.close();
+                return;
+            }
+            if ("POST".equals(exchange.getRequestMethod())) {
+                try {
+                    String body = new String(readAll(exchange.getRequestBody()), StandardCharsets.UTF_8);
+                    int id          = getJsonInt(body, "id");
+                    String title    = getJsonString(body, "title");
+                    String artist   = getJsonString(body, "artist");
+                    String content  = getJsonString(body, "content");
+
+                    String newBlock = id + ": {\n"
+                                    + "    title: `" + escapeTemplate(title) + "`,\n"
+                                    + "    artist: `" + escapeTemplate(artist) + "`,\n"
+                                    + "    content: `" + escapeTemplate(content) + "`";
+
+                    Path path = Paths.get(filePath);
+                    String existing = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
+                    
+                    int startIdx = existing.indexOf("\n  " + id + ": {");
+                    if (startIdx < 0) {
+                        respond(exchange, 404, "ERROR: Could not find song #" + id + " to update in " + filePath);
+                        return;
+                    }
+                    
+                    int endIdx = existing.indexOf("\n  },", startIdx);
+                    if (endIdx < 0) endIdx = existing.indexOf("\n  }", startIdx);
+                    
+                    if (endIdx > startIdx) {
+                        String before = existing.substring(0, startIdx + 1); // include the \n
+                        String after = existing.substring(endIdx);
+                        String updated = before + "  " + newBlock + after;
+                        Files.write(path, updated.getBytes(StandardCharsets.UTF_8));
+                        respond(exchange, 200, "OK");
+                        System.out.println("[SongSaver] Updated song #" + id + " -> " + filePath);
+                    } else {
+                        respond(exchange, 500, "ERROR: Could not find end of song block");
+                    }
+                } catch (Exception e) {
+                    respond(exchange, 500, "ERROR: " + e.getMessage());
+                    System.err.println("[SongSaver] Update failed: " + e.getMessage());
                 }
             } else {
                 respond(exchange, 405, "Method Not Allowed");
