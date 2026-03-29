@@ -80,11 +80,24 @@ body {
 }
 
 #topbar .logo {
-  font-family: 'Playfair Display', serif;
-  font-size: 17px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  margin-right: 12px;
+  font-family: inherit;
+}
+
+#topbar .logo .logo-icon {
+  font-size: 20px;
   color: var(--accent);
-  letter-spacing: 0.02em;
-  margin-right: 8px;
+  font-weight: bold;
+}
+
+#topbar .logo .logo-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
 }
 
 .tb-sep { width: 1px; height: 20px; background: var(--border); }
@@ -804,6 +817,50 @@ select.field-input { cursor: pointer; }
 #present-iframe.pt-zoomout { animation: _pt-zoomout 0.36s ease-out both }
 
 /* ── TOAST ── */
+/* ── BIBLE PANEL CUSTOM DROPDOWN ── */
+.custom-book-field .bp-dropdown-list {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  max-height: 250px;
+  overflow-y: auto;
+  z-index: 10000;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.5);
+}
+.custom-book-field .bp-dropdown-list.show {
+  display: block;
+}
+.custom-book-field .bp-dropdown-list li {
+  padding: 8px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.custom-book-field .bp-dropdown-list li:hover {
+  background: rgba(167, 139, 250, 0.15);
+}
+.custom-book-field .bp-dropdown-list li .ta-name {
+  font-family: 'Noto Serif Tamil', serif;
+  font-size: 13px;
+  color: var(--text);
+}
+.custom-book-field .bp-dropdown-list li .en-name {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+}
+#bp-book-display { cursor: text; }
+
 #toast {
   position: fixed;
   bottom: 32px;

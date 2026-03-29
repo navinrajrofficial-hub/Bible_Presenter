@@ -5,7 +5,7 @@ let slides = [];
 let currentIdx = 0;
 let dragSrcIdx = null;
 let thumbDragged = false;
-let presentIdx = 0;
+let presentIdx = null;
 let activeTab = 'html';
 let saveTimer = null;
 
@@ -1011,6 +1011,61 @@ function closeInsertModal() {
   document.getElementById('insert-modal').style.display = 'none';
 }
 
+function openDeleteRangeModal() {
+  if (slides.length === 0) {
+    showToast("No slides to delete.");
+    return;
+  }
+  document.getElementById('delete-range-modal').style.display = 'flex';
+  document.getElementById('delete-range-from').value = currentIdx + 1;
+  document.getElementById('delete-range-to').value = currentIdx + 1;
+  document.getElementById('delete-range-error').style.display = 'none';
+  document.getElementById('delete-range-to').focus();
+  document.getElementById('delete-range-to').select();
+}
+
+function closeDeleteRangeModal() {
+  document.getElementById('delete-range-modal').style.display = 'none';
+}
+
+function confirmDeleteRange() {
+  const fromEl = document.getElementById('delete-range-from');
+  const toEl = document.getElementById('delete-range-to');
+  const errorEl = document.getElementById('delete-range-error');
+
+  let fromPos = parseInt(fromEl.value, 10);
+  let toPos = parseInt(toEl.value, 10);
+
+  if (isNaN(fromPos) || isNaN(toPos) || fromPos > toPos || fromPos < 1 || toPos > slides.length) {
+    errorEl.textContent = `Invalid range. Enter values from 1 to ${slides.length}.`;
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  const count = toPos - fromPos + 1;
+  if (!confirm(`Are you sure you want to delete ${count} slide(s) from #${fromPos} to #${toPos}?`)) {
+    return;
+  }
+
+  // Convert to 0-based indices
+  const startIndex = fromPos - 1;
+  slides.splice(startIndex, count);
+  
+  if (currentIdx >= slides.length) {
+    currentIdx = Math.max(0, slides.length - 1);
+  } else if (currentIdx >= startIndex && currentIdx < startIndex + count) {
+    // If we're inside the deleted range, drop back to the start index (or end if it's the last ones)
+    currentIdx = Math.min(startIndex, Math.max(0, slides.length - 1));
+  }
+  
+  closeDeleteRangeModal();
+  renderAll(); 
+  renderPreview(); 
+  renderEditor();
+  scheduleSave();
+  showToast(`Deleted ${count} slide(s).`);
+}
+
 function deleteCurrentSlide() {
   if (!slides.length) return;
   if (!confirm(`Delete "${slides[currentIdx].name}"?`)) return;
@@ -1214,15 +1269,182 @@ const bibleData = {
   "வெளிப்படுத்தல்":    { chapters: 22,  versesPerChapter: [] },
 };
 
+const tamilBibleBookNames = {
+  "ஆதியாகமம்": { en: "Genesis", tg: "Aathiyagamam" },
+  "யாத்திராகமம்": { en: "Exodus", tg: "Yaathiragamam" },
+  "லேவியராகமம்": { en: "Leviticus", tg: "Leviyaragamam" },
+  "எண்ணாகமம்": { en: "Numbers", tg: "Ennagamam" },
+  "உபாகமம்": { en: "Deuteronomy", tg: "Ubaagamam" },
+  "யோசுவா": { en: "Joshua", tg: "Yosuva" },
+  "நியாயாதிபதிகள்": { en: "Judges", tg: "Niyayadhipathigal" },
+  "ரூத்": { en: "Ruth", tg: "Ruth" },
+  "1 சாமுவேல்": { en: "1 Samuel", tg: "1 Samuvel" },
+  "2 சாமுவேல்": { en: "2 Samuel", tg: "2 Samuvel" },
+  "1 இராஜாக்கள்": { en: "1 Kings", tg: "1 Rajakkal" },
+  "2 இராஜாக்கள்": { en: "2 Kings", tg: "2 Rajakkal" },
+  "1 நாளாகமம்": { en: "1 Chronicles", tg: "1 Nalagamam" },
+  "2 நாளாகமம்": { en: "2 Chronicles", tg: "2 Nalagamam" },
+  "எஸ்றா": { en: "Ezra", tg: "Esra" },
+  "நெகேமியா": { en: "Nehemiah", tg: "Nehemiya" },
+  "எஸ்தர்": { en: "Esther", tg: "Esther" },
+  "யோபு": { en: "Job", tg: "Yobu" },
+  "சங்கீதம்": { en: "Psalms", tg: "Sangeetham" },
+  "நீதிமொழிகள்": { en: "Proverbs", tg: "Neethimozhigal" },
+  "பிரசங்கி": { en: "Ecclesiastes", tg: "Prasangi" },
+  "உன்னதப்பாட்டு": { en: "Song of Solomon", tg: "Unnathappattu" },
+  "ஏசாயா": { en: "Isaiah", tg: "Esaya" },
+  "எரேமியா": { en: "Jeremiah", tg: "Eremiya" },
+  "புலம்பல்": { en: "Lamentations", tg: "Pulambal" },
+  "எசேக்கியேல்": { en: "Ezekiel", tg: "Esekkiyel" },
+  "தானியேல்": { en: "Daniel", tg: "Dhaniyel" },
+  "ஓசேயா": { en: "Hosea", tg: "Osiya" },
+  "யோவேல்": { en: "Joel", tg: "Yovel" },
+  "ஆமோஸ்": { en: "Amos", tg: "Amos" },
+  "ஒபதியா": { en: "Obadiah", tg: "Obathiya" },
+  "யோனா": { en: "Jonah", tg: "Yona" },
+  "மீகா": { en: "Micah", tg: "Miga" },
+  "நாகூம்": { en: "Nahum", tg: "Nagum" },
+  "ஆபகூக்": { en: "Habakkuk", tg: "Abakuk" },
+  "செப்பனியா": { en: "Zephaniah", tg: "Seppaniya" },
+  "ஆகாய்": { en: "Haggai", tg: "Agai" },
+  "சகரியா": { en: "Zechariah", tg: "Sagariya" },
+  "மல்கியா": { en: "Malachi", tg: "Malkiya" },
+  "மத்தேயு": { en: "Matthew", tg: "Matheyu" },
+  "மாற்கு": { en: "Mark", tg: "Marku" },
+  "லூக்கா": { en: "Luke", tg: "Lukka" },
+  "யோவான்": { en: "John", tg: "Yovan" },
+  "அப்போஸ்தலருடைய நடபடிகள்": { en: "Acts", tg: "Apposthalar Nadapadigal" },
+  "ரோமர்": { en: "Romans", tg: "Romar" },
+  "1 கொரிந்தியர்": { en: "1 Corinthians", tg: "1 Korinthiyar" },
+  "2 கொரிந்தியர்": { en: "2 Corinthians", tg: "2 Korinthiyar" },
+  "கலாத்தியர்": { en: "Galatians", tg: "Kalathiyar" },
+  "எபேசியர்": { en: "Ephesians", tg: "Ebesiyar" },
+  "பிலிப்பியர்": { en: "Philippians", tg: "Pilippiyar" },
+  "கொலோசியர்": { en: "Colossians", tg: "Koloseyar" },
+  "1 தெசலோனிக்கேயர்": { en: "1 Thessalonians", tg: "1 Thesalonikkeyar" },
+  "2 தெசலோனிக்கேயர்": { en: "2 Thessalonians", tg: "2 Thesalonikkeyar" },
+  "1 தீமோத்தேயு": { en: "1 Timothy", tg: "1 Theemotheyu" },
+  "2 தீமோத்தேயு": { en: "2 Timothy", tg: "2 Theemotheyu" },
+  "தீத்து": { en: "Titus", tg: "Theethu" },
+  "பிலேமோன்": { en: "Philemon", tg: "Pilemon" },
+  "எபிரேயர்": { en: "Hebrews", tg: "Ebireyar" },
+  "யாக்கோபு": { en: "James", tg: "Yakkobu" },
+  "1 பேதுரு": { en: "1 Peter", tg: "1 Peduru" },
+  "2 பேதுரு": { en: "2 Peter", tg: "2 Peduru" },
+  "1 யோவான்": { en: "1 John", tg: "1 Yovan" },
+  "2 யோவான்": { en: "2 John", tg: "2 Yovan" },
+  "3 யோவான்": { en: "3 John", tg: "3 Yovan" },
+  "யூதா": { en: "Jude", tg: "Yudha" },
+  "வெளிப்படுத்தல்": { en: "Revelation", tg: "Velippaduthal\t" } // App uses this key
+};
+
 // Populate book dropdown on load
-(function bpInit() {
-  const sel = document.getElementById('bp-book');
+function renderBpBookList(filterStr = "") {
+  const ul = document.getElementById('bp-book-list');
+  ul.innerHTML = '';
+  const lowerFilter = filterStr.toLowerCase().trim();
+  
+  let results = [];
+  let index = 0;
+
   Object.keys(bibleData).forEach(name => {
-    const opt = document.createElement('option');
-    opt.value = name;
-    opt.textContent = name;
-    sel.appendChild(opt);
+    const meta = tamilBibleBookNames[name] || { en: "", tg: "" };
+    const n = name.toLowerCase();
+    const e = meta.en.toLowerCase();
+    const t = meta.tg.toLowerCase();
+
+    if (!lowerFilter) {
+      results.push({ name, meta, score: 0, index });
+    } else {
+      const fullSearch = `${n} ${e} ${t}`;
+      if (fullSearch.includes(lowerFilter)) {
+        let score = 2; // Default to partial substring match
+
+        // Exact prefix match gets the highest priority
+        if (n.startsWith(lowerFilter) || e.startsWith(lowerFilter) || t.startsWith(lowerFilter)) {
+          score = 0;
+        } 
+        // Word boundary match gets second priority (e.g., "1 John" -> typing "j" matches "john")
+        else {
+          const words = fullSearch.split(/[\s\-]+/);
+          if (words.some(w => w.startsWith(lowerFilter))) {
+            score = 1;
+          }
+        }
+        results.push({ name, meta, score, index });
+      }
+    }
+    index++;
   });
+
+  // Sort by match quality, then alphabetically, and fallback to canonical Bible order
+  results.sort((a, b) => {
+    if (a.score !== b.score) return a.score - b.score;
+
+    // Standard alphabetical fuzzy sort inside the same matching tier
+    const nameA = (a.meta.en || a.meta.tg || a.name).toLowerCase();
+    const nameB = (b.meta.en || b.meta.tg || b.name).toLowerCase();
+    
+    // Check if one exactly equals the filter string (exact match priority)
+    if (nameA === lowerFilter && nameB !== lowerFilter) return -1;
+    if (nameB === lowerFilter && nameA !== lowerFilter) return 1;
+
+    // Normal alphabetic sort
+    const alphaCompare = nameA.localeCompare(nameB);
+    if (alphaCompare !== 0) return alphaCompare;
+
+    // Fallback back to canonical chapter order if everything else is equal
+    return a.index - b.index;
+  });
+
+  results.forEach(res => {
+    const li = document.createElement('li');
+    li.innerHTML = `<span class="ta-name">${res.name}</span> <span class="en-name">${res.meta.en} / ${res.meta.tg}</span>`;
+    li.onclick = () => {
+      document.getElementById('bp-book').value = res.name;
+      document.getElementById('bp-book-display').value = res.name + (res.meta.en ? ` (${res.meta.en})` : '');
+      document.getElementById('bp-book-list').classList.remove('show');
+      bpOnBookChange();
+    };
+    ul.appendChild(li);
+  });
+}
+
+function bpShowBookDropdown() {
+  document.getElementById('bp-book-list').classList.add('show');
+  renderBpBookList(document.getElementById('bp-book-display').value);
+}
+
+function bpFilterBookDropdown() {
+  renderBpBookList(document.getElementById('bp-book-display').value);
+}
+
+// Close dropdown on outside click
+document.addEventListener('click', (e) => {
+  const fContainer = document.querySelector('.custom-book-field');
+  if (fContainer && !fContainer.contains(e.target)) {
+    document.getElementById('bp-book-list')?.classList.remove('show');
+  }
+});
+
+(function bpInit() {
+  renderBpBookList();
+  
+  // Snap back invalid text on blur
+  const displayInput = document.getElementById('bp-book-display');
+  if (displayInput) {
+    displayInput.addEventListener('blur', () => {
+      setTimeout(() => {
+        const currentVal = document.getElementById('bp-book').value;
+        if (currentVal && bibleData[currentVal]) {
+          const meta = tamilBibleBookNames[currentVal] || { en: "" };
+          displayInput.value = currentVal + (meta.en ? ` (${meta.en})` : '');
+        } else {
+          displayInput.value = '';
+        }
+      }, 200);
+    });
+  }
 })();
 
 let _bpOpen = false;
@@ -1324,9 +1546,7 @@ function _bpBuildSlideHtml() {
   const text = document.getElementById('bp-preview-text').textContent;
   const ref  = document.getElementById('bp-preview-ref').textContent;
   if (!text || text.includes('இன்னும் சேர்க்கப்படவில்லை')) return null;
-  const anime = document.getElementById('bp-anime-check').checked;
-  if (anime) return createAnimeVasanamHtml(text, ref);
-  return createVasanamHtml(text, ref, '#3c096c', '#ffd700', 'medium');
+  return createAnimeVasanamHtml(text, ref);
 }
 
 function bpFsNav(dir) {
@@ -1375,6 +1595,8 @@ function bpFsNav(dir) {
 
   // Update UI state so the preview generates correctly
   document.getElementById('bp-book').value = _bpBook;
+  const meta = tamilBibleBookNames[_bpBook] || { en: "" };
+  document.getElementById('bp-book-display').value = _bpBook + (meta.en ? ` (${meta.en})` : '');
   bpOnBookChange();
 
   document.getElementById('bp-chapter').value = cNum;
@@ -1408,7 +1630,15 @@ function bpAddAsSlide() {
   const html = _bpBuildSlideHtml();
   if (!html) { showToast('Bible content not loaded yet — add verses first', 'error'); return; }
   const ref   = document.getElementById('bp-preview-ref').textContent;
-  const slide = { id: Date.now() + Math.random(), type: 'html', name: ref, html };
+  const slide = { 
+    id: Date.now() + Math.random(), 
+    type: 'html', 
+    name: ref, 
+    html,
+    bibleBook: _bpBook,
+    bibleChapter: _bpChapter,
+    bibleVerse: _bpVerse 
+  };
   if (!slides.length) {
     slides.push(slide);
     currentIdx = 0;
@@ -2164,6 +2394,38 @@ let _presentNavTimer = null;
 let _presentNavQueued = null;
 let _presentPrevIdx = null;
 
+function checkBibleVerseSlide(slide) {
+  if (!slide) return null;
+  if (slide.bibleBook) return { book: slide.bibleBook, chapter: slide.bibleChapter, verse: slide.bibleVerse || "1" };
+  if (!slide.name) return null;
+  const match = slide.name.match(/^(.*?)\s+(\d+)(?::(\d+))?$/);
+  if (!match) return null;
+  const book = match[1].trim();
+  if (bibleData && bibleData[book]) {
+    return { book, chapter: match[2], verse: match[3] || "1" };
+  }
+  return null;
+}
+
+function openCurrentSlideInBible() {
+  const slide = slides[presentIdx];
+  const ref = checkBibleVerseSlide(slide);
+  if (!ref) return;
+
+  document.getElementById('bp-book').value = ref.book;
+  const meta = tamilBibleBookNames[ref.book] || { en: "" };
+  document.getElementById('bp-book-display').value = ref.book + (meta.en ? ` (${meta.en})` : '');
+  bpOnBookChange();
+
+  document.getElementById('bp-chapter').value = ref.chapter;
+  bpOnChapterChange();
+
+  document.getElementById('bp-verse').value = ref.verse || "1";
+  bpOnVerseChange();
+
+  bpShowFullscreen();
+}
+
 function showPresentSlide() {
   const pif = document.getElementById('present-iframe');
   injectAutoFit(pif);
@@ -2171,6 +2433,15 @@ function showPresentSlide() {
   const ind = document.getElementById('present-indicator');
   ind.textContent = `${presentIdx + 1} / ${slides.length}`;
   ind.onclick = showGotoInput;
+
+  const btnOpenBible = document.getElementById('present-open-bible-btn');
+  if (btnOpenBible) {
+    if (checkBibleVerseSlide(slides[presentIdx])) {
+      btnOpenBible.style.display = 'inline-block';
+    } else {
+      btnOpenBible.style.display = 'none';
+    }
+  }
 }
 
 function showGotoInput() {
@@ -2251,8 +2522,22 @@ function presentNav(dir) {
 
 function exitPresent() {
   const overlay = document.getElementById('present-overlay');
+  
+  // If we are currently in bible full screen but were doing a slideshow
+  if (overlay.classList.contains('bible-fs') && typeof presentIdx === 'number' && presentIdx >= 0) {
+    overlay.classList.remove('bible-fs');
+    document.getElementById('bp-fs-prev').style.display = 'none';
+    document.getElementById('bp-fs-next').style.display = 'none';
+    showPresentSlide();
+    return;
+  }
+
+  // Full exit
   overlay.classList.remove('active', 'panel-fs', 'bible-fs');
   document.body.style.overflow = '';
+  document.getElementById('bp-fs-prev').style.display = 'none';
+  document.getElementById('bp-fs-next').style.display = 'none';
+  presentIdx = null; // Clear presentIdx when fully pushed out
   releaseWakeLock();
 }
 

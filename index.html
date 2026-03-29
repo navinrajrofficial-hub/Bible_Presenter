@@ -23,7 +23,10 @@
 
 <!-- TOP BAR -->
 <div id="topbar">
-  <div class="logo">Presenter</div>
+  <div class="logo">
+    <span class="logo-icon">†</span>
+    <span class="logo-text">Presenter</span>
+  </div>
   <div class="tb-sep"></div>
   <button onclick="addSlide('html')">+ HTML Slide</button>
   <button onclick="addSlide('simple')">+ Text Slide</button>
@@ -36,12 +39,13 @@
   <button id="btn-bible-panel" class="bible-btn" onclick="toggleBiblePanel()">📖 Tamil Bible</button>
   <button id="btn-song-panel" class="song-btn" onclick="toggleSongPanel()">🎵 Song Book</button>
   <button class="danger" onclick="deleteCurrentSlide()">✕ Delete</button>
+  <button class="danger" style="background:#b91c1c;color:#fff;" onclick="openDeleteRangeModal()">✕ Delete Range</button>
   <div id="save-indicator">● saved</div>
   <div id="slide-counter">— / —</div>
 </div>
 
 <!-- FOOTER -->
-<div id="footer-bar"><span class="footer-icon">✨</span> Specially designed for <span id="footer-church">'Good Samarian Jesus Prayer House'</span></div>
+<div id="footer-bar"><span class="footer-icon">✨</span> <span id="footer-church">'நல்ல சமாரியன் இயேசு ஜெப வீடு'</span> சபைக்காக சிறப்பாக வடிவமைக்கப்பட்டது</div>
 
 <!-- MAIN -->
 <div id="main">
@@ -252,11 +256,11 @@
     <button class="bp-close" onclick="toggleBiblePanel()">✕</button>
   </div>
   <div id="bible-panel-body">
-    <div class="bp-field">
+    <div class="bp-field custom-book-field" style="position:relative;">
       <div class="bp-label">ஆகமம் (Book)</div>
-      <select class="bp-select tamil" id="bp-book" onchange="bpOnBookChange()">
-        <option value="">— ஆகமம் தேர்ந்தெடுக்கவும் —</option>
-      </select>
+      <input type="text" id="bp-book-display" class="bp-select tamil" placeholder="— ஆகமம் தேடு / Search Book —" autocomplete="off" onfocus="this.select(); bpShowBookDropdown()" oninput="bpFilterBookDropdown()">
+      <input type="hidden" id="bp-book">
+      <ul id="bp-book-list" class="bp-dropdown-list"></ul>
     </div>
     <div class="bp-field">
       <div class="bp-label">அதிகாரம் (Chapter)</div>
@@ -276,9 +280,8 @@
       <div id="bp-preview-ref" style="display:none;"></div>
     </div>
   </div>
-  <div id="bible-panel-footer">    <label id="bp-anime-toggle" title="Animated cinematic background when added as slide">
-      <input type="checkbox" id="bp-anime-check"> ✨ Anime Effect
-    </label>    <button class="bp-btn present-btn" onclick="bpShowFullscreen()">▶ Show Fullscreen</button>
+  <div id="bible-panel-footer">
+    <button class="bp-btn present-btn" onclick="bpShowFullscreen()">▶ Show Fullscreen</button>
     <button class="bp-btn add-btn" onclick="bpAddAsSlide()">✦ Add as Slide</button>
   </div>
 </div>
@@ -328,6 +331,7 @@
       <button class="pc-btn" onclick="presentNav(-1)">← Prev</button>
       <div id="present-indicator" onclick="showGotoInput()">1 / 1</div>
       <button class="pc-btn" onclick="presentNav(1)">Next →</button>
+      <button id="present-open-bible-btn" class="pc-btn" onclick="openCurrentSlideInBible()" style="display:none">📖 Open in Bible</button>
       <button id="present-back-btn" class="pc-btn back" onclick="presentGoBack()" style="display:none">↩ Back</button>
       <button class="pc-btn exit" onclick="exitPresent()">✕ Exit</button>
     </div>
@@ -379,6 +383,29 @@
     <div style="display:flex;gap:10px;margin-top:2px;">
       <button class="apply-btn" style="flex:1;" onclick="confirmInsertSlide()">Insert →</button>
       <button onclick="closeInsertModal()" style="flex:1;background:none;border:1px solid #2a2a2e;color:#6b6b75;font-family:'DM Mono',monospace;font-size:11px;padding:8px;border-radius:4px;cursor:pointer;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE RANGE MODAL -->
+<div id="delete-range-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:10000;align-items:center;justify-content:center;">
+  <div style="background:#18181b;border:1px solid #2a2a2e;border-radius:10px;width:320px;max-width:95vw;padding:24px;display:flex;flex-direction:column;gap:14px;">
+    <div style="font-family:'Playfair Display',serif;font-size:15px;color:#ef4444;letter-spacing:0.04em;">✕ Delete Slide Range</div>
+    <div style="font-size:12px;color:#f0ede8;">Select the range of slides to delete:</div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="flex:1;">
+        <label style="font-size:11px;color:#6b6b75;">From Slide #</label>
+        <input type="number" id="delete-range-from" class="field-input" min="1" style="text-align:center;font-size:14px;">
+      </div>
+      <div style="flex:1;">
+        <label style="font-size:11px;color:#6b6b75;">To Slide #</label>
+        <input type="number" id="delete-range-to" class="field-input" min="1" style="text-align:center;font-size:14px;" onkeydown="if(event.key==='Enter')confirmDeleteRange()">
+      </div>
+    </div>
+    <div id="delete-range-error" style="font-size:11px;color:#ef4444;display:none;">Invalid range.</div>
+    <div style="display:flex;gap:10px;margin-top:2px;">
+      <button class="apply-btn" style="flex:1;background:#ef4444;" onclick="confirmDeleteRange()">Delete →</button>
+      <button onclick="closeDeleteRangeModal()" style="flex:1;background:none;border:1px solid #2a2a2e;color:#6b6b75;font-family:'DM Mono',monospace;font-size:11px;padding:8px;border-radius:4px;cursor:pointer;">Cancel</button>
     </div>
   </div>
 </div>
