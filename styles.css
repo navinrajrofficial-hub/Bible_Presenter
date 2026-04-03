@@ -1246,6 +1246,41 @@ select.bp-select.tamil { font-family: 'Noto Serif Tamil', serif; font-size: 13px
   box-shadow: 0 4px 15px rgba(245,166,35,0.15);
 }
 
+.bp-btn.listen-btn {
+  border-color: rgba(125,211,252,0.45);
+  color: #bae6fd;
+  background: rgba(2,132,199,0.12);
+}
+.bp-btn.listen-btn:hover {
+  border-color: rgba(125,211,252,0.75);
+  color: #e0f2fe;
+  background: rgba(2,132,199,0.2);
+  box-shadow: 0 4px 15px rgba(56,189,248,0.2);
+}
+.bp-btn.listen-btn.active {
+  border-color: rgba(52,211,153,0.8);
+  background: rgba(16,185,129,0.22);
+  color: #d1fae5;
+  box-shadow: 0 0 0 1px rgba(16,185,129,0.35), 0 6px 22px rgba(16,185,129,0.24);
+  animation: bp-listen-pulse 1.2s ease-in-out infinite;
+}
+@keyframes bp-listen-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.015); }
+}
+
+#bp-listen-status {
+  font-size: 10px;
+  color: var(--muted);
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.02);
+  border-radius: 6px;
+  padding: 6px 8px;
+  line-height: 1.35;
+  min-height: 30px;
+  word-break: break-word;
+}
+
 /* active highlight on topbar Bible button */
 #btn-bible-panel.panel-open {
   background: linear-gradient(135deg, rgba(167,139,250,0.2), rgba(196,181,253,0.15));

@@ -1102,6 +1102,11 @@ function renderEditor() {
 }
 
 function selectSlide(i) {
+  bpHideBookDropdown();
+  // Intelligent override: when user focuses a slide from the left list,
+  // close right-side helper drawers so the main preview/editor stays visible.
+  if (_bpOpen) toggleBiblePanel();
+  if (_spOpen) toggleSongPanel();
   currentIdx = i;
   // Lightweight: just flip the active class — no iframe recreation at all
   document.querySelectorAll('#slide-list .thumb').forEach(t => {
@@ -1147,11 +1152,28 @@ let _pendingSlideType = null;
 let _pendingSlide = null;
 
 function addSlide(type) {
-  const s = createSlide(type);
-  slides.push(s);
-  currentIdx = slides.length - 1;
-  renderAll(); renderPreview(); renderEditor();
-  scheduleSave();
+  _pendingSlideType = type;
+  _pendingSlide = null;
+
+  const total = slides.length;
+  const defaultPos = total ? (currentIdx + 2) : 1;
+  const inp = document.getElementById('insert-position');
+  inp.value = defaultPos;
+  inp.min = 1;
+  inp.max = total + 1;
+
+  if (total) {
+    document.getElementById('insert-modal-info').textContent =
+      `Current: slide ${currentIdx + 1} of ${total}. Enter 1-${total + 1}:`;
+  } else {
+    document.getElementById('insert-modal-info').textContent =
+      'No slides yet. Enter 1 to add the first slide:';
+  }
+
+  const modal = document.getElementById('insert-modal');
+  modal.style.display = 'flex';
+  inp.focus();
+  inp.select();
 }
 
 function confirmInsertSlide() {
@@ -1441,10 +1463,10 @@ const tamilBibleBookNames = {
   "யோசுவா": { en: "Joshua", tg: "Yosuva" },
   "நியாயாதிபதிகள்": { en: "Judges", tg: "Niyayadhipathigal" },
   "ரூத்": { en: "Ruth", tg: "Ruth" },
-  "1 சாமுவேல்": { en: "1 Samuel", tg: "1 Samuvel" },
-  "2 சாமுவேல்": { en: "2 Samuel", tg: "2 Samuvel" },
-  "1 இராஜாக்கள்": { en: "1 Kings", tg: "1 Rajakkal" },
-  "2 இராஜாக்கள்": { en: "2 Kings", tg: "2 Rajakkal" },
+  "1 சாமுவேல்": { en: "1 Samuel", tg: "1 Samuvel", alt: "1 Samvel" },
+  "2 சாமுவேல்": { en: "2 Samuel", tg: "2 Samuvel", alt: "2 Samvel" },
+  "1 இராஜாக்கள்": { en: "1 Kings", tg: "1 Rajakkal", alt: "1 Irajakkal, 1 Irakkal, 1 Rajakal, 1 irajakal" },
+  "2 இராஜாக்கள்": { en: "2 Kings", tg: "2 Rajakkal", alt: "2 Irajakkal, 2 Irakkal, 2 Rajakal, 2 irajakal" },
   "1 நாளாகமம்": { en: "1 Chronicles", tg: "1 Nalagamam" },
   "2 நாளாகமம்": { en: "2 Chronicles", tg: "2 Nalagamam" },
   "எஸ்றா": { en: "Ezra", tg: "Esra" },
@@ -1582,11 +1604,15 @@ function bpFilterBookDropdown() {
   renderBpBookList(document.getElementById('bp-book-display').value);
 }
 
+function bpHideBookDropdown() {
+  document.getElementById('bp-book-list')?.classList.remove('show');
+}
+
 // Close dropdown on outside click
 document.addEventListener('click', (e) => {
   const fContainer = document.querySelector('.custom-book-field');
   if (fContainer && !fContainer.contains(e.target)) {
-    document.getElementById('bp-book-list')?.classList.remove('show');
+    bpHideBookDropdown();
   }
 });
 
@@ -1612,6 +1638,630 @@ document.addEventListener('click', (e) => {
 
 let _bpOpen = false;
 let _bpBook = null, _bpChapter = null, _bpVerse = null;
+let _bpVoiceListening = false;
+let _bpVoiceLastRefKey = '';
+let _bpVoiceLastAt = 0;
+let _bpVoiceMicGranted = false;
+let _bpVoiceEngine = 'local';
+
+// Local ASR service (EXE/server) runtime state
+let _bpLocalAsrRecorder = null;
+let _bpLocalAsrStream = null;
+let _bpLocalAsrBusy = false;
+let _bpLocalAsrErrors = 0;
+let _bpLocalAsrLastText = '';
+let _bpLocalAsrActiveEndpoint = '';
+
+const BP_LOCAL_ASR_STORAGE_KEY = 'bp_local_asr_base_url';
+const BP_LOCAL_ASR_DEFAULT_BASE = 'http://127.0.0.1:8765';
+
+function bpTamilDigitsToAscii(str) {
+  const map = {
+    '௦': '0', '௧': '1', '௨': '2', '௩': '3', '௪': '4',
+    '௫': '5', '௬': '6', '௭': '7', '௮': '8', '௯': '9'
+  };
+  return String(str || '').replace(/[௦-௯]/g, d => map[d] || d);
+}
+
+function bpNormalizeSpeechText(raw) {
+  let text = bpTamilDigitsToAscii(String(raw || ''))
+    .toLowerCase()
+    .replace(/[|]/g, ':')
+    .replace(/[.,;!?]/g, ' ')
+    .replace(/["'`]/g, '');
+
+  // Enterprise ASR (Automatic Speech Recognition) Phonetic Correction Interceptor:
+  // Google's Cloud Voice AI often mishears spoken Tamil words as completely different Tamil words
+  // (e.g. "ஒன்னாம் அதிகாரம்" -> misheard as "உன்ன பரிகாரம்").
+  // This forcibly catches the AI's hallucinations and maps them back to correct Bible terminology.
+  const asrCorrections = [
+    [/பரிகாரம்/g, 'அதிகாரம்'],        // "Parikaram" (Remedy) -> "Adhigaram" (Chapter)
+    [/உன்ன/g, '1 '],               // "Unna" (You) -> "1 "
+    [/ஒன்னு/g, '1 '],               // "Onnu" -> "1 "
+    [/ரெண்டு/g, '2 '],              // "Rendu" -> "2 "
+    [/மூனு/g, '3 '],                // "Moonu" -> "3 "
+    [/ராஜாக்கள்/g, 'இராஜாக்கள்'],     // Fixes missing leading "I"
+    [/சாமவேல்|சாமுவேல்/g, 'சாமுவேல்'], // Standardize Samuel
+    [/சங்கீதம்/g, 'சங்கீதம்'],
+    [/புலம்பல்/g, 'புலம்பல்']
+  ];
+
+  for (const [bad, good] of asrCorrections) {
+    text = text.replace(bad, good);
+  }
+
+  return text.replace(/\s+/g, ' ').trim();
+}
+
+function bpPhoneticBookKey(raw) {
+  return bpNormalizeSpeechText(raw)
+    .replace(/\s+/g, '')
+    .replace(/aa/g, 'a')
+    .replace(/ee/g, 'i')
+    .replace(/oo/g, 'u')
+    .replace(/dh/g, 'th')
+    .replace(/zh/g, 'l')
+    .replace(/ck/g, 'k')
+    .replace(/[cqg]/g, 'k')
+    .replace(/ph/g, 'f')
+    .replace(/bh/g, 'b')
+    .replace(/yy+/g, 'y');
+}
+
+function bpConvertSpeechNumberWords(text) {
+  let out = ` ${text} `;
+  const pairs = [
+    // Double digit / Teens
+    ['பதினொன்று', '11'], ['பதினொன்னாம்', '11'], ['பதினொன்றாம்', '11'], ['pathinonru', '11'], ['pathinonnam', '11'],
+    ['பன்னிரண்டு', '12'], ['பன்னிரண்டாம்', '12'], ['பன்னெண்டு', '12'], ['pannirandu', '12'], ['pannirendu', '12'],
+    ['பதிமூன்று', '13'], ['பதிமூன்றாம்', '13'], ['pathimoonru', '13'], ['pathimoonam', '13'],
+    ['பதினான்கு', '14'], ['பதினாலாம்', '14'], ['pathinaalu', '14'], ['pathinaalam', '14'],
+    ['பதினைந்து', '15'], ['பதினைந்தாம்', '15'], ['pathinainthu', '15'], ['pathinanjam', '15'],
+    ['பதினாறு', '16'], ['பதினாறாம்', '16'], ['pathinaaru', '16'],
+    ['பதினேழு', '17'], ['பதினேழாம்', '17'], ['pathinezhu', '17'],
+    ['பதினெட்டு', '18'], ['பதினெட்டாம்', '18'], ['pathinettu', '18'],
+    ['பத்தொன்பது', '19'], ['பத்தொன்பதாம்', '19'], ['pathombadhu', '19'],
+    ['இருபது', '20'], ['இருபதாம்', '20'], ['irubadhu', '20'], ['irubatham', '20'],
+    ['முப்பது', '30'], ['முப்பதாம்', '30'], ['muppadhu', '30'], ['muppatham', '30'],
+
+    // Common Tanglish + English ordinals/cardinals used while speaking references
+    ['onm', '1'], ['onnu', '1'], ['onna', '1'], ['onru', '1'], ['ondru', '1'], ['one', '1'], ['first', '1'],
+    ['rendu', '2'], ['irandu', '2'], ['randu', '2'], ['two', '2'], ['second', '2'],
+    ['moonu', '3'], ['moondru', '3'], ['munru', '3'], ['three', '3'], ['third', '3'],
+    ['naalu', '4'], ['naangu', '4'], ['four', '4'], ['fourth', '4'],
+    ['ainthu', '5'], ['anju', '5'], ['five', '5'], ['fifth', '5'],
+    ['aaru', '6'], ['six', '6'], ['sixth', '6'],
+    ['ezhu', '7'], ['seven', '7'], ['seventh', '7'],
+    ['ettu', '8'], ['eight', '8'], ['eighth', '8'],
+    ['ombodhu', '9'], ['onbadhu', '9'], ['nine', '9'], ['ninth', '9'],
+    ['pathu', '10'], ['ten', '10'], ['tenth', '10'],
+
+    // Common Tamil ordinal transliterations
+    ['mudhalam', '1'], ['muthalam', '1'], ['modhalam', '1'],
+    ['irandam', '2'], ['randam', '2'],
+    ['moondram', '3'], ['munram', '3'],
+    ['naangam', '4'], ['naalam', '4'],
+    ['aindham', '5'], ['ancham', '5'],
+    ['aaram', '6'],
+    ['ezham', '7'],
+    ['ettam', '8'],
+    ['onbadham', '9'],
+    ['patham', '10'],
+
+    // Tamil script numbers (longest matching words first)
+    ['முதலாவது', '1'], ['முதலாம்', '1'], ['முதல்', '1'], ['ஒன்று', '1'], ['ஒன்னு', '1'], ['ஒண்ணு', '1'], ['ஒன்னாம்', '1'], ['ஒன்றாம்', '1'],
+    ['இரண்டாவது', '2'], ['ரெண்டாவது', '2'], ['இரண்டாம்', '2'], ['ரெண்டாம்', '2'], ['இரண்டு', '2'], ['ரெண்டு', '2'],
+    ['மூன்றாவது', '3'], ['மூன்றாம்', '3'], ['மூனாம்', '3'], ['மூன்று', '3'], ['மூனு', '3'],
+    ['நான்காவது', '4'], ['நான்காம்', '4'], ['நாலாம்', '4'], ['நான்கு', '4'], ['நாலு', '4'],
+    ['ஐந்தாவது', '5'], ['ஐந்தாம்', '5'], ['அஞ்சாம்', '5'], ['ஐந்து', '5'], ['அஞ்சு', '5'],
+    ['ஆறாவது', '6'], ['ஆறாம்', '6'], ['ஆறு', '6'],
+    ['ஏழாவது', '7'], ['ஏழாம்', '7'], ['ஏழு', '7'],
+    ['எட்டாவது', '8'], ['எட்டாம்', '8'], ['எட்டு', '8'],
+    ['ஒன்பதாவது', '9'], ['ஒன்பதாம்', '9'], ['ஒன்பது', '9'],
+    ['பத்தாவது', '10'], ['பத்தாம்', '10'], ['பத்து', '10']
+  ];
+
+  for (const [word, num] of pairs) {
+    // DO NOT use \b because it fails silently for non-ASCII characters like Tamil!
+    const rx = new RegExp(`(^|\\s)${word}(?=\\s|$)`, 'gi');
+    out = out.replace(rx, `$1${num}`);
+  }
+  return out.replace(/\s+/g, ' ').trim();
+}
+
+function bpBuildVoiceBookAliases() {
+  const aliases = [];
+  const numTamil = { '1': 'ஒன்று', '2': 'இரண்டு', '3': 'மூன்று' };
+  const numTamilAlt = { '1': 'முதல்', '2': 'இரண்டாம்', '3': 'மூன்றாம்' };
+  const numEn = { '1': 'one', '2': 'two', '3': 'three' };
+  const numEnOrd = { '1': 'first', '2': 'second', '3': 'third' };
+  const numRoman = { '1': 'i', '2': 'ii', '3': 'iii' };
+
+  function pushAlias(book, text) {
+    const n = bpNormalizeSpeechText(text);
+    if (!n) return;
+    aliases.push({ book, alias: n, key: bpPhoneticBookKey(n) });
+  }
+
+  Object.keys(bibleData).forEach(book => {
+    const meta = tamilBibleBookNames[book] || { en: '', tg: '', alt: '' };
+    pushAlias(book, book);
+    pushAlias(book, meta.en || '');
+    pushAlias(book, meta.tg || '');
+
+    const alts = (meta.alt || '').split(',');
+    for (const a of alts) {
+      if (a.trim()) pushAlias(book, a.trim());
+    }
+
+    const m = book.match(/^([123])\s+(.+)$/);
+    if (!m) return;
+    const n = m[1];
+    const baseTa = m[2];
+    const baseEn = (meta.en || '').replace(/^[123]\s+/, '');
+    const baseTg = (meta.tg || '').replace(/^[123]\s+/, '');
+
+    pushAlias(book, `${n} ${baseTa}`);
+    pushAlias(book, `${numTamil[n]} ${baseTa}`);
+    pushAlias(book, `${numTamilAlt[n]} ${baseTa}`);
+
+    if (baseEn) {
+      pushAlias(book, `${n} ${baseEn}`);
+      pushAlias(book, `${numEn[n]} ${baseEn}`);
+      pushAlias(book, `${numEnOrd[n]} ${baseEn}`);
+      pushAlias(book, `${numRoman[n]} ${baseEn}`);
+    }
+    if (baseTg) {
+      pushAlias(book, `${n} ${baseTg}`);
+      pushAlias(book, `${numTamil[n]} ${baseTg}`);
+      pushAlias(book, `${numEn[n]} ${baseTg}`);
+    }
+  });
+
+  // Prefer longer aliases first so specific book names win
+  aliases.sort((a, b) => b.alias.length - a.alias.length);
+  return aliases;
+}
+
+const _bpVoiceBookAliases = bpBuildVoiceBookAliases();
+
+function bpResolveBookFromSpeech(bookPartRaw) {
+  const transcript = bpNormalizeSpeechText(bookPartRaw);
+  if (!transcript) return null;
+  const partKey = bpPhoneticBookKey(transcript);
+
+  // 1. Exact or Word Boundary matching on plain text (Safest)
+  for (const row of _bpVoiceBookAliases) {
+    if (transcript === row.alias) return row.book;
+    // Match only if it's a distinct structural word, avoiding sub-accidental matches
+    if (new RegExp(`(?:^|\\s)${row.alias}(?:\\s|$)`, 'i').test(transcript)) return row.book;
+  }
+
+  // 2. Loose Substring matching on plain text
+  for (const row of _bpVoiceBookAliases) {
+    if (transcript.includes(row.alias)) return row.book;
+  }
+
+  // 3. Phonetic matching (Fuzzy Tanglish Mapping)
+  for (const row of _bpVoiceBookAliases) {
+    if (!row.key || !partKey) continue;
+    // It must be at least 4 characters to allow aggressive substring match, 
+    // to prevent a 2-letter book alias matching inside a random word accidentally!
+    if (partKey === row.key) return row.book;
+    if (row.key.length > 3 && partKey.includes(row.key)) return row.book;
+  }
+
+  return null;
+}
+
+function bpParseSpokenReference(transcriptRaw) {
+  // First, completely convert all numeric words (including Tanglish/Tamil) to digits
+  const text = bpConvertSpeechNumberWords(bpNormalizeSpeechText(transcriptRaw));
+  if (!text) return null;
+
+  const bookFallback = _bpBook || null;
+  const book = bpResolveBookFromSpeech(text) || bookFallback;
+  if (!book) return null; // We absolutely need a book to proceed
+
+  // Enterprise NLP Proximity Math:
+  // Instead of relying on rigid regular expressions which fail randomly over edge cases,
+  // we break down the entire speech into an array of meaning tokens and calculate proximity.
+
+  // 1. Separate numbers from connecting characters safely padding spaces
+  let tokenText = text
+    .replace(/[:.-]/g, ' ')
+    // Replace Tamil case markers loosely attached to numbers
+    .replace(/(க்கு|ல்|ில்|in|il|ku|kku|வது|ம்|th|ஆம்|aam)/g, ' ') 
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const words = tokenText.split(' ');
+
+  // 2. Identify structural indices 
+  const chKeywords = ['chapter', 'அதிகாரம்', 'அதிகாரத்துல', 'அதிகாரத்தில்', 'adhigaram', 'athigaram', 'adhikaram', 'athikaram', 'adhigaaram', 'athigaaram'];
+  const vsKeywords = ['verse', 'வசனம்', 'வசனம', 'வசனத்துல', 'வசனத்தில்', 'vasanam', 'vasanamum', 'vasanamn', 'vasanathula', 'vasanathil'];
+
+  let chapterIdx = -1;
+  let verseIdx = -1;
+  const numberTokens = [];
+
+  // 3. Scan timeline of the phrase linearly (Natural Language mapping)
+  for (let i = 0; i < words.length; i++) {
+    const w = words[i];
+    if (!w) continue;
+
+    // Log occurrence of category keywords
+    if (chKeywords.some(kw => w.includes(kw))) chapterIdx = i;
+    else if (vsKeywords.some(kw => w.includes(kw))) verseIdx = i;
+
+    // Is it a standalone numeric digit mapping?
+    const num = parseInt(w, 10);
+    if (!isNaN(num) && w.match(/^\d{1,3}$/)) {
+      numberTokens.push({ val: num, idx: i });
+    }
+  }
+
+  // 4. Proximity & Logical Binding
+  let chapter = undefined;
+  let verse = undefined;
+
+  if (numberTokens.length >= 2) {
+    const tn1 = numberTokens[0];
+    const tn2 = numberTokens[1];
+
+    if (chapterIdx !== -1 && verseIdx !== -1) {
+      // Mathematical distance matching: Bind the number to the CLOSEST keyword
+      const dist1C = Math.abs(tn1.idx - chapterIdx);
+      const dist1V = Math.abs(tn1.idx - verseIdx);
+      const dist2C = Math.abs(tn2.idx - chapterIdx);
+      const dist2V = Math.abs(tn2.idx - verseIdx);
+
+      // If Number 1 is closer to "Verse" AND Number 2 is closer to "Chapter" -> We flip!
+      if (dist1V + dist2C < dist1C + dist2V) {
+        chapter = tn2.val;
+        verse = tn1.val;
+      } else {
+        // Natural reading (Number 1 mapped to Chapter, Number 2 to Verse)
+        chapter = tn1.val;
+        verse = tn2.val;
+      }
+    } else if (chapterIdx !== -1 && verseIdx === -1) {
+      // Example: "ஆதியாகமம் 10 அதிகாரம் 1" -> First number gets attached strictly to chapter, remaining falls to verse.
+      if (Math.abs(tn1.idx - chapterIdx) <= Math.abs(tn2.idx - chapterIdx)) {
+        chapter = tn1.val; verse = tn2.val;
+      } else {
+        chapter = tn2.val; verse = tn1.val;
+      }
+    } else if (verseIdx !== -1 && chapterIdx === -1) {
+      // Example: "ஆதியாகமம் 10 வசனம் 1" -> Bind whichever is closer to verse
+      if (Math.abs(tn1.idx - verseIdx) < Math.abs(tn2.idx - verseIdx)) {
+        verse = tn1.val; chapter = tn2.val;
+      } else {
+        verse = tn2.val; chapter = tn1.val;
+      }
+    } else {
+      // Naked mapping "ஆதியாகமம் 10 1" -> Default to Chapter first, Verse second
+      chapter = tn1.val;
+      verse = tn2.val;
+    }
+  } else if (numberTokens.length === 1) {
+    const tn1 = numberTokens[0];
+    if (verseIdx !== -1 && chapterIdx === -1) {
+      // Completely alone Verse declaration: "10 வசனம்"
+      verse = tn1.val;
+    } else {
+      // Completely alone Chapter declaration: "10 அதிகாரம்", or just naked "10"
+      chapter = tn1.val;
+    }
+  }
+
+  if (chapter === undefined && verse === undefined) return null;
+
+  const result = { book };
+  if (chapter !== undefined) result.chapter = chapter;
+  if (verse !== undefined) result.verse = verse;
+  return result;
+}
+
+function bpSetListenButtonState() {
+  const btn = document.getElementById('bp-listen-btn');
+  if (!btn) return;
+  btn.classList.toggle('active', _bpVoiceListening);
+  btn.textContent = _bpVoiceListening ? '🛑 Stop Listening' : '🎤 Listen';
+}
+
+function bpSetListenStatus(msg, type) {
+  const el = document.getElementById('bp-listen-status');
+  if (!el) return;
+  el.textContent = msg;
+  if (type === 'ok') el.style.color = '#86efac';
+  else if (type === 'err') el.style.color = '#fca5a5';
+  else el.style.color = '#9ca3af';
+}
+
+function bpApplyVoiceReference(ref, transcript) {
+  const data = bibleData[ref.book];
+  if (!data) return;
+
+  const resolvedChapter = ref.chapter !== undefined ? ref.chapter : (_bpChapter || 1);
+  const chap = Math.max(1, Math.min(resolvedChapter, data.chapters));
+
+  // If user says "1ம் அதிகாரம்" (chapter only) and they're in a NEW book, default verse to 1.
+  // Otherwise, if they only said chapter but didn't say verse, reuse the old verse.
+  let resolvedVerse = ref.verse !== undefined ? ref.verse : (_bpVerse || 1);
+  if (ref.chapter !== undefined && ref.verse === undefined && ref.book !== _bpBook) {
+      resolvedVerse = 1;
+  }
+
+  const verseCount = ((data.versesPerChapter && data.versesPerChapter[chap - 1]) || 0);
+  const verse = Math.max(1, verseCount ? Math.min(resolvedVerse, verseCount) : resolvedVerse);
+
+  _bpBook = ref.book;
+  _bpChapter = chap;
+  _bpVerse = verse;
+
+  document.getElementById('bp-book').value = ref.book;
+  const meta = tamilBibleBookNames[ref.book] || { en: '' };
+  document.getElementById('bp-book-display').value = ref.book + (meta.en ? ` (${meta.en})` : '');
+  bpOnBookChange();
+
+  document.getElementById('bp-chapter').value = chap;
+  bpOnChapterChange();
+
+  document.getElementById('bp-verse').value = verse;
+  bpOnVerseChange();
+
+  // Always let the user see that speech populated the Bible panel fields.
+  showToast(`🎤 Selected ${ref.book} ${chap}:${verse}`, 'info', 1200);
+  bpSetListenStatus(`Heard: ${ref.book} ${chap}:${verse}`, 'ok');
+
+  const key = `${ref.book}|${chap}|${verse}`;
+  const now = Date.now();
+  if (key === _bpVoiceLastRefKey && (now - _bpVoiceLastAt) < 3500) return;
+  _bpVoiceLastRefKey = key;
+  _bpVoiceLastAt = now;
+
+  if (!_bpOpen) toggleBiblePanel();
+
+  bpShowFullscreen();
+  showToast(`🎤 ${ref.book} ${chap}:${verse} detected`, 'success', 1600);
+}
+
+function bpApplyVoiceBookOnly(book) {
+  const data = bibleData[book];
+  if (!data) return;
+  _bpBook = book;
+  _bpChapter = null;
+  _bpVerse = null;
+
+  document.getElementById('bp-book').value = book;
+  const meta = tamilBibleBookNames[book] || { en: '' };
+  document.getElementById('bp-book-display').value = book + (meta.en ? ` (${meta.en})` : '');
+  bpOnBookChange();
+
+  if (!_bpOpen) toggleBiblePanel();
+  bpSetListenStatus(`Heard Book: ${book}`, 'ok');
+  showToast(`🎤 Selected Book: ${book}`, 'info', 1200);
+}
+
+function bpToggleVoiceListen() {
+  if (_bpVoiceListening) {
+    bpStopVoiceListen();
+  } else {
+    bpStartVoiceListen();
+  }
+}
+
+function bpHandleRecognizedTranscript(transcript) {
+  const heard = String(transcript || '').trim();
+  if (!heard) return;
+
+  bpSetListenStatus(`Heard: ${heard}`, 'info');
+
+  const parsed = bpParseSpokenReference(heard);
+  if (parsed) {
+    bpApplyVoiceReference(parsed, heard);
+    return;
+  }
+
+  const bookOnly = bpResolveBookFromSpeech(heard);
+  if (bookOnly) {
+    bpApplyVoiceBookOnly(bookOnly);
+    return;
+  }
+
+  bpSetListenStatus(`No reference match: ${heard}`, 'err');
+}
+
+function bpGetLocalAsrBaseUrl() {
+  const saved = localStorage.getItem(BP_LOCAL_ASR_STORAGE_KEY);
+  return (saved && saved.trim()) ? saved.trim() : BP_LOCAL_ASR_DEFAULT_BASE;
+}
+
+function bpSetLocalAsrBaseUrl(url) {
+  const val = String(url || '').trim();
+  if (!val) {
+    localStorage.removeItem(BP_LOCAL_ASR_STORAGE_KEY);
+    return;
+  }
+  localStorage.setItem(BP_LOCAL_ASR_STORAGE_KEY, val);
+}
+
+// Expose config helpers in console for quick field setup.
+window.bpSetLocalAsrBaseUrl = bpSetLocalAsrBaseUrl;
+window.bpGetLocalAsrBaseUrl = bpGetLocalAsrBaseUrl;
+
+function bpExtractLocalAsrText(payload) {
+  if (!payload) return '';
+  if (typeof payload === 'string') return payload.trim();
+
+  if (typeof payload.text === 'string') return payload.text.trim();
+  if (typeof payload.transcript === 'string') return payload.transcript.trim();
+  if (payload.result && typeof payload.result.text === 'string') return payload.result.text.trim();
+  if (payload.data && typeof payload.data.text === 'string') return payload.data.text.trim();
+  if (Array.isArray(payload.segments)) {
+    const merged = payload.segments.map(s => (s && s.text ? String(s.text) : '')).join(' ').trim();
+    if (merged) return merged;
+  }
+  return '';
+}
+
+async function bpTranscribeWithLocalAsr(blob) {
+  const base = bpGetLocalAsrBaseUrl().replace(/\/+$/, '');
+  const endpoints = [`${base}/inference`, `${base}/transcribe`, `${base}/asr`];
+
+  let lastError = null;
+  for (const url of endpoints) {
+    try {
+      const fd = new FormData();
+      fd.append('file', blob, 'voice.webm');
+      fd.append('language', 'ta');
+      fd.append('task', 'transcribe');
+
+      const res = await fetch(url, { method: 'POST', body: fd });
+      if (!res.ok) {
+        lastError = new Error(`HTTP ${res.status}`);
+        continue;
+      }
+
+      const ct = (res.headers.get('content-type') || '').toLowerCase();
+      let text = '';
+      if (ct.includes('application/json')) {
+        const json = await res.json();
+        text = bpExtractLocalAsrText(json);
+      } else {
+        text = bpExtractLocalAsrText(await res.text());
+      }
+
+      if (text) {
+        _bpLocalAsrActiveEndpoint = url;
+        return text;
+      }
+      lastError = new Error('empty transcription');
+    } catch (e) {
+      lastError = e;
+    }
+  }
+
+  throw lastError || new Error('local asr unavailable');
+}
+
+async function bpStartLocalAsrListen() {
+  if (!window.MediaRecorder || !window.fetch) return false;
+
+  try {
+    _bpLocalAsrStream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        channelCount: 1,
+        noiseSuppression: true,
+        echoCancellation: true,
+        autoGainControl: true
+      }
+    });
+
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+      ? 'audio/webm;codecs=opus'
+      : 'audio/webm';
+
+    _bpLocalAsrRecorder = new MediaRecorder(_bpLocalAsrStream, { mimeType });
+    _bpLocalAsrRecorder.ondataavailable = async (e) => {
+      if (!_bpVoiceListening || _bpVoiceEngine !== 'local') return;
+      if (_bpLocalAsrBusy || !e.data || !e.data.size) return;
+
+      _bpLocalAsrBusy = true;
+      try {
+        const text = await bpTranscribeWithLocalAsr(e.data);
+        if (!text || text === _bpLocalAsrLastText) return;
+        _bpLocalAsrLastText = text;
+        _bpLocalAsrErrors = 0;
+        bpHandleRecognizedTranscript(text);
+      } catch (err) {
+        _bpLocalAsrErrors += 1;
+        const msg = err && err.message ? err.message : 'local asr error';
+        bpSetListenStatus(`Local ASR error: ${msg}`, 'err');
+      } finally {
+        _bpLocalAsrBusy = false;
+      }
+    };
+
+    _bpLocalAsrRecorder.start(2500);
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+function bpStopLocalAsrListen() {
+  if (_bpLocalAsrRecorder) {
+    try {
+      if (_bpLocalAsrRecorder.state !== 'inactive') _bpLocalAsrRecorder.stop();
+    } catch (_) {}
+    _bpLocalAsrRecorder = null;
+  }
+
+  if (_bpLocalAsrStream) {
+    _bpLocalAsrStream.getTracks().forEach(t => {
+      try { t.stop(); } catch (_) {}
+    });
+    _bpLocalAsrStream = null;
+  }
+
+  _bpLocalAsrBusy = false;
+  _bpLocalAsrErrors = 0;
+  _bpLocalAsrLastText = '';
+}
+
+async function bpEnsureMicPermission() {
+  if (_bpVoiceMicGranted) return true;
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return false;
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    stream.getTracks().forEach(t => t.stop());
+    _bpVoiceMicGranted = true;
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+async function bpStartVoiceListen() {
+  const hasPermission = await bpEnsureMicPermission();
+  if (!hasPermission) {
+    showToast('Microphone permission denied', 'error');
+    bpStopVoiceListen();
+    return;
+  }
+
+  // Offline-only mode: use local ASR service exclusively.
+  const localStarted = await bpStartLocalAsrListen();
+  if (localStarted) {
+    _bpVoiceEngine = 'local';
+    _bpVoiceListening = true;
+    _bpLocalAsrErrors = 0;
+    bpSetListenButtonState();
+    bpSetListenStatus(`Voice status: listening (Local ASR ${_bpLocalAsrActiveEndpoint || bpGetLocalAsrBaseUrl()})`, 'ok');
+    showToast('Local ASR listening started', 'success', 1700);
+    return;
+  }
+
+  _bpVoiceListening = false;
+  bpSetListenButtonState();
+  bpSetListenStatus('Local ASR not reachable. Start your offline ASR server and try again.', 'err');
+  showToast('Offline ASR server is not running', 'error', 2200);
+}
+
+function bpStopVoiceListen() {
+  _bpVoiceListening = false;
+  bpSetListenButtonState();
+  bpSetListenStatus('Voice status: stopped', 'info');
+
+  if (_bpVoiceEngine === 'local') {
+    bpStopLocalAsrListen();
+  }
+
+  _bpVoiceEngine = 'local';
+  showToast('Bible listening stopped', 'info', 1200);
+}
 
 function bpCleanNumericSearch(raw) {
   return String(raw || '').replace(/\D+/g, '');
@@ -1695,9 +2345,23 @@ function bpOnVerseSearchKeydown(e) {
 function toggleBiblePanel() {
   const panel = document.getElementById('bible-panel');
   const btn   = document.getElementById('btn-bible-panel');
-  _bpOpen = !_bpOpen;
+  const willOpen = !_bpOpen;
+
+  // Intelligent override: only one right-side drawer should be open at a time.
+  if (willOpen && _spOpen) {
+    _spOpen = false;
+    document.getElementById('song-panel')?.classList.remove('open');
+    document.getElementById('btn-song-panel')?.classList.remove('panel-open');
+  }
+
+  _bpOpen = willOpen;
   panel.classList.toggle('open', _bpOpen);
   btn.classList.toggle('panel-open', _bpOpen);
+
+  // Ensure the custom book dropdown does not float above other UI when closing.
+  if (!_bpOpen) {
+    document.getElementById('bp-book-list')?.classList.remove('show');
+  }
 }
 
 function bpOnBookChange() {
@@ -1986,11 +2650,19 @@ function spPopulateList(keys) {
 function toggleSongPanel() {
   const panel = document.getElementById('song-panel');
   const btn   = document.getElementById('btn-song-panel');
-  _spOpen = !_spOpen;
+  const willOpen = !_spOpen;
+
+  // Intelligent override: close Bible drawer before opening Song drawer.
+  if (willOpen && _bpOpen) {
+    _bpOpen = false;
+    document.getElementById('bible-panel')?.classList.remove('open');
+    document.getElementById('btn-bible-panel')?.classList.remove('panel-open');
+    document.getElementById('bp-book-list')?.classList.remove('show');
+  }
+
+  _spOpen = willOpen;
   panel.classList.toggle('open', _spOpen);
   btn.classList.toggle('panel-open', _spOpen);
-  // Close bible panel if open
-  if (_spOpen && _bpOpen) toggleBiblePanel();
 }
 
 function spTogglePicker() {

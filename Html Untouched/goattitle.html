@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Church Overlay</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Tamil:wght@700;900&display=swap" rel="stylesheet" />
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    html,body{width:100%;height:100%;overflow:hidden;background:#000}
+    .stage{width:100vw;height:100vh;position:relative;overflow:hidden}
+
+    .video-bg{
+      position:absolute;inset:0;z-index:0;
+      width:100%;height:100%;object-fit:cover
+    }
+
+    .overlay{
+      position:absolute;inset:0;z-index:1;
+      background:radial-gradient(
+        ellipse 80% 38% at 50% 28%,
+        rgba(0,0,0,0.52) 0%,
+        rgba(0,0,0,0.18) 60%,
+        rgba(0,0,0,0.00) 100%
+      )
+    }
+
+    .content{
+      position:absolute;inset:0;z-index:10;
+      display:flex;flex-direction:column;
+      align-items:center;justify-content:center;
+      margin-top:-26vh;
+    }
+
+    .line-clip{
+      overflow:hidden;width:100%;
+      display:flex;align-items:center;justify-content:center;
+      position:relative
+    }
+
+    .church-text{
+      font-family:'Noto Serif Tamil',serif;
+      white-space:nowrap;display:inline-block
+    }
+
+    .line1{
+      font-size:clamp(28px,5vw,80px);
+      font-weight:900;letter-spacing:2px;
+      background:linear-gradient(105deg,
+        #7a5200 0%,#c8860a 12%,#f5d060 25%,#fff8c0 38%,
+        #ffd700 50%,#fff8c0 62%,#f5c842 75%,#c8860a 88%,#7a5200 100%
+      );
+      background-size:260% auto;
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+      animation:
+        slideFromLeft 0.9s cubic-bezier(.16,1,.3,1) forwards,
+        goldShimmer 3.5s linear 0.9s infinite,
+        revealHide 7s ease-in-out 0.9s infinite
+    }
+
+    .line2{
+      font-size:clamp(18px,3.4vw,56px);
+      font-weight:700;letter-spacing:16px;
+      background:linear-gradient(105deg,
+        #6b4f00 0%,#b8780a 12%,#e8c840 25%,#fffacc 38%,
+        #fce87a 50%,#fffacc 62%,#e8c840 75%,#b8780a 88%,#6b4f00 100%
+      );
+      background-size:260% auto;
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+      animation:
+        slideFromRight 0.9s cubic-bezier(.16,1,.3,1) 0.2s forwards,
+        goldShimmer 3.5s linear 1.1s infinite,
+        revealHide 7s ease-in-out 1.1s infinite
+    }
+
+    .divider{
+      width:0;height:1.5px;
+      margin:clamp(4px,0.9vh,13px) 0;
+      background:linear-gradient(90deg,transparent,#ffd700 50%,transparent);
+      opacity:0;
+      animation:
+        dividerExpand 0.6s cubic-bezier(.16,1,.3,1) 0.5s forwards,
+        dividerHide 7s ease-in-out 0.9s infinite
+    }
+
+    .flare{
+      position:absolute;top:0;left:-65%;
+      width:38%;height:100%;
+      background:linear-gradient(108deg,
+        transparent 0%,rgba(255,250,190,0) 35%,
+        rgba(255,252,200,.52) 50%,rgba(255,250,190,0) 65%,transparent 100%
+      );
+      pointer-events:none;mix-blend-mode:screen;
+      animation:flareSweep 3.5s ease-in-out 0.9s infinite
+    }
+
+    @keyframes slideFromLeft{
+      from{opacity:0;transform:translateX(-140px)}
+      to{opacity:1;transform:translateX(0)}
+    }
+    @keyframes slideFromRight{
+      from{opacity:0;transform:translateX(140px)}
+      to{opacity:1;transform:translateX(0)}
+    }
+    @keyframes goldShimmer{
+      0%{background-position:220% center}
+      100%{background-position:-60% center}
+    }
+    @keyframes revealHide{
+      0%{opacity:1;transform:translateX(0)}
+      58%{opacity:1;transform:translateX(0)}
+      70%{opacity:0;transform:translateX(110px)}
+      71%{opacity:0;transform:translateX(-110px)}
+      84%{opacity:1;transform:translateX(0)}
+      100%{opacity:1;transform:translateX(0)}
+    }
+    @keyframes dividerExpand{
+      from{width:0;opacity:0}
+      to{width:clamp(100px,20vw,300px);opacity:1}
+    }
+    @keyframes dividerHide{
+      0%,57%{opacity:1}
+      69%{opacity:0}
+      83%{opacity:1}
+      100%{opacity:1}
+    }
+    @keyframes flareSweep{
+      0%{left:-65%;opacity:0}
+      8%{opacity:1}
+      58%{left:120%;opacity:0}
+      100%{left:120%;opacity:0}
+    }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <video class="video-bg" autoplay muted loop playsinline>
+      <source src="goatbgv.mp4" type="video/mp4" />
+    </video>
+
+    <div class="overlay"></div>
+
+    <div class="content">
+      <div class="line-clip">
+        <span class="church-text line1">நல்ல சமாரியன் இயேசு</span>
+        <div class="flare"></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="line-clip">
+        <span class="church-text line2">ஜெப வீடு</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
