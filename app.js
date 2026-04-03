@@ -61,8 +61,10 @@ function scheduleSave() {
       try {
         // Serialise only the fields we need; runtime-only props (_thumbHtml etc.) are excluded
         const payload = slides.map(s => {
-          const { id, type, name, html, title, body, bg, color, layout, font } = s;
-          return type === 'html' ? { id, type, name, html } : { id, type, name, title, body, bg, color, layout, font };
+          const { id, type, name, html, title, body, bg, color, layout, font, bookmarked } = s;
+          return type === 'html'
+            ? { id, type, name, html, bookmarked: !!bookmarked }
+            : { id, type, name, title, body, bg, color, layout, font, bookmarked: !!bookmarked };
         });
         localStorage.setItem(STORAGE_KEY, JSON.stringify({ slides: payload, currentIdx }));
         const ind = document.getElementById('save-indicator');
@@ -262,27 +264,69 @@ function createVasanamHtml(verseText, verseRef, bgColor, textColor, fontSize) {
   const col = textColor || '#ffd700';
   return `<!DOCTYPE html><html lang="ta"><head><meta charset="UTF-8">
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap');
 @font-face{font-family:'Noto Serif Tamil';src:local('Noto Serif Tamil'),local('Nirmala UI'),local('Vijaya'),local('Latha'),local('Tamil Sangam MN');font-weight:400 900;}
 *{margin:0;padding:0;box-sizing:border-box;}
 html,body{width:100%;height:100%;overflow:hidden;}
 body{
   background:${bg};
-  display:flex;align-items:center;justify-content:center;
-  font-family:'Noto Serif Tamil',serif;padding:1.2vw;position:relative;
+  perspective: 2000px;
+  font-family:'Noto Serif Tamil',serif;
+}
+.flip-card {
+  width:100%; height:100%;
+  position:relative;
+  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style:preserve-3d;
+  cursor:pointer;
+}
+.flip-card.flipped {
+  transform: rotateY(180deg);
+}
+.flip-card-front, .flip-card-back {
+  position:absolute;
+  width:100%; height:100%;
+  backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;
+  display:flex; align-items:center; justify-content:center; background:${bg};
+}
+.flip-card-front {
+  flex-direction:column;
+}
+.flip-card-back {
+  transform: rotateY(180deg);
+  padding:1.2vw;
+}
+.front-title {
+  font-size:15vh;
+  font-weight:900;
+  color:${col}; text-align:center; padding:0 4vw; line-height:1.2;
+  -webkit-text-stroke: 0.04em currentColor;
+}
+.front-graphics {
+  font-family:'Caveat', cursive; font-size:8vh; color:${col}; opacity:0.8; margin-top:3vh;
 }
 .verse-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;gap:0.6vh;overflow:hidden;}
 .verse-text{
   font-weight:900;color:${col};text-align:center;line-height:1.22;word-break:break-word;width:100%;white-space:pre-wrap;
+  -webkit-text-stroke: 0.04em currentColor;
 }
 .verse-ref{
   color:${col};opacity:0.9;font-style:italic;letter-spacing:2px;text-align:right;align-self:flex-end;padding-right:1vw;
   font-weight:900;
 }
 <\/style><\/head><body>
-<div class="verse-wrap" id="vwrap">
-  <div class="verse-text" id="vtext">${verseText}<\/div>
-  ${verseRef ? `<div class="verse-ref" id="vref">— ${verseRef}<\/div>` : ''}
-<\/div>
+<div class="flip-card" id="flip-card" onclick="this.classList.toggle('flipped')">
+  <div class="flip-card-front">
+    <div class="front-title" id="frontTitle">${verseRef || 'வசனம்'}</div>
+  </div>
+  <div class="flip-card-back">
+    <div class="verse-wrap" id="vwrap">
+      <div class="verse-text" id="vtext">${verseText}<\/div>
+      ${verseRef ? `<div class="verse-ref" id="vref">— ${verseRef}<\/div>` : ''}
+    </div>
+  </div>
+</div>
 <script>
 var MAX_FONT = 130;
 function autoFit() {
@@ -290,8 +334,8 @@ function autoFit() {
   var vt   = document.getElementById('vtext');
   var vr   = document.getElementById('vref');
   if (!wrap || !vt) return;
-  var availW = wrap.clientWidth;
-  var availH = wrap.clientHeight;
+  var availW = wrap.clientWidth || window.innerWidth;
+  var availH = wrap.clientHeight || window.innerHeight;
   if (availH < 10 || availW < 10) { setTimeout(autoFit, 100); return; }
   vt.style.width = '100%';
   var lo = 8, hi = Math.min(availH, MAX_FONT);
@@ -300,7 +344,7 @@ function autoFit() {
     vt.style.fontSize = mid + 'px';
     if (vr) vr.style.fontSize = (mid * 0.32) + 'px';
     var needed = vt.scrollHeight + (vr ? vr.offsetHeight + mid * 0.2 : 0);
-    if (needed > availH || vt.scrollWidth > vt.clientWidth + 1) {
+    if (needed > availH || vt.scrollWidth > availW) {
       hi = mid;
     } else {
       lo = mid;
@@ -308,7 +352,38 @@ function autoFit() {
   }
   vt.style.fontSize = lo + 'px';
   if (vr) vr.style.fontSize = (lo * 0.32) + 'px';
+
+  var fTitle = document.getElementById('frontTitle');
+  if (fTitle && fTitle.scrollWidth > window.innerWidth * 0.9) {
+    fTitle.style.fontSize = '12vh';
+  }
 }
+document.addEventListener("visibilitychange", function() {
+    if (document.hidden) {
+        var card = document.getElementById('flip-card');
+        if (card) card.classList.remove('flipped');
+    }
+});
+if (typeof IntersectionObserver !== 'undefined') {
+  let observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if(!entry.isIntersecting) {
+         var card = document.getElementById('flip-card');
+         if (card) card.classList.remove('flipped');
+      }
+    });
+  });
+  observer.observe(document.body);
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+      var card = document.getElementById('flip-card');
+      if (card) card.classList.toggle('flipped');
+      e.preventDefault();
+  }
+});
+
 document.fonts ? document.fonts.ready.then(autoFit) : window.addEventListener('load', autoFit);
 window.addEventListener('resize', autoFit);
 <\/script>
@@ -319,20 +394,35 @@ window.addEventListener('resize', autoFit);
 function createAnimeVasanamHtml(verseText, verseRef) {
   return `<!DOCTYPE html><html lang="ta"><head><meta charset="UTF-8">
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap');
 @font-face{font-family:'Noto Serif Tamil';src:local('Noto Serif Tamil'),local('Nirmala UI'),local('Vijaya'),local('Latha'),local('Tamil Sangam MN');font-weight:400 900;}
 *{margin:0;padding:0;box-sizing:border-box;}
 html,body{width:100%;height:100%;overflow:hidden;}
-body{background:linear-gradient(180deg,#020510 0%,#0a1628 40%,#162a50 70%,#1b3a5c 100%);display:flex;align-items:center;justify-content:center;font-family:'Noto Serif Tamil',serif;padding:1.2vw;position:relative;}
+body{background:linear-gradient(180deg,#020510 0%,#0a1628 40%,#162a50 70%,#1b3a5c 100%);perspective:2000px;font-family:'Noto Serif Tamil',serif;}
 .sky{position:absolute;inset:0;z-index:0;}
-.verse-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;gap:0.6vh;overflow:hidden;position:relative;z-index:5;}
-.verse-text{font-weight:900;color:#ffffff;text-align:center;line-height:1.22;word-break:break-word;width:100%;white-space:pre-wrap;text-shadow:0 2px 10px rgba(0,0,0,0.8);}
+.flip-card {width:100%;height:100%;position:relative;transition:transform 0.8s cubic-bezier(0.4,0,0.2,1);transform-style:preserve-3d;cursor:pointer;z-index:5;}
+.flip-card.flipped {transform:rotateY(180deg);}
+.flip-card-front, .flip-card-back {position:absolute;width:100%;height:100%;backface-visibility:hidden;-webkit-backface-visibility:hidden;display:flex;align-items:center;justify-content:center;}
+.flip-card-front {flex-direction:column;}
+.flip-card-back {transform:rotateY(180deg);padding:1.2vw;}
+.front-title {font-size:15vh;font-weight:900;color:#ffffff;text-align:center;padding:0 4vw;line-height:1.2;text-shadow:0 2px 10px rgba(0,0,0,0.8);-webkit-text-stroke: 0.04em currentColor;}
+.front-graphics {font-family:'Caveat', cursive;font-size:8vh;color:#ffffff;opacity:0.8;margin-top:3vh;text-shadow:0 2px 6px rgba(0,0,0,0.6);}
+.verse-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;gap:0.6vh;overflow:hidden;position:relative;}
+.verse-text{font-weight:900;color:#ffffff;text-align:center;line-height:1.22;word-break:break-word;width:100%;white-space:pre-wrap;text-shadow:0 2px 10px rgba(0,0,0,0.8);-webkit-text-stroke: 0.04em currentColor;}
 .verse-ref{color:#ffffff;opacity:0.9;font-style:italic;letter-spacing:2px;text-align:right;align-self:flex-end;padding-right:1vw;font-weight:900;text-shadow:0 2px 6px rgba(0,0,0,0.6);}
 <\/style><\/head><body>
 <div class="sky"><\/div>
-<div class="verse-wrap" id="vwrap">
-  <div class="verse-text" id="vtext">${verseText}<\/div>
-  ${verseRef ? `<div class="verse-ref" id="vref">— ${verseRef}<\/div>` : ''}
-<\/div>
+<div class="flip-card" id="flip-card" onclick="this.classList.toggle('flipped')">
+  <div class="flip-card-front">
+    <div class="front-title" id="frontTitle">${verseRef || 'வசனம்'}</div>
+  </div>
+  <div class="flip-card-back">
+    <div class="verse-wrap" id="vwrap">
+      <div class="verse-text" id="vtext">${verseText}<\/div>
+      ${verseRef ? `<div class="verse-ref" id="vref">— ${verseRef}<\/div>` : ''}
+    </div>
+  </div>
+</div>
 <script>
 var MAX_FONT = 130;
 function autoFit() {
@@ -340,8 +430,8 @@ function autoFit() {
   var vt   = document.getElementById('vtext');
   var vr   = document.getElementById('vref');
   if (!wrap || !vt) return;
-  var availW = wrap.clientWidth;
-  var availH = wrap.clientHeight;
+  var availW = wrap.clientWidth || window.innerWidth;
+  var availH = wrap.clientHeight || window.innerHeight;
   if (availH < 10 || availW < 10) { setTimeout(autoFit, 100); return; }
   vt.style.width = '100%';
   var lo = 8, hi = Math.min(availH, MAX_FONT);
@@ -350,7 +440,7 @@ function autoFit() {
     vt.style.fontSize = mid + 'px';
     if (vr) vr.style.fontSize = (mid * 0.32) + 'px';
     var needed = vt.scrollHeight + (vr ? vr.offsetHeight + mid * 0.2 : 0);
-    if (needed > availH || vt.scrollWidth > vt.clientWidth + 1) {
+    if (needed > availH || vt.scrollWidth > availW) {
       hi = mid;
     } else {
       lo = mid;
@@ -358,7 +448,38 @@ function autoFit() {
   }
   vt.style.fontSize = lo + 'px';
   if (vr) vr.style.fontSize = (lo * 0.32) + 'px';
+
+  var fTitle = document.getElementById('frontTitle');
+  if (fTitle && fTitle.scrollWidth > window.innerWidth * 0.9) {
+    fTitle.style.fontSize = '12vh';
+  }
 }
+document.addEventListener("visibilitychange", function() {
+    if (document.hidden) {
+        var card = document.getElementById('flip-card');
+        if (card) card.classList.remove('flipped');
+    }
+});
+if (typeof IntersectionObserver !== 'undefined') {
+  let observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if(!entry.isIntersecting) {
+         var card = document.getElementById('flip-card');
+         if (card) card.classList.remove('flipped');
+      }
+    });
+  });
+  observer.observe(document.body);
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+      var card = document.getElementById('flip-card');
+      if (card) card.classList.toggle('flipped');
+      e.preventDefault();
+  }
+});
+
 document.fonts ? document.fonts.ready.then(autoFit) : window.addEventListener('load', autoFit);
 window.addEventListener('resize', autoFit);
 <\/script>
@@ -371,10 +492,10 @@ window.addEventListener('resize', autoFit);
 function createSlide(type) {
   const id = Date.now() + Math.random();
   if (type === 'html') {
-    return { id, type: 'html', name: 'HTML Slide', html: '' };
+    return { id, type: 'html', name: 'HTML Slide', html: '', bookmarked: false };
   } else {
     return {
-      id, type: 'simple', name: 'New Slide',
+      id, type: 'simple', name: 'New Slide', bookmarked: false,
       title: 'Slide Title', body: '• Point one\n• Point two\n• Point three',
       bg: '#3c096c', color: '#ffd700', layout: 'center', font: 'Noto Serif Tamil'
     };
@@ -574,6 +695,20 @@ function buildThumb(s) {
   const lbl = document.createElement('div'); lbl.className = 'thumb-label';
   thumb.appendChild(lbl);
 
+  const bmBtn = document.createElement('button');
+  bmBtn.className = 'thumb-bookmark';
+  bmBtn.type = 'button';
+  bmBtn.textContent = 'B';
+  bmBtn.title = 'Bookmark slide';
+  bmBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleSlideBookmark(Number(thumb.dataset.idx));
+  });
+  bmBtn.addEventListener('mousedown', (e) => {
+    e.stopPropagation();
+  });
+  thumb.appendChild(bmBtn);
+
   const grip = document.createElement('div');
   grip.className = 'thumb-grip';
   grip.textContent = '⠇ ⠇ ⠇';
@@ -685,6 +820,12 @@ function renderAll() {
     thumb.className = 'thumb' + (i === currentIdx ? ' active' : '');
     thumb.querySelector('.thumb-num').textContent  = i + 1;
     thumb.querySelector('.thumb-label').textContent = s.name;
+    const bmBtn = thumb.querySelector('.thumb-bookmark');
+    if (bmBtn) {
+      const isBookmarked = !!s.bookmarked;
+      bmBtn.classList.toggle('active', isBookmarked);
+      bmBtn.title = isBookmarked ? 'Remove bookmark' : 'Bookmark slide';
+    }
     const pi = thumb.querySelector('.thumb-pos-input');
     if (pi && document.activeElement !== pi) pi.value = i + 1;
 
@@ -713,6 +854,8 @@ function renderAll() {
 
   document.getElementById('slide-counter').textContent =
     slides.length ? `${currentIdx + 1} / ${slides.length}` : '— / —';
+
+  renderPresentBookmarks();
 }
 
 function moveSlide(idx, dir) {
@@ -968,6 +1111,22 @@ function selectSlide(i) {
     slides.length ? `${currentIdx + 1} / ${slides.length}` : '— / —';
   renderPreview();
   renderEditor();
+}
+
+function toggleSlideBookmark(idx) {
+  const s = slides[idx];
+  if (!s) return;
+  s.bookmarked = !s.bookmarked;
+
+  const thumb = document.querySelector(`#slide-list .thumb[data-idx="${idx}"]`);
+  const bmBtn = thumb ? thumb.querySelector('.thumb-bookmark') : null;
+  if (bmBtn) {
+    bmBtn.classList.toggle('active', !!s.bookmarked);
+    bmBtn.title = s.bookmarked ? 'Remove bookmark' : 'Bookmark slide';
+  }
+
+  renderPresentBookmarks();
+  scheduleSave();
 }
 
 function gotoSlide(inp) {
@@ -1454,6 +1613,85 @@ document.addEventListener('click', (e) => {
 let _bpOpen = false;
 let _bpBook = null, _bpChapter = null, _bpVerse = null;
 
+function bpCleanNumericSearch(raw) {
+  return String(raw || '').replace(/\D+/g, '');
+}
+
+function bpFindNumericOption(selectEl, numericText) {
+  let exact = null;
+  let partial = null;
+  for (const opt of selectEl.options) {
+    if (!opt.value) continue;
+    const valStr = String(opt.value);
+    if (valStr === numericText) {
+      exact = opt;
+      break;
+    }
+    if (!partial && valStr.startsWith(numericText)) {
+      partial = opt;
+    }
+  }
+  return { exact, partial };
+}
+
+function bpOnChapterSearchInput() {
+  const input = document.getElementById('bp-chapter-search');
+  const chapSel = document.getElementById('bp-chapter');
+  if (!input || !chapSel || chapSel.disabled) return;
+  const cleaned = bpCleanNumericSearch(input.value);
+  if (input.value !== cleaned) input.value = cleaned;
+  if (!cleaned) return;
+  const match = bpFindNumericOption(chapSel, cleaned);
+  if (match.exact) {
+    chapSel.value = match.exact.value;
+    bpOnChapterChange();
+  }
+}
+
+function bpOnChapterSearchKeydown(e) {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  const input = document.getElementById('bp-chapter-search');
+  const chapSel = document.getElementById('bp-chapter');
+  if (!input || !chapSel || chapSel.disabled) return;
+  const cleaned = bpCleanNumericSearch(input.value);
+  if (!cleaned) return;
+  const match = bpFindNumericOption(chapSel, cleaned);
+  const target = match.exact || match.partial;
+  if (!target) return;
+  chapSel.value = target.value;
+  bpOnChapterChange();
+}
+
+function bpOnVerseSearchInput() {
+  const input = document.getElementById('bp-verse-search');
+  const verseSel = document.getElementById('bp-verse');
+  if (!input || !verseSel || verseSel.disabled) return;
+  const cleaned = bpCleanNumericSearch(input.value);
+  if (input.value !== cleaned) input.value = cleaned;
+  if (!cleaned) return;
+  const match = bpFindNumericOption(verseSel, cleaned);
+  if (match.exact) {
+    verseSel.value = match.exact.value;
+    bpOnVerseChange();
+  }
+}
+
+function bpOnVerseSearchKeydown(e) {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  const input = document.getElementById('bp-verse-search');
+  const verseSel = document.getElementById('bp-verse');
+  if (!input || !verseSel || verseSel.disabled) return;
+  const cleaned = bpCleanNumericSearch(input.value);
+  if (!cleaned) return;
+  const match = bpFindNumericOption(verseSel, cleaned);
+  const target = match.exact || match.partial;
+  if (!target) return;
+  verseSel.value = target.value;
+  bpOnVerseChange();
+}
+
 function toggleBiblePanel() {
   const panel = document.getElementById('bible-panel');
   const btn   = document.getElementById('btn-bible-panel');
@@ -1468,10 +1706,20 @@ function bpOnBookChange() {
   _bpChapter = null;
   _bpVerse   = null;
   const chapSel  = document.getElementById('bp-chapter');
+  const chapSearch = document.getElementById('bp-chapter-search');
   const verseSel = document.getElementById('bp-verse');
+  const verseSearch = document.getElementById('bp-verse-search');
   chapSel.innerHTML  = '<option value="">— அதிகாரம் —</option>';
   verseSel.innerHTML = '<option value="">— எல்லா வசனங்கள் —</option>';
   verseSel.disabled  = true;
+  if (chapSearch) {
+    chapSearch.value = '';
+    chapSearch.disabled = true;
+  }
+  if (verseSearch) {
+    verseSearch.value = '';
+    verseSearch.disabled = true;
+  }
   if (!bookName) { chapSel.disabled = true; bpUpdatePreview(); return; }
   const chapCnt = bibleData[bookName].chapters;
   for (let c = 1; c <= chapCnt; c++) {
@@ -1481,16 +1729,33 @@ function bpOnBookChange() {
     chapSel.appendChild(opt);
   }
   chapSel.disabled = false;
-  bpUpdatePreview();
+  if (chapSearch) chapSearch.disabled = false;
+
+  if (chapCnt > 0) {
+    chapSel.value = 1;
+    bpOnChapterChange();
+  } else {
+    bpUpdatePreview();
+  }
 }
 
 function bpOnChapterChange() {
-  const chapNum  = parseInt(document.getElementById('bp-chapter').value);
+  const chapSel  = document.getElementById('bp-chapter');
+  const chapNum  = parseInt(chapSel.value);
   _bpChapter     = chapNum || null;
   _bpVerse       = null;
   const verseSel = document.getElementById('bp-verse');
+  const chapSearch = document.getElementById('bp-chapter-search');
+  const verseSearch = document.getElementById('bp-verse-search');
+  if (chapSearch) chapSearch.value = _bpChapter ? String(_bpChapter) : '';
+  if (verseSearch) verseSearch.value = '';
   verseSel.innerHTML = '<option value="">— எல்லா வசனங்கள் —</option>';
-  if (!_bpBook || !chapNum) { verseSel.disabled = true; bpUpdatePreview(); return; }
+  if (!_bpBook || !chapNum) {
+    verseSel.disabled = true;
+    if (verseSearch) verseSearch.disabled = true;
+    bpUpdatePreview();
+    return;
+  }
   const data       = bibleData[_bpBook];
   const content    = (data.content && data.content[chapNum]) || null;
   const vpcArr     = data.versesPerChapter;
@@ -1504,14 +1769,22 @@ function bpOnChapterChange() {
       verseSel.appendChild(opt);
     }
     verseSel.disabled = false;
+    if (verseSearch) verseSearch.disabled = false;
+    
+    // Auto-select verse 1 when chapter changes
+    verseSel.value = 1;
+    bpOnVerseChange();
   } else {
     verseSel.disabled = true;
+    if (verseSearch) verseSearch.disabled = true;
+    bpUpdatePreview();
   }
-  bpUpdatePreview();
 }
 
 function bpOnVerseChange() {
   _bpVerse = parseInt(document.getElementById('bp-verse').value) || null;
+  const verseSearch = document.getElementById('bp-verse-search');
+  if (verseSearch) verseSearch.value = _bpVerse ? String(_bpVerse) : '';
   bpUpdatePreview();
 }
 
@@ -2317,6 +2590,7 @@ function startPresent() {
   overlay.classList.remove('bible-fs');
   overlay.classList.add('active');
   document.body.style.overflow = 'hidden';
+  renderPresentBookmarks();
   acquireWakeLock();
 }
 
@@ -2381,6 +2655,51 @@ function showPresentSlide() {
       btnOpenBible.style.display = 'none';
     }
   }
+
+  renderPresentBookmarks();
+}
+
+function renderPresentBookmarks() {
+  const overlay = document.getElementById('present-overlay');
+  const listEl = document.getElementById('present-bookmark-list');
+  if (!overlay || !listEl) return;
+  if (!overlay.classList.contains('active') || overlay.classList.contains('panel-fs')) {
+    listEl.innerHTML = '';
+    return;
+  }
+
+  const bookmarks = [];
+  for (let i = 0; i < slides.length; i++) {
+    if (slides[i] && slides[i].bookmarked) bookmarks.push(i);
+  }
+
+  listEl.innerHTML = '';
+  if (!bookmarks.length) {
+    const empty = document.createElement('div');
+    empty.className = 'present-bookmark-empty';
+    empty.textContent = 'No bookmarks yet';
+    listEl.appendChild(empty);
+    return;
+  }
+
+  bookmarks.forEach(idx => {
+    const s = slides[idx];
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'present-bookmark-item' + (idx === presentIdx ? ' active' : '');
+    btn.innerHTML = `<span class="pb-num">${idx + 1}</span><span class="pb-name">${s.name || 'Slide ' + (idx + 1)}</span>`;
+    btn.addEventListener('click', () => presentJumpTo(idx));
+    listEl.appendChild(btn);
+  });
+}
+
+function presentJumpTo(idx) {
+  if (idx < 0 || idx >= slides.length) return;
+  if (presentIdx === idx) return;
+  _presentPrevIdx = presentIdx;
+  presentIdx = idx;
+  showPresentSlide();
+  updateBackBtn();
 }
 
 function showGotoInput() {
@@ -2533,6 +2852,7 @@ function exitPresent() {
   document.body.style.overflow = '';
   document.getElementById('bp-fs-prev').style.display = 'none';
   document.getElementById('bp-fs-next').style.display = 'none';
+  renderPresentBookmarks();
   presentIdx = null; // Clear presentIdx when fully pushed out
   releaseWakeLock();
 }

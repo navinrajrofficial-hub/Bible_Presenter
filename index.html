@@ -264,12 +264,14 @@
     </div>
     <div class="bp-field">
       <div class="bp-label">அதிகாரம் (Chapter)</div>
+      <input type="text" class="bp-select" id="bp-chapter-search" placeholder="அதிகாரம் எண் type செய்யவும்..." autocomplete="off" onfocus="this.select()" oninput="bpOnChapterSearchInput()" onkeydown="bpOnChapterSearchKeydown(event)" disabled>
       <select class="bp-select" id="bp-chapter" onchange="bpOnChapterChange()" disabled>
         <option value="">— அதிகாரம் —</option>
       </select>
     </div>
     <div class="bp-field">
       <div class="bp-label">வசனம் (Verse) — optional</div>
+      <input type="text" class="bp-select" id="bp-verse-search" placeholder="வசனம் எண் type செய்யவும்..." autocomplete="off" onfocus="this.select()" oninput="bpOnVerseSearchInput()" onkeydown="bpOnVerseSearchKeydown(event)" disabled>
       <select class="bp-select" id="bp-verse" onchange="bpOnVerseChange()" disabled>
         <option value="">— எல்லா வசனங்கள் —</option>
       </select>
@@ -326,6 +328,13 @@
   <button id="bp-fs-prev" class="bp-fs-nav-btn" onclick="bpFsNav(-1)" style="display:none;">❮</button>
   <button id="bp-fs-next" class="bp-fs-nav-btn" onclick="bpFsNav(1)" style="display:none;">❯</button>
   <iframe id="present-iframe" sandbox="allow-scripts allow-same-origin"></iframe>
+  <div id="present-bookmark-drawer">
+    <div id="present-bookmark-handle">B</div>
+    <div id="present-bookmark-panel">
+      <div id="present-bookmark-title">Bookmarked Slides</div>
+      <div id="present-bookmark-list"></div>
+    </div>
+  </div>
   <div id="present-controls-zone">
     <div id="present-controls">
       <button class="pc-btn" onclick="presentNav(-1)">← Prev</button>
