@@ -2555,6 +2555,9 @@ function bpShowFullscreen() {
   const html = _bpBuildSlideHtml();
   if (!html) { showToast('Bible content not loaded yet — add verses first', 'error'); return; }
   const ref = document.getElementById('bp-preview-ref').textContent;
+  
+  if (_bpOpen) toggleBiblePanel();
+  
   // Show overlay FIRST so the iframe has real dimensions when autoFit runs
   document.getElementById('bp-fs-prev').style.display = 'block';
   document.getElementById('bp-fs-next').style.display = 'block';
@@ -2609,6 +2612,7 @@ let _spSongId = null;
 let _spSongKeys = [];   // sorted array of song IDs
 let _spFilteredKeys = []; // currently visible IDs after search
 let _spFsEditorMode = 'edit'; // 'edit' | 'new'
+let _spLyricsEditTimer = null;
 
 // Build the song list on load
 (function spInit() {
@@ -2734,7 +2738,58 @@ function _spBuildSlideHtml() {
   const text = song.content;
   const ref = `${song.title}  (Song #${_spSongId})`;
   const songSlideBg = 'linear-gradient(180deg,#0b0f26 0%,#111936 52%,#1a2647 100%)';
-  return createVasanamHtml(text, ref, songSlideBg, '#f8fafc', 'medium');
+  return createSongLyricSlideHtml(text, ref, songSlideBg, '#f8fafc');
+}
+
+function createSongLyricSlideHtml(lyricsText, refText, bgColor, textColor) {
+  const bg = bgColor || 'linear-gradient(180deg,#0b0f26 0%,#111936 52%,#1a2647 100%)';
+  const col = textColor || '#f8fafc';
+  return `<!DOCTYPE html><html lang="ta"><head><meta charset="UTF-8">
+<style>
+@font-face{font-family:'Noto Serif Tamil';src:local('Noto Serif Tamil'),local('Nirmala UI'),local('Vijaya'),local('Latha'),local('Tamil Sangam MN');font-weight:400 900;}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;}
+body{background:${bg};font-family:'Noto Serif Tamil',serif;color:${col};}
+.wrap{width:100%;height:100%;padding:2.4vw 2.6vw 1.6vw;display:flex;flex-direction:column;gap:0.8vh;}
+.lyrics-wrap{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;}
+.lyrics{
+  width:100%;text-align:center;line-height:1.2;white-space:pre-wrap;word-break:break-word;
+  text-shadow:0 3px 12px rgba(0,0,0,0.62);font-weight:900;-webkit-text-stroke:0.04em currentColor;
+}
+.ref{font-size:1.9vh;opacity:0.78;text-align:right;letter-spacing:0.03em;}
+</style></head><body>
+  <div class="wrap" id="wrap">
+    <div class="lyrics-wrap" id="lyricsWrap"><div class="lyrics" id="lyrics">${lyricsText}</div></div>
+    <div class="ref" id="ref">${refText}</div>
+  </div>
+<script>
+var MAX_FONT = 148;
+function autoFit() {
+  var lyricsWrap = document.getElementById('lyricsWrap');
+  var lyrics = document.getElementById('lyrics');
+  var ref = document.getElementById('ref');
+  if (!lyricsWrap || !lyrics) return;
+  var availW = lyricsWrap.clientWidth || window.innerWidth;
+  var availH = lyricsWrap.clientHeight || window.innerHeight;
+  if (availH < 10 || availW < 10) { setTimeout(autoFit, 100); return; }
+  var lo = 8, hi = Math.min(availH * 0.98, MAX_FONT);
+  for (var i = 0; i < 28; i++) {
+    var mid = (lo + hi) / 2;
+    lyrics.style.fontSize = mid + 'px';
+    if (ref) ref.style.fontSize = Math.max(12, mid * 0.18) + 'px';
+    if (lyrics.scrollHeight > availH || lyrics.scrollWidth > availW) {
+      hi = mid;
+    } else {
+      lo = mid;
+    }
+  }
+  lyrics.style.fontSize = lo + 'px';
+  if (ref) ref.style.fontSize = Math.max(12, lo * 0.18) + 'px';
+}
+document.fonts ? document.fonts.ready.then(autoFit) : window.addEventListener('load', autoFit);
+window.addEventListener('resize', autoFit);
+</script>
+</body></html>`;
 }
 
 function _spBuildPageHtml() {
@@ -2775,6 +2830,9 @@ function spShowFullscreen() {
   if (_spSongId === null) { showToast('பாடல் தேர்ந்தெடுக்கவும்', 'error'); return; }
   const html = _spBuildPageHtml();
   if (!html) { showToast('Song content not available', 'error'); return; }
+  
+  if (_spOpen) toggleSongPanel();
+  
   const song = songContent[_spSongId];
   document.getElementById('bp-fs-prev').style.display = 'none';
   document.getElementById('bp-fs-next').style.display = 'none';
@@ -2787,7 +2845,29 @@ function spShowFullscreen() {
   document.getElementById('present-indicator').textContent = song.title;
   spSetFsEditorMode('edit');
   spSyncFsEditorFromCurrentSong();
+  spBindFsEditorLiveRefresh();
   _spPopulateVerses(song);
+}
+
+function spBindFsEditorLiveRefresh() {
+  const contentEl = document.getElementById('sp-db-content');
+  const titleEl = document.getElementById('sp-db-title');
+  if (contentEl && !contentEl.dataset.spLiveBound) {
+    contentEl.addEventListener('input', () => {
+      clearTimeout(_spLyricsEditTimer);
+      _spLyricsEditTimer = setTimeout(() => spRefreshVersesFromEditor(), 180);
+    });
+    contentEl.dataset.spLiveBound = '1';
+  }
+  if (titleEl && !titleEl.dataset.spLiveBound) {
+    titleEl.addEventListener('input', () => {
+      const t = (titleEl.value || '').trim();
+      if (document.getElementById('present-overlay').classList.contains('panel-fs')) {
+        document.getElementById('sp-fs-title-text').textContent = (t || 'Song') + (_spSongId !== null ? (' (#' + _spSongId + ')') : '');
+      }
+    });
+    titleEl.dataset.spLiveBound = '1';
+  }
 }
 
 function spSetFsEditorMode(mode) {
@@ -3013,6 +3093,13 @@ function spAddAsSlide() {
 let _spVerses = [];   // split verse texts for current song
 let _spQueue  = [];   // queued items: { text, name }
 
+function _spGetCustomChorusText(kind) {
+  const id = kind === 'sub' ? 'sp-custom-sub' : 'sp-custom-main';
+  const el = document.getElementById(id);
+  if (!el) return '';
+  return String(el.value || '').replace(/\r\n/g, '\n').trim();
+}
+
 function _spSplitVerses(content) {
   return content
     .replace(/\r\n/g, '\n')
@@ -3022,13 +3109,11 @@ function _spSplitVerses(content) {
     .filter(v => v.length > 0);
 }
 
-function _spPopulateVerses(song) {
-  _spVerses = _spSplitVerses(song.content);
-  _spQueue = [];
-  document.getElementById('sp-fs-title-text').textContent = song.title + ' (#' + _spSongId + ')';
+function _spRenderVerseList(verses) {
   const container = document.getElementById('sp-fs-verses');
+  if (!container) return;
   container.innerHTML = '';
-  _spVerses.forEach((v, i) => {
+  verses.forEach((v, i) => {
     const div = document.createElement('div');
     div.className = 'sp-fs-verse';
     const preview = v.length > 250 ? v.slice(0, 250) + '…' : v;
@@ -3042,6 +3127,29 @@ function _spPopulateVerses(song) {
       '</div>';
     container.appendChild(div);
   });
+}
+
+function spRefreshVersesFromEditor() {
+  const overlay = document.getElementById('present-overlay');
+  const contentEl = document.getElementById('sp-db-content');
+  if (!overlay || !overlay.classList.contains('panel-fs') || !contentEl) return;
+
+  const editedContent = String(contentEl.value || '');
+  _spVerses = _spSplitVerses(editedContent);
+  _spQueue = [];
+  _spRenderVerseList(_spVerses);
+  _spRenderQueue();
+}
+
+function _spPopulateVerses(song) {
+  _spVerses = _spSplitVerses(song.content);
+  _spQueue = [];
+  const customMain = document.getElementById('sp-custom-main');
+  const customSub = document.getElementById('sp-custom-sub');
+  if (customMain) customMain.value = '';
+  if (customSub) customSub.value = '';
+  document.getElementById('sp-fs-title-text').textContent = song.title + ' (#' + _spSongId + ')';
+  _spRenderVerseList(_spVerses);
   _spRenderQueue();
 }
 
@@ -3051,6 +3159,10 @@ function spAutoGenerateQueue() {
   
   const mainIdx = mainInput ? parseInt(mainInput.value, 10) : -1;
   const subIdx = subInput ? parseInt(subInput.value, 10) : -1;
+  const customMainText = _spGetCustomChorusText('main');
+  const customSubText = _spGetCustomChorusText('sub');
+  const mainText = customMainText || (mainIdx !== -1 ? _spVerses[mainIdx] : '');
+  const subText = customSubText || (subIdx !== -1 ? _spVerses[subIdx] : '');
 
   // Gather all explicitly numbered stanzas
   let stanzas = [];
@@ -3064,7 +3176,7 @@ function spAutoGenerateQueue() {
   // If no order numbers were typed but we need standard order, assume non-choruses are stanzas
   if (stanzas.length === 0) {
     for (let i = 0; i < _spVerses.length; i++) {
-      if (i !== mainIdx && i !== subIdx) {
+      if ((mainIdx === -1 || i !== mainIdx) && (subIdx === -1 || i !== subIdx)) {
         stanzas.push({ idx: i, order: stanzas.length + 1 });
       }
     }
@@ -3073,39 +3185,39 @@ function spAutoGenerateQueue() {
   // Sort stanzas by their given order
   stanzas.sort((a, b) => a.order - b.order);
 
-  if (mainIdx === -1 && stanzas.length === 0) {
-    showToast("Please tag a Main Chorus (M) or type Stanza orders (#) to generate.", "error");
+  if (!mainText && stanzas.length === 0) {
+    showToast("Select/type Main Chorus or type Stanza orders (#) to generate.", "error");
     return;
   }
 
   _spQueue = [];
 
   // Always start with Main Chorus if it exists
-  if (mainIdx !== -1) {
-    _spQueue.push({ text: _spVerses[mainIdx], name: 'Main Chorus' });
+  if (mainText) {
+    _spQueue.push({ text: mainText, name: 'Main Chorus' });
   }
 
   stanzas.forEach((stz, i) => {
     // Add Sub Chorus if it exists
-    if (subIdx !== -1) {
-      _spQueue.push({ text: _spVerses[subIdx], name: 'Sub Chorus' });
+    if (subText) {
+      _spQueue.push({ text: subText, name: 'Sub Chorus' });
     }
     
     // Add the specific Stanza
     _spQueue.push({ text: _spVerses[stz.idx], name: 'Stanza ' + stz.order });
     
     // If there's no sub chorus, we interleave the main chorus between stanzas
-    if (subIdx === -1 && mainIdx !== -1 && i < stanzas.length - 1) {
-      _spQueue.push({ text: _spVerses[mainIdx], name: 'Main Chorus' });
+    if (!subText && mainText && i < stanzas.length - 1) {
+      _spQueue.push({ text: mainText, name: 'Main Chorus' });
     }
   });
 
   // End the sequence
-  if (subIdx !== -1) {
-    _spQueue.push({ text: _spVerses[subIdx], name: 'Sub Chorus' });
+  if (subText) {
+    _spQueue.push({ text: subText, name: 'Sub Chorus' });
   }
-  if (mainIdx !== -1) {
-    _spQueue.push({ text: _spVerses[mainIdx], name: 'Main Chorus' });
+  if (mainText) {
+    _spQueue.push({ text: mainText, name: 'Main Chorus' });
   }
 
   _spRenderQueue();
@@ -3186,11 +3298,27 @@ function spQueueEdit(idx) {
   el.classList.add('editing');
   const editor = document.createElement('div');
   editor.className = 'sp-fs-editor';
-  editor.innerHTML =
-    '<textarea class="sp-fs-ta">' + _esc(_spQueue[idx].text) + '</textarea>' +
-    '<button class="sp-fs-save-btn" onclick="spQueueSave(' + idx + ')">Save</button>';
+  const ta = document.createElement('textarea');
+  ta.className = 'sp-fs-ta';
+  ta.value = _spQueue[idx] && _spQueue[idx].text ? _spQueue[idx].text : '';
+  ta.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      spQueueSave(idx);
+    }
+  });
+  const saveBtn = document.createElement('button');
+  saveBtn.className = 'sp-fs-save-btn';
+  saveBtn.type = 'button';
+  saveBtn.textContent = 'Save';
+  saveBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    spQueueSave(idx);
+  });
+  editor.appendChild(ta);
+  editor.appendChild(saveBtn);
   el.appendChild(editor);
-  const ta = editor.querySelector('.sp-fs-ta');
   ta.focus();
 }
 
@@ -3198,7 +3326,9 @@ function spQueueSave(idx) {
   const el = document.getElementById('sp-fs-item-' + idx);
   if (!el) return;
   const ta = el.querySelector('.sp-fs-ta');
-  if (ta) _spQueue[idx].text = ta.value;
+  if (ta && _spQueue[idx]) {
+    _spQueue[idx].text = ta.value.replace(/\r\n/g, '\n');
+  }
   _spRenderQueue();
 }
 
@@ -3209,7 +3339,7 @@ function spCommitAllToMain() {
   const songSlideBg = 'linear-gradient(180deg,#0b0f26 0%,#111936 52%,#1a2647 100%)';
   _spQueue.forEach((item, i) => {
     const ref = songName + '  (Song #' + _spSongId + ')';
-    const html = createVasanamHtml(item.text, ref, songSlideBg, '#f8fafc', 'medium');
+    const html = createSongLyricSlideHtml(item.text, ref, songSlideBg, '#f8fafc');
     const slide = { id: Date.now() + Math.random(), type: 'html', name: songName + ' - ' + (i + 1), html };
     slides.push(slide);
   });
@@ -3432,9 +3562,23 @@ function updateBackBtn() {
   btn.style.display = _presentPrevIdx !== null ? '' : 'none';
 }
 
+function ensurePresentIndex() {
+  if (!slides.length) {
+    presentIdx = null;
+    return false;
+  }
+  if (typeof presentIdx !== 'number' || Number.isNaN(presentIdx)) {
+    presentIdx = Number.isInteger(currentIdx) ? currentIdx : 0;
+  }
+  presentIdx = Math.max(0, Math.min(presentIdx, slides.length - 1));
+  return true;
+}
+
 function presentNav(dir) {
+  if (!ensurePresentIndex()) return;
   // Coalesce rapid arrow-key repeats: only commit the final target index
-  const target = (_presentNavQueued !== null ? _presentNavQueued : presentIdx) + dir;
+  const base = (_presentNavQueued !== null ? _presentNavQueued : presentIdx);
+  const target = base + dir;
   if (target < 0 || target >= slides.length) return;
   _presentNavQueued = target;
 
@@ -3459,7 +3603,7 @@ function spShowTempSlides() {
   const tempSlides = [];
   _spQueue.forEach((item, i) => {
     const ref = songName + '  (Song #' + _spSongId + ')';
-    const html = createVasanamHtml(item.text, ref, songSlideBg, '#f8fafc', 'medium');
+    const html = createSongLyricSlideHtml(item.text, ref, songSlideBg, '#f8fafc');
     tempSlides.push({ id: Date.now() + Math.random(), type: 'html', name: songName + ' - ' + (i + 1), html });
   });
 
@@ -3534,18 +3678,179 @@ document.addEventListener('keydown', e => {
   const overlay = document.getElementById('present-overlay');
   if (!overlay.classList.contains('active')) return;
 
+  // Do not prevent default for input fields in present overlay (like Song Builder)
+  if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement.tagName)) {
+    if (e.key === 'Escape') {
+       document.activeElement.blur();
+       return;
+    }
+    return;
+  }
+
+  // Automatically close bible/song panels on escape before exiting presentation
+  if (e.key === 'Escape') {
+    if (_bpOpen) {
+      toggleBiblePanel();
+      e.preventDefault();
+      return;
+    }
+    if (_spOpen) {
+      toggleSongPanel();
+      e.preventDefault();
+      return;
+    }
+  }
+
+  const isForward = (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ');
+  const isBackward = (e.key === 'ArrowLeft' || e.key === 'ArrowUp');
+  if (isForward || isBackward || e.key === 'Backspace' || e.key === 'Escape') {
+    e.preventDefault();
+  }
+
   if (overlay.classList.contains('bible-fs')) {
-    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') bpFsNav(1);
-    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') bpFsNav(-1);
+    if (isForward) bpFsNav(1);
+    if (isBackward) bpFsNav(-1);
     if (e.key === 'Escape') exitPresent();
     return;
   }
 
-  if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') presentNav(1);
-  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') presentNav(-1);
+  if (isForward) presentNav(1);
+  if (isBackward) presentNav(-1);
   if (e.key === 'Backspace') presentGoBack();
   if (e.key === 'Escape') exitPresent();
+  if (e.key.toLowerCase() === 'c') showClapGraphics();
 });
+
+// ══════════════════════════════════════════════════
+//  MOTIVATIONAL CLAP GRAPHICS
+// ══════════════════════════════════════════════════
+let _clapGraphicTimeout = null;
+let _clapGraphicInterval = null;
+
+function showClapGraphics() {
+  const container = document.getElementById('clap-graphic');
+  if (!container) return;
+  
+  if (_clapGraphicTimeout) clearTimeout(_clapGraphicTimeout);
+  if (_clapGraphicInterval) clearInterval(_clapGraphicInterval);
+  
+  container.style.display = 'flex';
+  container.style.alignItems = 'center';
+  container.style.justifyContent = 'center';
+  container.innerHTML = `
+    <div id="clap-center" style="position:relative; display:flex; align-items:center; justify-content:center; width:300px; height:300px;">
+        <div id="hand-left" style="font-size:160px; position:absolute; left:20px; transition: transform 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94); filter:drop-shadow(0 0 20px rgba(255,215,0,0.5));">🫷</div>
+        <div id="hand-right" style="font-size:160px; position:absolute; right:20px; transition: transform 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94); filter:drop-shadow(0 0 20px rgba(255,215,0,0.5));">🫸</div>
+    </div>
+  `;
+  
+  const hl = document.getElementById('hand-left');
+  const hr = document.getElementById('hand-right');
+  const center = document.getElementById('clap-center');
+  
+  let clapCount = 0;
+  const maxClaps = 8;
+  
+  const doClap = () => {
+    if (clapCount >= maxClaps) return;
+    
+    // 1. Hands move in
+    hl.style.transform = 'translateX(50px) rotate(15deg)';
+    hr.style.transform = 'translateX(-50px) rotate(-15deg)';
+    
+    // 2. The hit
+    setTimeout(() => {
+        synthesizeClap();
+        
+        // Spawn music notes
+        const note = document.createElement('div');
+        note.innerText = Math.random() > 0.5 ? '🎵' : '🎶';
+        const angle = Math.random() * Math.PI * 2;
+        const dist = Math.random() * 80 + 100;
+        const tx = Math.cos(angle) * dist;
+        const ty = Math.sin(angle) * dist - 80;
+        
+        note.style.cssText = `
+            position:absolute; font-size:60px; z-index: -1;
+            transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            transform: translate(0px, 0px) scale(0.2); opacity: 1;
+            filter: drop-shadow(0 0 10px rgba(255,255,255,0.8));
+        `;
+        center.appendChild(note);
+        
+        // Force reflow and animate note outwards
+        requestAnimationFrame(() => {
+            note.style.transform = `translate(${tx}px, ${ty}px) scale(1.5) rotate(${(Math.random()-0.5)*90}deg)`;
+            note.style.opacity = '0';
+        });
+        setTimeout(() => note.remove(), 600);
+        
+        // 3. Hands move out
+        hl.style.transform = 'translateX(-20px) rotate(-5deg)';
+        hr.style.transform = 'translateX(20px) rotate(5deg)';
+        
+        clapCount++;
+    }, 150); // delay before impact
+  };
+  
+  doClap(); // first clap
+  _clapGraphicInterval = setInterval(doClap, 400); // repeat every 400ms
+  
+  _clapGraphicTimeout = setTimeout(() => {
+    clearInterval(_clapGraphicInterval);
+    container.style.display = 'none';
+    container.innerHTML = '';
+  }, (maxClaps * 400) + 600);
+}
+
+function synthesizeClap() {
+    try {
+        if (!window._audioCtx) window._audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (window._audioCtx.state === 'suspended') window._audioCtx.resume();
+        const time = window._audioCtx.currentTime;
+        
+        const bufferSize = window._audioCtx.sampleRate * 0.15; // 150ms buffer
+        const buffer = window._audioCtx.createBuffer(1, bufferSize, window._audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1; // white noise
+        }
+        
+        const noise = window._audioCtx.createBufferSource();
+        noise.buffer = buffer;
+        
+        // Bandpass to make it sound like a clap instead of pure static
+        const filter = window._audioCtx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.value = 1000;
+        filter.Q.value = 1.2;
+
+        // Fast attack, exponential decay
+        const envelope = window._audioCtx.createGain();
+        envelope.gain.setValueAtTime(0, time);
+        envelope.gain.exponentialRampToValueAtTime(1, time + 0.01);
+        envelope.gain.exponentialRampToValueAtTime(0.001, time + 0.15);
+        
+        noise.connect(filter);
+        filter.connect(envelope);
+        envelope.connect(window._audioCtx.destination);
+        
+        noise.start(time);
+    } catch (e) {
+        console.log('Clap audio synthesis failed:', e);
+    }
+}
+
+// ══════════════════════════════════════════════════
+//  SHORTCUTS MODAL
+// ══════════════════════════════════════════════════
+function openShortcutsModal() {
+  document.getElementById('shortcuts-modal').style.display = 'flex';
+}
+
+function closeShortcutsModal() {
+  document.getElementById('shortcuts-modal').style.display = 'none';
+}
 
 // ══════════════════════════════════════════════════
 //  INIT — restore from localStorage or load defaults
