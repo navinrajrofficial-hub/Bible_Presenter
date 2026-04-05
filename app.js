@@ -258,10 +258,11 @@ function confirmImport() {
 // ══════════════════════════════════════════════════
 //  VASANAM SLIDE GENERATOR
 // ══════════════════════════════════════════════════
-function createVasanamHtml(verseText, verseRef, bgColor, textColor, fontSize) {
+function createVasanamHtml(verseText, verseRef, bgColor, textColor, fontSize, startFlipped = false) {
   // fontSize param kept for compatibility but auto-fit handles sizing dynamically
   const bg  = bgColor   || '#3c096c';
   const col = textColor || '#ffd700';
+  const flippedClass = startFlipped ? ' flipped' : '';
   return `<!DOCTYPE html><html lang="ta"><head><meta charset="UTF-8">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap');
@@ -316,7 +317,7 @@ body{
   font-weight:900;
 }
 <\/style><\/head><body>
-<div class="flip-card" id="flip-card" onclick="this.classList.toggle('flipped')">
+<div class="flip-card${flippedClass}" id="flip-card" onclick="this.classList.toggle('flipped')">
   <div class="flip-card-front">
     <div class="front-title" id="frontTitle">${verseRef || 'வசனம்'}</div>
   </div>
@@ -391,7 +392,8 @@ window.addEventListener('resize', autoFit);
 }
 
 // ── ANIME (Static dark navy gradient) version of Vasanam slide ──
-function createAnimeVasanamHtml(verseText, verseRef) {
+function createAnimeVasanamHtml(verseText, verseRef, startFlipped = false) {
+  const flippedClass = startFlipped ? ' flipped' : '';
   return `<!DOCTYPE html><html lang="ta"><head><meta charset="UTF-8">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap');
@@ -412,7 +414,7 @@ body{background:linear-gradient(180deg,#020510 0%,#0a1628 40%,#162a50 70%,#1b3a5
 .verse-ref{color:#ffffff;opacity:0.9;font-style:italic;letter-spacing:2px;text-align:right;align-self:flex-end;padding-right:1vw;font-weight:900;text-shadow:0 2px 6px rgba(0,0,0,0.6);}
 <\/style><\/head><body>
 <div class="sky"><\/div>
-<div class="flip-card" id="flip-card" onclick="this.classList.toggle('flipped')">
+<div class="flip-card${flippedClass}" id="flip-card" onclick="this.classList.toggle('flipped')">
   <div class="flip-card-front">
     <div class="front-title" id="frontTitle">${verseRef || 'வசனம்'}</div>
   </div>
@@ -2483,11 +2485,11 @@ function bpUpdatePreview() {
   refEl.style.display   = '';
 }
 
-function _bpBuildSlideHtml() {
+function _bpBuildSlideHtml(startFlipped = false) {
   const text = document.getElementById('bp-preview-text').textContent;
   const ref  = document.getElementById('bp-preview-ref').textContent;
   if (!text || text.includes('இன்னும் சேர்க்கப்படவில்லை')) return null;
-  return createAnimeVasanamHtml(text, ref);
+  return createAnimeVasanamHtml(text, ref, startFlipped);
 }
 
 function bpFsNav(dir) {
@@ -2547,12 +2549,12 @@ function bpFsNav(dir) {
   bpOnVerseChange();
 
   // Now reload iframe by calling bpShowFullscreen
-  bpShowFullscreen();
+  bpShowFullscreen(true); // Start flipped when sequentially scrolling
 }
 
-function bpShowFullscreen() {
+function bpShowFullscreen(startFlipped = false) {
   if (!_bpBook || !_bpChapter) { showToast('வசனம் தேர்ந்தெடுக்கவும்', 'error'); return; }
-  const html = _bpBuildSlideHtml();
+  const html = _bpBuildSlideHtml(startFlipped);
   if (!html) { showToast('Bible content not loaded yet — add verses first', 'error'); return; }
   const ref = document.getElementById('bp-preview-ref').textContent;
   
@@ -2613,6 +2615,10 @@ let _spSongKeys = [];   // sorted array of song IDs
 let _spFilteredKeys = []; // currently visible IDs after search
 let _spFsEditorMode = 'edit'; // 'edit' | 'new'
 let _spLyricsEditTimer = null;
+const SP_HISTORY_STORAGE_KEY = 'bp_song_queue_history_v1';
+const SP_HISTORY_LIMIT_PER_SONG = 20;
+let _spHistoryBySong = null;
+let _spHistoryServerChecked = false;
 
 // Build the song list on load
 (function spInit() {
@@ -2620,6 +2626,9 @@ let _spLyricsEditTimer = null;
   _spSongKeys = Object.keys(songContent).map(Number).sort((a, b) => a - b);
   _spFilteredKeys = _spSongKeys.slice();
   spPopulateList(_spFilteredKeys);
+
+  // Try to sync song queue history from shared project file via SongSaver.
+  spTryLoadHistoryFromServer();
 
   setTimeout(async () => {
     try {
@@ -2699,6 +2708,7 @@ function spOnSongChange() {
     document.getElementById('sp-picker-label').textContent = `#${_spSongId} — ${song.title}`;
     document.getElementById('sp-picker').classList.add('collapsed');
   }
+  spRenderHistoryForCurrentSong();
 }
 
 function spUpdatePreview() {
@@ -2847,6 +2857,7 @@ function spShowFullscreen() {
   spSyncFsEditorFromCurrentSong();
   spBindFsEditorLiveRefresh();
   _spPopulateVerses(song);
+  spRenderHistoryForCurrentSong();
 }
 
 function spBindFsEditorLiveRefresh() {
@@ -3006,6 +3017,7 @@ function spOpenNewSongEditor() {
   _spVerses = [];
   document.getElementById('sp-fs-verses').innerHTML = '<div class="sp-fs-empty">New song mode — enter lyrics and save as new</div>';
   _spRenderQueue();
+  spClearHistoryUi('History is available after selecting a saved song');
 }
 
 function spSyncFsEditorFromCurrentSong() {
@@ -3093,6 +3105,272 @@ function spAddAsSlide() {
 let _spVerses = [];   // split verse texts for current song
 let _spQueue  = [];   // queued items: { text, name }
 
+function spEnsureHistoryLoaded() {
+  if (_spHistoryBySong) return;
+  try {
+    const raw = localStorage.getItem(SP_HISTORY_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    _spHistoryBySong = (parsed && typeof parsed === 'object') ? parsed : {};
+  } catch (_) {
+    _spHistoryBySong = {};
+  }
+}
+
+function spNormalizeHistoryMap(mapObj) {
+  const src = (mapObj && typeof mapObj === 'object') ? mapObj : {};
+  const out = {};
+  Object.keys(src).forEach(songKey => {
+    const arr = Array.isArray(src[songKey]) ? src[songKey] : [];
+    const cleaned = arr
+      .filter(entry => entry && Array.isArray(entry.queue))
+      .map(entry => ({
+        id: String(entry.id || (Date.now() + '-' + Math.random().toString(36).slice(2, 7))),
+        createdAt: Number(entry.createdAt || Date.now()),
+        queue: spCloneQueueItems(entry.queue)
+      }))
+      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    if (cleaned.length) out[songKey] = cleaned.slice(0, SP_HISTORY_LIMIT_PER_SONG);
+  });
+  return out;
+}
+
+function spMergeHistoryMaps(localMap, remoteMap) {
+  const localNorm = spNormalizeHistoryMap(localMap);
+  const remoteNorm = spNormalizeHistoryMap(remoteMap);
+  const merged = {};
+  const keys = new Set([...Object.keys(localNorm), ...Object.keys(remoteNorm)]);
+  keys.forEach(songKey => {
+    const combined = [...(localNorm[songKey] || []), ...(remoteNorm[songKey] || [])];
+    const uniqByFp = new Map();
+    combined.forEach(entry => {
+      const fp = spBuildQueueFingerprint(entry.queue);
+      const prev = uniqByFp.get(fp);
+      if (!prev || (entry.createdAt || 0) > (prev.createdAt || 0)) {
+        uniqByFp.set(fp, entry);
+      }
+    });
+    const arr = Array.from(uniqByFp.values()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    if (arr.length) merged[songKey] = arr.slice(0, SP_HISTORY_LIMIT_PER_SONG);
+  });
+  return merged;
+}
+
+async function spTryLoadHistoryFromServer() {
+  if (_spHistoryServerChecked) return;
+  _spHistoryServerChecked = true;
+  spEnsureHistoryLoaded();
+  try {
+    const res = await fetch('http://localhost:7777/history');
+    if (!res.ok) return;
+    const remote = await res.json();
+    _spHistoryBySong = spMergeHistoryMaps(_spHistoryBySong, remote);
+    localStorage.setItem(SP_HISTORY_STORAGE_KEY, JSON.stringify(_spHistoryBySong));
+    spRenderHistoryForCurrentSong();
+  } catch (_) {
+    // SongSaver not running: keep local-only history fallback.
+  }
+}
+
+async function spTrySaveHistoryToServer() {
+  try {
+    await fetch('http://localhost:7777/history', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(spNormalizeHistoryMap(_spHistoryBySong), null, 2)
+    });
+  } catch (_) {
+    // Ignore network/server failure; localStorage still has data.
+  }
+}
+
+function spPersistHistory() {
+  try {
+    localStorage.setItem(SP_HISTORY_STORAGE_KEY, JSON.stringify(_spHistoryBySong || {}));
+  } catch (_) {}
+  spTrySaveHistoryToServer();
+}
+
+function spCloneQueueItems(items) {
+  return (items || []).map(item => ({ text: String(item.text || ''), name: String(item.name || '') }));
+}
+
+function spGetSongHistory(songId) {
+  spEnsureHistoryLoaded();
+  const key = String(songId ?? '');
+  if (!key) return [];
+  const arr = _spHistoryBySong[key];
+  if (!Array.isArray(arr)) return [];
+  return arr.filter(entry => entry && Array.isArray(entry.queue));
+}
+
+function spBuildQueueFingerprint(items) {
+  const normalized = spCloneQueueItems(items).map(item => ({
+    text: item.text.replace(/\r\n/g, '\n').trim(),
+    name: item.name.trim()
+  }));
+  return JSON.stringify(normalized);
+}
+
+function spFormatHistoryLabel(entry) {
+  const dt = new Date(entry.createdAt || Date.now());
+  const isValidDt = !Number.isNaN(dt.getTime());
+  const dateText = isValidDt ? dt.toLocaleString() : 'Saved';
+  const count = Array.isArray(entry.queue) ? entry.queue.length : 0;
+  return `${dateText} • ${count} slide${count === 1 ? '' : 's'}`;
+}
+
+function spClearHistoryUi(placeholderText) {
+  const sel = document.getElementById('sp-history-select');
+  if (!sel) return;
+  const msg = placeholderText || 'No logged history for this song';
+  sel.innerHTML = `<option value="">${msg}</option>`;
+  sel.value = '';
+}
+
+function spRenderHistoryForCurrentSong() {
+  const sel = document.getElementById('sp-history-select');
+  if (!sel) return;
+  if (_spSongId === null || !songContent[_spSongId]) {
+    spClearHistoryUi('No logged history for this song');
+    return;
+  }
+  const history = spGetSongHistory(_spSongId);
+  if (!history.length) {
+    spClearHistoryUi('No logged history for this song');
+    return;
+  }
+  sel.innerHTML = '<option value="">Select logged history</option>';
+  history.forEach(entry => {
+    const opt = document.createElement('option');
+    opt.value = entry.id;
+    opt.textContent = spFormatHistoryLabel(entry);
+    sel.appendChild(opt);
+  });
+}
+
+function spGetSelectedHistoryEntry() {
+  if (_spSongId === null) return null;
+  const sel = document.getElementById('sp-history-select');
+  if (!sel || !sel.value) return null;
+  const history = spGetSongHistory(_spSongId);
+  return history.find(entry => String(entry.id) === String(sel.value)) || null;
+}
+
+function spHistoryPreview() {
+  const entry = spGetSelectedHistoryEntry();
+  if (!entry) return;
+  const count = Array.isArray(entry.queue) ? entry.queue.length : 0;
+  showToast(`History selected: ${count} slide${count === 1 ? '' : 's'}`, 'info', 1200);
+}
+
+function spLogCurrentQueue() {
+  if (_spFsEditorMode === 'new') {
+    showToast('History log works only for saved songs', 'error');
+    return;
+  }
+  if (_spSongId === null || !songContent[_spSongId]) {
+    showToast('Select a saved song first', 'error');
+    return;
+  }
+  if (_spQueue.length === 0) {
+    showToast('Queue is empty', 'error');
+    return;
+  }
+
+  spEnsureHistoryLoaded();
+  const key = String(_spSongId);
+  const history = spGetSongHistory(_spSongId);
+  const now = Date.now();
+  const newQueue = spCloneQueueItems(_spQueue);
+  const fp = spBuildQueueFingerprint(newQueue);
+  const existingIdx = history.findIndex(entry => spBuildQueueFingerprint(entry.queue) === fp);
+
+  if (existingIdx >= 0) {
+    const existing = history[existingIdx];
+    history.splice(existingIdx, 1);
+    history.unshift({
+      id: existing.id,
+      createdAt: now,
+      queue: newQueue
+    });
+    _spHistoryBySong[key] = history;
+    spPersistHistory();
+    spRenderHistoryForCurrentSong();
+    document.getElementById('sp-history-select').value = existing.id;
+    showToast('Updated existing queue history', 'success');
+    return;
+  }
+
+  const entry = {
+    id: String(now) + '-' + Math.random().toString(36).slice(2, 7),
+    createdAt: now,
+    queue: newQueue
+  };
+  history.unshift(entry);
+  if (history.length > SP_HISTORY_LIMIT_PER_SONG) history.length = SP_HISTORY_LIMIT_PER_SONG;
+  _spHistoryBySong[key] = history;
+  spPersistHistory();
+  spRenderHistoryForCurrentSong();
+  document.getElementById('sp-history-select').value = entry.id;
+  showToast('Queue history logged', 'success');
+}
+
+function spApplySelectedHistory() {
+  const entry = spGetSelectedHistoryEntry();
+  if (!entry) {
+    showToast('Select a logged history first', 'error');
+    return;
+  }
+  _spQueue = spCloneQueueItems(entry.queue);
+  _spRenderQueue();
+  showToast('Logged history loaded to queue', 'success');
+}
+
+function spAddSelectedHistoryToMain() {
+  if (_spSongId === null || !songContent[_spSongId]) {
+    showToast('Select a saved song first', 'error');
+    return;
+  }
+  const entry = spGetSelectedHistoryEntry();
+  if (!entry) {
+    showToast('Select a logged history first', 'error');
+    return;
+  }
+  spCommitQueueToMain(entry.queue, false);
+}
+
+function spDeleteSelectedHistory() {
+  if (_spSongId === null || !songContent[_spSongId]) {
+    showToast('Select a saved song first', 'error');
+    return;
+  }
+
+  const sel = document.getElementById('sp-history-select');
+  if (!sel || !sel.value) {
+    showToast('Select a logged history first', 'error');
+    return;
+  }
+
+  const key = String(_spSongId);
+  const history = spGetSongHistory(_spSongId);
+  const before = history.length;
+  const kept = history.filter(entry => String(entry.id) !== String(sel.value));
+  if (kept.length === before) {
+    showToast('Selected history not found', 'error');
+    return;
+  }
+
+  if (kept.length > 0) {
+    _spHistoryBySong[key] = kept;
+  } else {
+    delete _spHistoryBySong[key];
+  }
+
+  spPersistHistory();
+  spRenderHistoryForCurrentSong();
+  showToast('History deleted', 'success');
+}
+
 function _spGetCustomChorusText(kind) {
   const id = kind === 'sub' ? 'sp-custom-sub' : 'sp-custom-main';
   const el = document.getElementById(id);
@@ -3120,12 +3398,19 @@ function _spRenderVerseList(verses) {
     div.innerHTML =
       '<div style="flex:1;"><span class="sp-fs-verse-text">' + _esc(preview).replace(/\n/g, '<br>') + '</span></div>' +
       '<div class="sp-fs-verse-ctrls">' +
-        '<div class="sp-tag-group"><input type="radio" id="sp-m-'+i+'" name="sp-auto-main" value="'+i+'"><label for="sp-m-'+i+'" class="lbl-m" title="Set as Main Chorus">M</label></div>' +
-        '<div class="sp-tag-group"><input type="radio" id="sp-s-'+i+'" name="sp-auto-sub" value="'+i+'"><label for="sp-s-'+i+'" class="lbl-s" title="Set as Mid/Sub Chorus">m</label></div>' +
+        '<div class="sp-tag-group"><input type="checkbox" id="sp-m-'+i+'" name="sp-auto-main" value="'+i+'" onclick="spToggleExclusiveTag(\'sp-auto-main\', this)"><label for="sp-m-'+i+'" class="lbl-m" title="Set as Main Chorus">M</label></div>' +
+        '<div class="sp-tag-group"><input type="checkbox" id="sp-s-'+i+'" name="sp-auto-sub" value="'+i+'" onclick="spToggleExclusiveTag(\'sp-auto-sub\', this)"><label for="sp-s-'+i+'" class="lbl-s" title="Set as Mid/Sub Chorus">m</label></div>' +
         '<input type="number" id="sp-stz-'+i+'" class="sp-ord-in" min="1" placeholder="#" title="Stanza Order">' +
         '<button class="sp-fs-verse-add" onclick="spQueueAdd(' + i + ')" title="Add to queue manually">➕</button>' +
       '</div>';
     container.appendChild(div);
+  });
+}
+
+function spToggleExclusiveTag(groupName, clickedEl) {
+  if (!clickedEl || !clickedEl.checked) return;
+  document.querySelectorAll('input[name="' + groupName + '"]').forEach(el => {
+    if (el !== clickedEl) el.checked = false;
   });
 }
 
@@ -3332,12 +3617,13 @@ function spQueueSave(idx) {
   _spRenderQueue();
 }
 
-function spCommitAllToMain() {
-  if (_spQueue.length === 0) { showToast('Queue is empty', 'error'); return; }
+function spCommitQueueToMain(queueItems, clearCurrentQueue = true) {
+  const sourceQueue = Array.isArray(queueItems) ? queueItems : [];
+  if (sourceQueue.length === 0) { showToast('Queue is empty', 'error'); return; }
   const song = songContent[_spSongId];
   const songName = song ? song.title : 'Song';
   const songSlideBg = 'linear-gradient(180deg,#0b0f26 0%,#111936 52%,#1a2647 100%)';
-  _spQueue.forEach((item, i) => {
+  sourceQueue.forEach((item, i) => {
     const ref = songName + '  (Song #' + _spSongId + ')';
     const html = createSongLyricSlideHtml(item.text, ref, songSlideBg, '#f8fafc');
     const slide = { id: Date.now() + Math.random(), type: 'html', name: songName + ' - ' + (i + 1), html };
@@ -3346,11 +3632,17 @@ function spCommitAllToMain() {
   currentIdx = slides.length - 1;
   renderAll(); renderPreview(); renderEditor();
   scheduleSave();
-  const count = _spQueue.length;
-  _spQueue = [];
-  _spRenderQueue();
+  const count = sourceQueue.length;
+  if (clearCurrentQueue) {
+    _spQueue = [];
+    _spRenderQueue();
+  }
   exitPresent();
   showToast('✓ ' + count + ' slides added from ' + songName, 'success');
+}
+
+function spCommitAllToMain() {
+  spCommitQueueToMain(_spQueue, true);
 }
 
 // ══════════════════════════════════════════════════

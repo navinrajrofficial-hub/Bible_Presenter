@@ -400,6 +400,18 @@
     <div id="sp-fs-queue"><div class="sp-fs-empty">No slides queued yet</div></div>
 
     <div id="sp-fs-footer">
+      <div id="sp-fs-history-wrap">
+        <div class="sp-fs-history-label">HISTORY LOG</div>
+        <div class="sp-fs-history-row">
+          <select id="sp-history-select" class="sp-fs-history-select" onchange="spHistoryPreview()">
+            <option value="">No logged history for this song</option>
+          </select>
+          <button id="sp-history-save-btn" onclick="spLogCurrentQueue()" title="Save current queue as history">Log</button>
+          <button id="sp-history-load-btn" onclick="spApplySelectedHistory()" title="Load selected history to queue">Load</button>
+          <button id="sp-history-add-btn" onclick="spAddSelectedHistoryToMain()" title="Add selected history directly to main slides">Add</button>
+          <button id="sp-history-delete-btn" onclick="spDeleteSelectedHistory()" title="Delete selected history">Delete</button>
+        </div>
+      </div>
       <div id="sp-fs-present-controls">
         <button id="sp-fs-commit-btn" onclick="spCommitAllToMain()">✦ Add All to Main Slides</button>
         <button id="sp-fs-temp-btn" onclick="spShowTempSlides()" title="Present without adding to main slides">▶ Temp Slide</button>

@@ -15,12 +15,15 @@ import java.nio.charset.StandardCharsets;
  * Listens on http://localhost:7777
  *   POST /save    — body is the full file content; writes to song_content.js
  *   POST /append  — body is JSON {id, title, artist, content}; appends a single song entry
+ *   GET  /history — returns song queue history JSON from song_history.json
+ *   POST /history — saves song queue history JSON to song_history.json
  *   GET  /ping    — returns "OK" (health-check)
  */
 public class SongSaver {
 
     static final int    PORT = 7777;
     static final String FILE = "song_content.js";
+    static final String HISTORY_FILE = "song_history.json";
 
     public static void main(String[] args) throws Exception {
         String filePath = (args.length > 0) ? args[0] : FILE;
@@ -168,6 +171,54 @@ public class SongSaver {
             respond(exchange, 200, "OK");
         });
 
+        // Song queue history file read/write
+        server.createContext("/history", exchange -> {
+            addCors(exchange);
+            if ("OPTIONS".equals(exchange.getRequestMethod())) {
+                exchange.sendResponseHeaders(204, -1);
+                exchange.close();
+                return;
+            }
+
+            Path historyPath = Paths.get(HISTORY_FILE);
+
+            if ("GET".equals(exchange.getRequestMethod())) {
+                try {
+                    if (!Files.exists(historyPath)) {
+                        Files.write(historyPath, "{}\n".getBytes(StandardCharsets.UTF_8));
+                    }
+                    String json = new String(Files.readAllBytes(historyPath), StandardCharsets.UTF_8).trim();
+                    if (json.isEmpty()) json = "{}";
+                    respond(exchange, 200, json);
+                } catch (Exception e) {
+                    respond(exchange, 500, "ERROR: " + e.getMessage());
+                    System.err.println("[SongSaver] History read failed: " + e.getMessage());
+                }
+                return;
+            }
+
+            if ("POST".equals(exchange.getRequestMethod())) {
+                try {
+                    String body = new String(readAll(exchange.getRequestBody()), StandardCharsets.UTF_8).trim();
+                    if (body.isEmpty()) body = "{}";
+                    if (!(body.startsWith("{") && body.endsWith("}"))) {
+                        respond(exchange, 400, "ERROR: history payload must be JSON object");
+                        return;
+                    }
+                    String pretty = prettyJson(body);
+                    Files.write(historyPath, (pretty + "\n").getBytes(StandardCharsets.UTF_8));
+                    respond(exchange, 200, "OK");
+                    System.out.println("[SongSaver] Saved history -> " + historyPath.toAbsolutePath());
+                } catch (Exception e) {
+                    respond(exchange, 500, "ERROR: " + e.getMessage());
+                    System.err.println("[SongSaver] History save failed: " + e.getMessage());
+                }
+                return;
+            }
+
+            respond(exchange, 405, "Method Not Allowed");
+        });
+
         server.start();
         System.out.println("========================================");
         System.out.println("  SongSaver running on port " + PORT);
@@ -247,6 +298,57 @@ public class SongSaver {
             else if (sb.length() > 0) break;
         }
         return sb.length() > 0 ? Integer.parseInt(sb.toString()) : 0;
+    }
+
+    static String prettyJson(String json) {
+        StringBuilder out = new StringBuilder(json.length() + 64);
+        int indent = 0;
+        boolean inString = false;
+        boolean escaped = false;
+        for (int i = 0; i < json.length(); i++) {
+            char c = json.charAt(i);
+
+            if (inString) {
+                out.append(c);
+                if (escaped) {
+                    escaped = false;
+                } else if (c == '\\') {
+                    escaped = true;
+                } else if (c == '"') {
+                    inString = false;
+                }
+                continue;
+            }
+
+            if (c == '"') {
+                inString = true;
+                out.append(c);
+                continue;
+            }
+
+            if (c == '{' || c == '[') {
+                out.append(c).append('\n');
+                indent++;
+                appendIndent(out, indent);
+            } else if (c == '}' || c == ']') {
+                out.append('\n');
+                indent = Math.max(0, indent - 1);
+                appendIndent(out, indent);
+                out.append(c);
+            } else if (c == ',') {
+                out.append(c).append('\n');
+                appendIndent(out, indent);
+            } else if (c == ':') {
+                out.append(": ");
+            } else if (!Character.isWhitespace(c)) {
+                out.append(c);
+            }
+        }
+        return out.toString();
+    }
+
+    static void appendIndent(StringBuilder sb, int indent) {
+        for (int i = 0; i < indent; i++) sb.append("  ");
     }
 
     static String escapeTemplate(String s) {

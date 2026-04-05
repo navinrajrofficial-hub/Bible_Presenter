@@ -2015,6 +2015,87 @@ select.sp-select.tamil { font-family: 'Noto Serif Tamil', serif; font-size: 11.5
   flex-direction: column;
   gap: 8px;
 }
+#sp-fs-history-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 7px;
+  border: 1px solid rgba(52,211,153,0.15);
+  border-radius: 7px;
+  background: rgba(52,211,153,0.05);
+}
+.sp-fs-history-label {
+  color: #6b6b75;
+  font-size: 9px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.sp-fs-history-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto auto;
+  gap: 6px;
+  align-items: center;
+}
+.sp-fs-history-select {
+  min-width: 0;
+  height: 30px;
+  background: rgba(0,0,0,0.5);
+  border: 1px solid rgba(255,255,255,0.16);
+  color: #e8eaee;
+  border-radius: 6px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  padding: 0 8px;
+}
+.sp-fs-history-select:focus {
+  outline: none;
+  border-color: rgba(52,211,153,0.6);
+}
+#sp-history-save-btn,
+#sp-history-load-btn,
+#sp-history-add-btn,
+#sp-history-delete-btn {
+  height: 30px;
+  border: none;
+  border-radius: 6px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 0 9px;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: opacity 0.15s, transform 0.15s;
+}
+#sp-history-save-btn {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: #101010;
+}
+#sp-history-load-btn {
+  background: linear-gradient(135deg, #60a5fa, #2563eb);
+  color: #fff;
+}
+#sp-history-add-btn {
+  background: linear-gradient(135deg, #34d399, #10b981);
+  color: #00180d;
+}
+#sp-history-delete-btn {
+  background: linear-gradient(135deg, #fb7185, #e11d48);
+  color: #fff;
+}
+#sp-history-save-btn:hover,
+#sp-history-load-btn:hover,
+#sp-history-add-btn:hover,
+#sp-history-delete-btn:hover {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+#sp-history-save-btn:active,
+#sp-history-load-btn:active,
+#sp-history-add-btn:active,
+#sp-history-delete-btn:active {
+  opacity: 1;
+  transform: translateY(0);
+}
 #sp-fs-present-controls {
   display: flex;
   gap: 8px;
