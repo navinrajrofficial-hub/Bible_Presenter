@@ -606,6 +606,9 @@ function getHtml(slide) {
   if (slide.type !== 'html') return simpleToHtml(slide);
   var html = slide.html || '';
 
+  // Remove legacy helper prompt from imported slide templates.
+  html = html.replace(/press\s*c\s*to\s*clap/gi, '');
+
   // Normalize whitespace inside the verse-text block.
   // If the author intentionally uses hard breaks (multiline lines), preserve them.
   // If the input is wrapped at each word (common when pasting), collapse those
@@ -4011,7 +4014,157 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Backspace') presentGoBack();
   if (e.key === 'Escape') exitPresent();
   if (e.key.toLowerCase() === 'c') showClapGraphics();
+  if (e.key.toLowerCase() === 'a') showAmenGraphics();
 });
+
+// ══════════════════════════════════════════════════
+//  MOTIVATIONAL AMEN GRAPHICS (HOLY FIRE EFFECT)
+// ══════════════════════════════════════════════════
+let _amenGraphicTimeout = null;
+
+function showAmenGraphics() {
+  const container = document.getElementById('amen-graphic');
+  if (!container) return;
+  
+  if (_amenGraphicTimeout) clearTimeout(_amenGraphicTimeout);
+  container.style.display = 'block';
+
+  // Constructing a cinematic, hollywood-style effect for Hallelujah / Amen
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body {
+    margin: 0; padding: 0; overflow: hidden; background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    display: flex; align-items: center; justify-content: center;
+    height: 100vh; font-family: 'Playfair Display', serif;
+  }
+  .cinematic-container {
+    position: relative;
+    text-align: center;
+    perspective: 1200px;
+    z-index: 5;
+  }
+  .hallelujah-text, .amen-text {
+    font-size: min(100px, 12vw);
+    font-weight: 900;
+    text-transform: uppercase;
+    color: #fff;
+    margin: 0;
+    line-height: 1.1;
+    letter-spacing: 0.1em;
+    opacity: 0;
+    /* Heavenly Greenery Gold / White Text Effects */
+    background: linear-gradient(to bottom, #ffffff 10%, #f0fff0 30%, #a8ffb2 50%, #20b2aa 80%, #006400 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: cinematicIn 5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  }
+  .amen-text {
+    font-size: min(140px, 18vw);
+    animation-delay: 1.2s;
+  }
+  @keyframes cinematicIn {
+    0% { 
+      transform: scale(3) translateZ(-500px) rotateX(40deg); 
+      opacity: 0; 
+      filter: blur(20px) drop-shadow(0 0 0 transparent); 
+    }
+    15% { 
+      transform: scale(1.1) translateZ(0) rotateX(0deg); 
+      opacity: 1; 
+      /* Deep Emerald / Forest Green 3D Shadows */
+      filter: blur(0px) drop-shadow(0px 4px 0px #1e5631) drop-shadow(0px 8px 0px #0a2918) drop-shadow(0px 15px 15px rgba(0,0,0,0.9)) drop-shadow(0 0 30px rgba(152, 251, 152, 0.6)); 
+    }
+    50% { 
+      transform: scale(1.35) translateZ(100px) rotateX(10deg); 
+      opacity: 1; 
+      filter: blur(0px) drop-shadow(0px 10px 0px #1e5631) drop-shadow(0px 20px 0px #0a2918) drop-shadow(0px 30px 30px rgba(0,0,0,1)) drop-shadow(0 0 60px rgba(74, 222, 128, 0.8)); 
+    }
+    85% { 
+      transform: scale(1.05) translateZ(0px) rotateX(-5deg); 
+      opacity: 1; 
+      filter: blur(0px) drop-shadow(0px 2px 0px #1e5631) drop-shadow(0px 4px 0px #0a2918) drop-shadow(0px 8px 10px rgba(0,0,0,0.9)) drop-shadow(0 0 20px rgba(74, 222, 128, 0.5)); 
+    }
+    100% { 
+      transform: scale(2) translateZ(300px) rotateX(-20deg); 
+      opacity: 0; 
+      filter: blur(15px) drop-shadow(0 0 0 transparent); 
+    }
+  }
+  
+  /* Natural Greenery/Motivational Leaf Particles instead of fire balls */
+  .particles {
+    position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 1;
+  }
+  .particle {
+    position: absolute;
+    bottom: -10%;
+    width: 25px; height: 25px;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%234ade80"><path d="M17.5,1.5c-4,0-8.5,1.5-12,5.5C3,9.5,1.5,13.5,1.5,17.5c0,2.5,1.5,4,4,4c4,0,8.5-1.5,12-5.5 c2.5-2.5,4-6.5,4-10.5C21.5,3,20,1.5,17.5,1.5z M16.5,8c-1.5,2.5-4,4.5-7.5,5.5c0,0-0.5,0-0.5-0.5c0-0.5,2-3.5,5.5-5.5 c0.5,0,0.5-0.5,0-1C11.5,6,9,6,7.5,7C7,7,6.5,6.5,7,6c1.5-1,4.5-1,7.5,0C15,6.5,17,7,16.5,8z"/></svg>');
+    background-size: contain;
+    background-repeat: no-repeat;
+    opacity: 0;
+    filter: drop-shadow(0 0 5px rgba(74, 222, 128, 0.8));
+    animation: rise 4s ease-in infinite, sway 3s ease-in-out infinite alternate;
+  }
+  @keyframes rise {
+    0% { transform: translateY(0) scale(0.5); opacity: 0; }
+    20% { opacity: 1; }
+    80% { opacity: 0.8; }
+    100% { transform: translateY(-110vh) scale(1.5); opacity: 0; }
+  }
+  @keyframes sway {
+    0% { margin-left: 0px; transform: rotate(0deg); }
+    100% { margin-left: 50px; transform: rotate(45deg); }
+  }
+  /* Screen Flash */
+  .flash {
+    position: absolute; inset: 0; background: radial-gradient(circle, rgba(144, 238, 144, 0.4) 0%, transparent 70%);
+    opacity: 0; z-index: 2; mix-blend-mode: overlay;
+    animation: pulseFlash 4s ease-out;
+  }
+  @keyframes pulseFlash {
+    0% { opacity: 0; transform: scale(0.5); }
+    25% { opacity: 1; transform: scale(1.5); }
+    100% { opacity: 0; transform: scale(2); }
+  }
+</style>
+</head>
+<body>
+  <div class="flash"></div>
+  <div class="particles" id="ptc"></div>
+  <div class="cinematic-container">
+    <div class="hallelujah-text">அல்லேலூயா</div>
+    <div class="amen-text">ஆமென்</div>
+  </div>
+  <script>
+    // Generate motivational greenery leaf particles
+    const ptc = document.getElementById('ptc');
+    for(let i=0; i<60; i++) {
+      let p = document.createElement('div');
+      p.className = 'particle';
+      p.style.left = (Math.random() * 100) + 'vw';
+      p.style.animationDuration = (3 + Math.random() * 4) + 's, ' + (2 + Math.random() * 3) + 's';
+      p.style.animationDelay = (Math.random() * 2) + 's, ' + (Math.random() * 2) + 's';
+      let size = (15 + Math.random() * 30) + 'px';
+      p.style.width = size;
+      p.style.height = size;
+      ptc.appendChild(p);
+    }
+  </script>
+</body>
+</html>`;
+
+  container.innerHTML = '<iframe style="width:100%;height:100%;border:none;display:block;background:transparent;position:absolute;inset:0;" srcdoc="' + html.replace(/"/g, '&quot;') + '" sandbox="allow-scripts" referrerpolicy="no-referrer"></iframe>';
+
+  _amenGraphicTimeout = setTimeout(() => {
+    container.style.display = 'none';
+    container.innerHTML = '';
+  }, 6500);
+}
 
 // ══════════════════════════════════════════════════
 //  MOTIVATIONAL CLAP GRAPHICS
@@ -4025,74 +4178,186 @@ function showClapGraphics() {
   
   if (_clapGraphicTimeout) clearTimeout(_clapGraphicTimeout);
   if (_clapGraphicInterval) clearInterval(_clapGraphicInterval);
-  
-  container.style.display = 'flex';
-  container.style.alignItems = 'center';
-  container.style.justifyContent = 'center';
-  container.innerHTML = `
-    <div id="clap-center" style="position:relative; display:flex; align-items:center; justify-content:center; width:300px; height:300px;">
-        <div id="hand-left" style="font-size:160px; position:absolute; left:20px; transition: transform 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94); filter:drop-shadow(0 0 20px rgba(255,215,0,0.5));">🫷</div>
-        <div id="hand-right" style="font-size:160px; position:absolute; right:20px; transition: transform 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94); filter:drop-shadow(0 0 20px rgba(255,215,0,0.5));">🫸</div>
-    </div>
-  `;
-  
-  const hl = document.getElementById('hand-left');
-  const hr = document.getElementById('hand-right');
-  const center = document.getElementById('clap-center');
-  
-  let clapCount = 0;
-  const maxClaps = 8;
-  
-  const doClap = () => {
-    if (clapCount >= maxClaps) return;
-    
-    // 1. Hands move in
-    hl.style.transform = 'translateX(50px) rotate(15deg)';
-    hr.style.transform = 'translateX(-50px) rotate(-15deg)';
-    
-    // 2. The hit
-    setTimeout(() => {
-        synthesizeClap();
-        
-        // Spawn music notes
-        const note = document.createElement('div');
-        note.innerText = Math.random() > 0.5 ? '🎵' : '🎶';
-        const angle = Math.random() * Math.PI * 2;
-        const dist = Math.random() * 80 + 100;
-        const tx = Math.cos(angle) * dist;
-        const ty = Math.sin(angle) * dist - 80;
-        
-        note.style.cssText = `
-            position:absolute; font-size:60px; z-index: -1;
-            transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            transform: translate(0px, 0px) scale(0.2); opacity: 1;
-            filter: drop-shadow(0 0 10px rgba(255,255,255,0.8));
-        `;
-        center.appendChild(note);
-        
-        // Force reflow and animate note outwards
-        requestAnimationFrame(() => {
-            note.style.transform = `translate(${tx}px, ${ty}px) scale(1.5) rotate(${(Math.random()-0.5)*90}deg)`;
-            note.style.opacity = '0';
-        });
-        setTimeout(() => note.remove(), 600);
-        
-        // 3. Hands move out
-        hl.style.transform = 'translateX(-20px) rotate(-5deg)';
-        hr.style.transform = 'translateX(20px) rotate(5deg)';
-        
-        clapCount++;
-    }, 150); // delay before impact
+
+  container.style.display = 'block';
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Clap</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body {
+  width:100%; height:100%;
+  overflow:hidden;
+  background:transparent;
+}
+canvas { position:fixed; inset:0; width:100%; height:100%; }
+.glow {
+  position:fixed; inset:0; pointer-events:none;
+  background: radial-gradient(ellipse 100% 55% at 50% 100%,
+    rgba(255,200,60,0.20) 0%, rgba(255,160,40,0.08) 45%, transparent 70%);
+  animation: glowPulse 0.44s ease-in-out infinite;
+}
+@keyframes glowPulse { 0%,100%{opacity:0.55} 50%{opacity:1} }
+</style>
+</head>
+<body>
+<div class="glow"></div>
+<canvas id="c"></canvas>
+<script>
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+
+let hands  = [];
+let notes  = [];
+let sparks = [];
+
+const NOTE_EMOJIS = ['🎵','🎶','🎼','🎉','✨','⭐','🌟','💛','🙏','🎊'];
+
+function resize() {
+  canvas.width  = innerWidth;
+  canvas.height = innerHeight;
+  buildHands();
+}
+addEventListener('resize', resize);
+
+function makeHandPair(x, y, fontSize, phaseOffset) {
+  return {
+    x, y, fontSize,
+    phase:     phaseOffset,
+    speed:     0.10 + Math.random() * 0.04,
+    noteTimer: 0,
+    alpha:     0,
+    bob:       Math.random() * Math.PI * 2,
+    bobAmp:    4 + Math.random() * 5,
   };
+}
+
+function makeNote(x, y) {
+  return {
+    x: x + (Math.random()-0.5)*60, y,
+    vx: (Math.random()-0.5)*1.2,
+    vy: -(1.8 + Math.random()*2.2),
+    alpha: 1,
+    scale: 0.7 + Math.random()*0.7,
+    rot:  (Math.random()-0.5)*0.4,
+    rotV: (Math.random()-0.5)*0.035,
+    emoji: NOTE_EMOJIS[Math.floor(Math.random()*NOTE_EMOJIS.length)],
+    size:  20 + Math.random()*18,
+  };
+}
+
+function makeSparks(x, y, n) {
+  for (let i=0; i<n; i++) {
+    const a = Math.random()*Math.PI*2;
+    const s = 2 + Math.random()*5;
+    sparks.push({
+      x, y,
+      vx: Math.cos(a)*s, vy: Math.sin(a)*s - 2,
+      alpha: 1, r: 2 + Math.random()*3,
+      col: 'hsl(' + (38+Math.random()*28) + ',100%,' + (62+Math.random()*22) + '%)',
+    });
+  }
+}
+
+function buildHands() {
+  hands = [];
+  const W = canvas.width, H = canvas.height;
+  const count  = 7;
+  const margin = W * 0.06;
+  const span   = W - margin * 2;
+  for (let i=0; i<count; i++) {
+    const t     = i / (count-1);
+    const x     = margin + t * span;
+    const yOff  = Math.sin(t * Math.PI) * H * 0.05;
+    const y     = H * 0.78 - yOff;
+    const fSize = 52 + Math.random() * 28;
+    const phase = (i / count) * Math.PI * 2;
+    hands.push(makeHandPair(x, y, fSize, phase));
+  }
+}
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  hands.forEach(h => {
+    h.phase += h.speed;
+    if (h.alpha < 1) h.alpha = Math.min(1, h.alpha + 0.04);
+
+    const clap = Math.sin(h.phase);
+    const bobY = Math.sin(h.phase * 0.5 + h.bob) * h.bobAmp;
+    const sc   = 1 + (clap + 1) * 0.10;
+    const tilt = clap * 0.15;
+
+    ctx.save();
+    ctx.globalAlpha = h.alpha;
+    ctx.translate(h.x, h.y + bobY);
+    ctx.rotate(tilt);
+    ctx.scale(sc, sc);
+    ctx.font = h.fontSize + 'px serif';
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('👏', 0, 0);
+    ctx.restore();
+
+    if (clap > 0.88 && h.noteTimer <= 0) {
+      makeSparks(h.x, h.y + bobY - h.fontSize * 0.5, 9);
+      if (Math.random() > 0.30) notes.push(makeNote(h.x, h.y + bobY - h.fontSize));
+      h.noteTimer = 14;
+    }
+    if (h.noteTimer > 0) h.noteTimer--;
+  });
+
+  sparks = sparks.filter(s => s.alpha > 0.02);
+  sparks.forEach(s => {
+    s.x += s.vx; s.y += s.vy; s.vy += 0.15; s.alpha -= 0.028;
+    ctx.save();
+    ctx.globalAlpha = s.alpha;
+    ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+    ctx.fillStyle = s.col; ctx.fill();
+    ctx.restore();
+  });
+
+  notes = notes.filter(n => n.alpha > 0.02);
+  notes.forEach(n => {
+    n.x += n.vx; n.y += n.vy; n.rot += n.rotV; n.alpha -= 0.007;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, n.alpha * 4);
+    ctx.translate(n.x, n.y); ctx.rotate(n.rot); ctx.scale(n.scale, n.scale);
+    ctx.font = n.size + 'px serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(n.emoji, 0, 0);
+    ctx.restore();
+  });
+
+  requestAnimationFrame(draw);
+}
+
+resize();
+draw();
+<\/script>
+</body>
+</html>`;
+
+  container.innerHTML = '<iframe id="clap-graphic-frame" style="width:100%;height:100%;border:none;display:block;background:transparent;position:absolute;inset:0;" sandbox="allow-scripts" referrerpolicy="no-referrer"></iframe>' +
+    '<img id="clap-sticker-overlay" src="Html%20Untouched/clapgif_white_eyes.gif" alt="clap sticker" style="position:absolute;left:50%;top:28%;transform:translate(-50%, -50%);width:min(230px,30vw);aspect-ratio:1/1;object-fit:contain;pointer-events:none;z-index:4;filter:drop-shadow(0 6px 20px rgba(0,0,0,0.4)); animation: clapPulse 1s infinite alternate;" />';
+  const frame = document.getElementById('clap-graphic-frame');
+  if (frame) frame.srcdoc = html;
   
-  doClap(); // first clap
-  _clapGraphicInterval = setInterval(doClap, 400); // repeat every 400ms
-  
+  // Add animation style if not exists
+  if (!document.getElementById('clap-pulse-style')) {
+    const style = document.createElement('style');
+    style.id = 'clap-pulse-style';
+    style.innerHTML = `@keyframes clapPulse { 0% { transform: translate(-50%, -50%) scale(1); } 100% { transform: translate(-50%, -50%) scale(1.1); } }`;
+    document.head.appendChild(style);
+  }
+
   _clapGraphicTimeout = setTimeout(() => {
-    clearInterval(_clapGraphicInterval);
     container.style.display = 'none';
     container.innerHTML = '';
-  }, (maxClaps * 400) + 600);
+  }, 5000);
 }
 
 function synthesizeClap() {
