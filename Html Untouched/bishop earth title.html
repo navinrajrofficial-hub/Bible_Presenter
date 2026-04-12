@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Thor Style Lightning Title - Sequential</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Montserrat:wght@900&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #020611; }
+    
+    .stage { 
+      width: 100vw; height: 100vh; position: relative; overflow: hidden;
+      perspective: 1000px;
+    }
+
+    /* Background video is now much more visible */
+    .video-bg {
+      position: absolute; inset: 0; z-index: 0;
+      width: 100%; height: 100%; object-fit: cover;
+      opacity: 0.8; /* Increased visibility */
+    }
+
+    /* Subtle vignette just to keep the text readable, not hiding the video */
+    .overlay {
+      position: absolute; inset: 0; z-index: 1;
+      background: radial-gradient(circle at center, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.7) 100%);
+    }
+
+    /* --- Localized Lightning Strikes --- */
+    .lightning {
+      position: absolute; z-index: 2;
+      border-radius: 50%;
+      mix-blend-mode: overlay;
+      pointer-events: none;
+      opacity: 0;
+    }
+    
+    .strike-top-left {
+      top: -20%; left: -10%; width: 60vw; height: 60vw;
+      background: radial-gradient(circle, #e0f7fa 0%, transparent 60%);
+      animation: localizedFlash 4s infinite 1.5s;
+    }
+    
+    .strike-right {
+      top: 20%; right: -20%; width: 70vw; height: 70vw;
+      background: radial-gradient(circle, #b3e5fc 0%, transparent 60%);
+      animation: localizedFlash 5.5s infinite 3s;
+    }
+    
+    .strike-bottom {
+      bottom: -30%; left: 20%; width: 80vw; height: 50vw;
+      background: radial-gradient(circle, #e0f7fa 0%, transparent 70%);
+      animation: localizedFlash 6s infinite 0.5s;
+    }
+
+    /* Container for the text */
+    .content {
+      position: absolute; inset: 0; z-index: 10;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+
+    /* Base styling for all words */
+    .word {
+      display: inline-block;
+      color: #ffffff;
+      white-space: nowrap;
+      opacity: 0; /* Hidden initially */
+      /* Reduced, sharper glow for readability */
+      text-shadow: 
+        0 0 4px #fff,
+        0 0 10px #00e5ff,
+        0 0 20px #008cff;
+    }
+
+    .title-small {
+      font-size: clamp(16px, 3vw, 40px);
+      letter-spacing: 20px;
+      font-family: 'Cinzel', serif;
+      font-weight: 700;
+      margin-bottom: 10px;
+      margin-right: -20px; /* Offset for letter spacing */
+    }
+
+    .title-large {
+      font-size: clamp(30px, 8vw, 120px);
+      font-weight: 900;
+      font-family: 'Montserrat', sans-serif;
+      letter-spacing: 5px;
+      display: flex;
+      gap: 2vw; /* Space between PAUL and YUVARAJ */
+    }
+
+    /* 
+      Word-by-Word Sequential Animations 
+      Using animation delays to bring them in one after the other 
+    */
+    .w-bishop {
+      animation: 
+        starZoomSlam 1.2s cubic-bezier(0.1, 0.8, 0.3, 1) forwards 0.5s,
+        subtleFlicker 3s infinite alternate 1.7s;
+    }
+
+    .w-paul {
+      animation: 
+        starZoomSlam 1.2s cubic-bezier(0.1, 0.8, 0.3, 1) forwards 1.7s,
+        subtleFlicker 3s infinite alternate 2.9s;
+    }
+
+    .w-yuvaraj {
+      animation: 
+        starZoomSlam 1.2s cubic-bezier(0.1, 0.8, 0.3, 1) forwards 2.6s,
+        subtleFlicker 3s infinite alternate 3.8s;
+    }
+
+    /* 
+      The Animation: Starts as a distant glowing star, zooms in, 
+      bounces slightly (impact), and clears up perfectly.
+    */
+    @keyframes starZoomSlam {
+      0% {
+        opacity: 0;
+        transform: translateZ(-2000px) scale(0.01);
+        filter: blur(10px);
+        text-shadow: 0 0 100px #fff, 0 0 300px #00e5ff;
+        color: transparent;
+      }
+      40% {
+        opacity: 1;
+        transform: translateZ(-500px) scale(0.5);
+        filter: blur(4px);
+        color: #fff;
+      }
+      80% {
+        transform: translateZ(50px) scale(1.1); /* Slams past normal size */
+        filter: blur(0px);
+      }
+      90% {
+        transform: translateZ(-10px) scale(0.97); /* Bounces back */
+      }
+      100% {
+        opacity: 1;
+        transform: translateZ(0) scale(1); /* Settles perfectly clear */
+        filter: blur(0px);
+      }
+    }
+
+    /* Random sharp flashes for the background lightning */
+    @keyframes localizedFlash {
+      0%, 9%, 11%, 49%, 51%, 100% { opacity: 0; }
+      10% { opacity: 0.8; } /* Bright flash */
+      12% { opacity: 0.2; } /* Fade out */
+      15% { opacity: 0.6; } /* Secondary crackle */
+      50% { opacity: 0.4; } /* Random mid-animation flash */
+    }
+
+    /* A very subtle crisp electric flicker for the text after it lands */
+    @keyframes subtleFlicker {
+      0%, 100% {
+        text-shadow: 0 0 4px #fff, 0 0 10px #00e5ff, 0 0 20px #008cff;
+      }
+      50% {
+        text-shadow: 0 0 2px #fff, 0 0 5px #00e5ff, 0 0 10px #008cff;
+      }
+      55% {
+        text-shadow: 0 0 8px #fff, 0 0 15px #00e5ff, 0 0 30px #008cff;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <!-- Background video (Now much clearer) -->
+    <video class="video-bg" autoplay muted loop playsinline>
+      <source src="earthbgv.mp4" type="video/mp4" />
+    </video>
+
+    <!-- Thunder strikes happening in different areas -->
+    <div class="lightning strike-top-left"></div>
+    <div class="lightning strike-right"></div>
+    <div class="lightning strike-bottom"></div>
+    
+    <div class="overlay"></div>
+
+    <div class="content">
+      <!-- First word -->
+      <div class="title-small">
+        <span class="word w-bishop">பிஷப்</span>
+      </div>
+
+      <!-- Second and Third words -->
+      <div class="title-large">
+        <span class="word w-paul">வி. பால்</span>
+        <span class="word w-yuvaraj">யுவராஜ்</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

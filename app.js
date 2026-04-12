@@ -3968,15 +3968,65 @@ function exitPresent() {
   releaseWakeLock();
 }
 
-// Keyboard nav in present mode
-document.addEventListener('keydown', e => {
+function _isEditableTarget(el) {
+  if (!el || !el.tagName) return false;
+  const tag = el.tagName.toUpperCase();
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable;
+}
+
+let _hotkeyDetectorTimer = null;
+function showHotkeyDetector(label) {
+  const overlay = document.getElementById('present-overlay');
+  if (!overlay) return;
+
+  let el = document.getElementById('hotkey-detector');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'hotkey-detector';
+    el.style.cssText = [
+      'position:fixed',
+      'right:18px',
+      'top:18px',
+      'z-index:1000001',
+      'padding:8px 12px',
+      'border-radius:10px',
+      'border:1px solid rgba(255,255,255,0.35)',
+      'background:rgba(10,14,30,0.55)',
+      'backdrop-filter:blur(6px)',
+      '-webkit-backdrop-filter:blur(6px)',
+      'color:#ffffff',
+      'font:700 13px/1.2 "Segoe UI", "Nirmala UI", sans-serif',
+      'letter-spacing:0.04em',
+      'box-shadow:0 8px 24px rgba(0,0,0,0.35)',
+      'opacity:0',
+      'transform:translateY(-8px) scale(0.96)',
+      'transition:opacity .16s ease, transform .16s ease',
+      'pointer-events:none'
+    ].join(';');
+    overlay.appendChild(el);
+  }
+
+  el.textContent = 'Shortcut Detected: ' + label;
+  el.style.opacity = '1';
+  el.style.transform = 'translateY(0) scale(1)';
+
+  clearTimeout(_hotkeyDetectorTimer);
+  _hotkeyDetectorTimer = setTimeout(() => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(-8px) scale(0.96)';
+  }, 700);
+}
+
+// Keyboard nav in present mode (bound to main doc + present iframe docs)
+function handlePresentHotkeys(e) {
   const overlay = document.getElementById('present-overlay');
   if (!overlay.classList.contains('active')) return;
 
-  // Do not prevent default for input fields in present overlay (like Song Builder)
-  if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement.tagName)) {
+  // Do not block typing in editable fields, but allow Escape to blur.
+  const target = e.target || document.activeElement;
+  if (_isEditableTarget(target)) {
     if (e.key === 'Escape') {
-       document.activeElement.blur();
+       if (typeof target.blur === 'function') target.blur();
        return;
     }
     return;
@@ -3996,7 +4046,7 @@ document.addEventListener('keydown', e => {
     }
   }
 
-  const isForward = (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ');
+  const isForward = (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ' || e.code === 'Space');
   const isBackward = (e.key === 'ArrowLeft' || e.key === 'ArrowUp');
   if (isForward || isBackward || e.key === 'Backspace' || e.key === 'Escape') {
     e.preventDefault();
@@ -4013,9 +4063,43 @@ document.addEventListener('keydown', e => {
   if (isBackward) presentNav(-1);
   if (e.key === 'Backspace') presentGoBack();
   if (e.key === 'Escape') exitPresent();
-  if (e.key.toLowerCase() === 'c') showClapGraphics();
-  if (e.key.toLowerCase() === 'a') showAmenGraphics();
-});
+  if (!e.repeat && e.key.toLowerCase() === 'c') {
+    showHotkeyDetector('C - Clap');
+    showClapGraphics();
+  }
+  if (!e.repeat && e.key.toLowerCase() === 'a') {
+    showHotkeyDetector('A - Amen');
+    showAmenGraphics();
+  }
+  if (!e.repeat && e.key.toLowerCase() === 's') {
+    showHotkeyDetector('S - Clap');
+    showClapGraphics();
+  }
+  if (!e.repeat && e.key.toLowerCase() === 'f') {
+    showHotkeyDetector('F - Fireworks');
+    showFireworksGraphics();
+  }
+}
+
+document.addEventListener('keydown', handlePresentHotkeys, true);
+
+(function bindPresentIframeHotkeys() {
+  const presentFrame = document.getElementById('present-iframe');
+  if (!presentFrame || presentFrame._hotkeyBridgeAdded) return;
+
+  presentFrame.addEventListener('load', () => {
+    try {
+      const doc = presentFrame.contentDocument;
+      if (!doc || doc._presentHotkeysBound) return;
+      doc.addEventListener('keydown', handlePresentHotkeys, true);
+      doc._presentHotkeysBound = true;
+    } catch (err) {
+      // Ignore cross-context access issues and keep main document hotkeys active.
+    }
+  });
+
+  presentFrame._hotkeyBridgeAdded = true;
+})();
 
 // ══════════════════════════════════════════════════
 //  MOTIVATIONAL AMEN GRAPHICS (HOLY FIRE EFFECT)
@@ -4167,6 +4251,458 @@ function showAmenGraphics() {
 }
 
 // ══════════════════════════════════════════════════
+//  MOTIVATIONAL FIREWORKS GRAPHICS
+// ══════════════════════════════════════════════════
+let _fireworkGraphicTimeout = null;
+
+function showFireworksGraphics() {
+  const container = document.getElementById('fireworks-graphic');
+  if (!container) return;
+  
+  if (_fireworkGraphicTimeout) clearTimeout(_fireworkGraphicTimeout);
+  container.style.display = 'block';
+  container.style.backdropFilter = 'blur(4px) saturate(1.15)';
+  container.style.webkitBackdropFilter = 'blur(4px) saturate(1.15)';
+  container.style.background = 'rgba(255,255,255,0.04)';
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body {
+    margin: 0; padding: 0; overflow: hidden; background: transparent;
+  }
+  canvas {
+    display: block; width: 100vw; height: 100vh;
+  }
+</style>
+</head>
+<body>
+  <canvas id="fw"></canvas>
+  <script>
+    const canvas = document.getElementById('fw');
+    const ctx = canvas.getContext('2d');
+    const DPR = Math.min(1.35, window.devicePixelRatio || 1);
+    const colors = ['#FFD84D', '#FF7A66', '#61E8FF', '#74FF8A', '#FFB347', '#FDFDFD', '#7EE8FA', '#F9F871'];
+    const cheerWords = ['ஸ்தோத்திரம்', 'அல்லேலூயா', 'ஆமென்', 'துதியுங்கள்'];
+    const MAX_PARTICLES = 760;
+    const MAX_RINGS = 10;
+    const MAX_FLASHES = 8;
+
+    const rockets = [];
+    const particles = [];
+    const rings = [];
+    const textPops = [];
+    const flashes = [];
+    let lastWordAt = 0;
+    let lastSlotIdx = -1;
+    let quality = 1;
+    let lastFrameTs = 0;
+    const WORD_SLOTS = [
+      { x: 0.24, y: 0.28 },
+      { x: 0.50, y: 0.26 },
+      { x: 0.76, y: 0.29 },
+      { x: 0.28, y: 0.52 },
+      { x: 0.52, y: 0.50 },
+      { x: 0.74, y: 0.53 }
+    ];
+
+    function pushParticle(p) {
+      if (particles.length >= (MAX_PARTICLES * quality) | 0) return;
+      particles.push(p);
+    }
+
+    function pushRing(r) {
+      if (rings.length >= MAX_RINGS) return;
+      rings.push(r);
+    }
+
+    function pushFlash(f) {
+      if (flashes.length >= MAX_FLASHES) return;
+      flashes.push(f);
+    }
+
+    function approxWordBox(text, size, scale, x, y) {
+      const width = Math.max(140, text.length * size * 0.72 * scale);
+      const height = Math.max(40, size * 1.25 * scale);
+      return {
+        left: x - width / 2,
+        right: x + width / 2,
+        top: y - height,
+        bottom: y + height * 0.25,
+        width,
+        height
+      };
+    }
+
+    function overlap(a, b) {
+      return !(a.right < b.left || a.left > b.right || a.bottom < b.top || a.top > b.bottom);
+    }
+
+    function pickWordPosition(text, size, scale, targetMaxScale) {
+      const order = WORD_SLOTS.map((_, i) => i).sort(() => Math.random() - 0.5);
+      const margin = 34;
+
+      for (let i = 0; i < order.length; i++) {
+        const slotIdx = order[i];
+        if (slotIdx === lastSlotIdx && textPops.length > 0) continue;
+
+        const slot = WORD_SLOTS[slotIdx];
+        const x = slot.x * window.innerWidth;
+        const y = slot.y * window.innerHeight;
+        const box = approxWordBox(text, size, targetMaxScale, x, y);
+
+        if (box.left < margin || box.right > window.innerWidth - margin || box.top < margin || box.bottom > window.innerHeight - margin) {
+          continue;
+        }
+
+        let blocked = false;
+        for (let j = 0; j < textPops.length; j++) {
+          const t = textPops[j];
+          const tScale = t.maxScale ? Math.min(t.maxScale, Math.max(1, t.scale)) : Math.max(1, t.scale);
+          const tBox = approxWordBox(t.text, t.size, tScale, t.x, t.y);
+          if (overlap(box, tBox)) {
+            blocked = true;
+            break;
+          }
+        }
+        if (!blocked) {
+          lastSlotIdx = slotIdx;
+          return { x, y, slotIdx };
+        }
+      }
+
+      const fallback = {
+        x: Math.max(window.innerWidth * 0.2, Math.min(window.innerWidth * 0.8, window.innerWidth * (0.3 + Math.random() * 0.4))),
+        y: Math.max(window.innerHeight * 0.28, Math.min(window.innerHeight * 0.62, window.innerHeight * (0.34 + Math.random() * 0.2))),
+        slotIdx: -1
+      };
+      return fallback;
+    }
+
+    function resize() {
+      canvas.width = Math.floor(window.innerWidth * DPR);
+      canvas.height = Math.floor(window.innerHeight * DPR);
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    function launchRocket() {
+      const x = window.innerWidth * 0.16 + Math.random() * window.innerWidth * 0.68;
+      rockets.push({
+        x,
+        y: window.innerHeight + 8,
+        vx: (Math.random() - 0.5) * 2.4,
+        vy: -(12 + Math.random() * 4),
+        color: colors[(Math.random() * colors.length) | 0],
+        explodeAt: window.innerHeight * (0.18 + Math.random() * 0.22),
+        life: 1
+      });
+    }
+
+    function createBurst(x, y, color) {
+      const total = ((92 + (Math.random() * 34)) * quality) | 0;
+      for (let i = 0; i < total; i++) {
+        const angle = (Math.PI * 2 * i) / total + Math.random() * 0.07;
+        const speed = 3.2 + Math.random() * 8.5;
+        pushParticle({
+          x, y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          color: Math.random() < 0.75 ? color : colors[(Math.random() * colors.length) | 0],
+          alpha: 1,
+          decay: 0.008 + Math.random() * 0.015,
+          size: 2.1 + Math.random() * 2.8,
+          drag: 0.97
+        });
+      }
+
+      // White crackle at center for a stronger pop effect.
+      const crackleCount = ((20 + Math.random() * 10) * quality) | 0;
+      for (let k = 0; k < crackleCount; k++) {
+        const a = Math.random() * Math.PI * 2;
+        const s = 1.2 + Math.random() * 4.5;
+        pushParticle({
+          x, y,
+          vx: Math.cos(a) * s,
+          vy: Math.sin(a) * s,
+          color: '#FFFFFF',
+          alpha: 1,
+          decay: 0.02 + Math.random() * 0.03,
+          size: 1.6 + Math.random() * 1.8,
+          drag: 0.95
+        });
+      }
+
+      pushRing({ x, y, r: 8, alpha: 1, color });
+      pushFlash({ x, y, r: 30, alpha: 0.55, color: '#FFF7CC' });
+
+      // Diwali circle-cracker ring that expands as a clear circular burst.
+      setTimeout(() => {
+        const count = ((34 + Math.random() * 12) * quality) | 0;
+        for (let i = 0; i < count; i++) {
+          const angle = (Math.PI * 2 * i) / count;
+          const speed = 6.8 + Math.random() * 2.4;
+          pushParticle({
+            x, y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            color: colors[(Math.random() * colors.length) | 0],
+            alpha: 1,
+            decay: 0.015 + Math.random() * 0.012,
+            size: 2.2 + Math.random() * 2.2,
+            drag: 0.975
+          });
+        }
+        pushRing({ x, y, r: 12, alpha: 0.95, color: '#FFFFFF' });
+      }, 90);
+
+      if (Math.random() < 0.72 && textPops.length < 2 && Date.now() - lastWordAt > 1000) {
+        const text = cheerWords[(Math.random() * cheerWords.length) | 0];
+        const size = 34 + Math.random() * 10;
+        const scale = 0.84;
+        const margin = 36;
+        const widthBase = Math.max(140, text.length * size * 0.72);
+        const heightBase = Math.max(40, size * 1.25);
+        const pos = pickWordPosition(text, size, scale, 1.6);
+        const roomLeft = Math.max(1, pos.x - margin);
+        const roomRight = Math.max(1, window.innerWidth - margin - pos.x);
+        const roomTop = Math.max(1, pos.y - margin);
+        const roomBottom = Math.max(1, window.innerHeight - margin - pos.y);
+        const maxScaleX = (Math.min(roomLeft, roomRight) * 2) / widthBase;
+        const maxScaleYTop = roomTop / heightBase;
+        const maxScaleYBottom = roomBottom / (heightBase * 0.25);
+        const maxScale = Math.max(1.08, Math.min(1.42, maxScaleX, maxScaleYTop, maxScaleYBottom));
+        lastWordAt = Date.now();
+        textPops.push({
+          x: pos.x,
+          y: pos.y,
+          text,
+          alpha: 1,
+          vy: -0.08,
+          size,
+          scale,
+          popSpeed: 0.012 + Math.random() * 0.01,
+          depth: 6 + Math.random() * 4,
+          wobble: Math.random() * Math.PI * 2,
+          maxScale,
+          slotIdx: pos.slotIdx
+        });
+      }
+    }
+
+    const launchPlan = [0, 360, 820, 1380, 2080, 2920, 3820, 4780];
+    launchPlan.forEach((ms) => setTimeout(launchRocket, ms));
+
+    function drawRocket(r) {
+      ctx.save();
+      ctx.globalAlpha = r.life;
+      ctx.shadowBlur = 22;
+      ctx.shadowColor = r.color;
+      ctx.fillStyle = r.color;
+      ctx.beginPath();
+      ctx.arc(r.x, r.y, 3.8, 0, Math.PI * 2);
+      ctx.fill();
+
+      for (let t = 0; t < 3; t++) {
+        pushParticle({
+          x: r.x + (Math.random() - 0.5) * 2,
+          y: r.y + 3 + Math.random() * 5,
+          vx: (Math.random() - 0.5) * 1.4,
+          vy: 1.8 + Math.random() * 1.8,
+          color: '#FFB347',
+          alpha: 0.75,
+          decay: 0.05 + Math.random() * 0.02,
+          size: 1.4 + Math.random() * 1.4,
+          drag: 0.92
+        });
+      }
+      ctx.restore();
+    }
+
+    function animate(ts) {
+      if (!lastFrameTs) lastFrameTs = ts;
+      const delta = ts - lastFrameTs;
+      if (delta < 16) {
+        requestAnimationFrame(animate);
+        return;
+      }
+      lastFrameTs = ts;
+
+      // Adaptive quality for slower machines.
+      if (delta > 28 && quality > 0.72) quality -= 0.04;
+      if (delta < 19 && quality < 1) quality += 0.02;
+      if (quality < 0.58) quality = 0.58;
+      if (quality > 1) quality = 1;
+
+      ctx.globalCompositeOperation = 'source-over';
+      // Keep the presenter visible: only a very light fade for sparkle trails.
+      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+      ctx.fillStyle = 'rgba(255,255,255,0.02)';
+      ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+
+      ctx.globalCompositeOperation = 'lighter';
+
+      for (let i = rockets.length - 1; i >= 0; i--) {
+        const r = rockets[i];
+        r.vy += 0.035;
+        r.x += r.vx;
+        r.y += r.vy;
+        drawRocket(r);
+
+        if (r.y <= r.explodeAt || r.vy > -2.1) {
+          rockets.splice(i, 1);
+          createBurst(r.x, r.y, r.color);
+        }
+      }
+
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.vx *= p.drag;
+        p.vy *= p.drag;
+        p.vy += 0.055;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha -= p.decay;
+
+        if (p.alpha <= 0) {
+          particles.splice(i, 1);
+          continue;
+        }
+
+        ctx.globalAlpha = p.alpha;
+        ctx.shadowBlur = p.size > 2 ? 10 : 0;
+        ctx.shadowColor = p.color;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.shadowBlur = 0;
+
+      for (let i = rings.length - 1; i >= 0; i--) {
+        const ring = rings[i];
+        ring.r += 7.8;
+        ring.alpha -= 0.04;
+        if (ring.alpha <= 0) {
+          rings.splice(i, 1);
+          continue;
+        }
+        ctx.save();
+        ctx.globalAlpha = ring.alpha;
+        ctx.strokeStyle = ring.color;
+        ctx.lineWidth = 3.2;
+        ctx.shadowBlur = 18;
+        ctx.shadowColor = ring.color;
+        ctx.beginPath();
+        ctx.arc(ring.x, ring.y, ring.r, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      for (let i = flashes.length - 1; i >= 0; i--) {
+        const f = flashes[i];
+        f.r += 12;
+        f.alpha -= 0.07;
+        if (f.alpha <= 0) {
+          flashes.splice(i, 1);
+          continue;
+        }
+        ctx.save();
+        const g = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, f.r);
+        g.addColorStop(0, 'rgba(255,255,255,' + (f.alpha * 0.95) + ')');
+        g.addColorStop(0.35, 'rgba(255,245,190,' + (f.alpha * 0.7) + ')');
+        g.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      for (let i = textPops.length - 1; i >= 0; i--) {
+        const t = textPops[i];
+        t.y += t.vy;
+        t.scale += t.popSpeed;
+        t.wobble += 0.09;
+        t.alpha -= 0.006;
+        if (t.alpha <= 0) {
+          textPops.splice(i, 1);
+          continue;
+        }
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, t.alpha);
+        let animX = t.x + Math.sin(t.wobble) * 0.65;
+        let animY = t.y + Math.cos(t.wobble * 0.8) * 0.55;
+        const dynamicScale = Math.min(t.maxScale || 1.7, t.scale);
+        const keepMargin = 30;
+        const box = approxWordBox(t.text, t.size, dynamicScale, animX, animY);
+        if (box.left < keepMargin) animX += (keepMargin - box.left);
+        if (box.right > window.innerWidth - keepMargin) animX -= (box.right - (window.innerWidth - keepMargin));
+        if (box.top < keepMargin) animY += (keepMargin - box.top);
+        if (box.bottom > window.innerHeight - keepMargin) animY -= (box.bottom - (window.innerHeight - keepMargin));
+        t.x = animX;
+        t.y = animY;
+
+        ctx.translate(animX, animY);
+        ctx.scale(dynamicScale, dynamicScale);
+        ctx.font = '800 ' + t.size + 'px "Noto Sans Tamil", "Nirmala UI", "Latha", sans-serif';
+        ctx.textAlign = 'center';
+
+        // Soft depth shadow for a cleaner natural text look.
+        for (let z = t.depth; z >= 2; z -= 3) {
+          const zAlpha = 0.09 + (z / t.depth) * 0.1;
+          ctx.fillStyle = 'rgba(14, 20, 40, ' + zAlpha + ')';
+          ctx.fillText(t.text, z * 0.32, z * 0.48);
+        }
+        ctx.fillStyle = 'rgba(10, 18, 34, 0.45)';
+        ctx.fillText(t.text, t.depth * 0.12, t.depth * 0.2);
+
+        const wordGrad = ctx.createLinearGradient(0, -t.size * 0.95, 0, t.size * 0.4);
+        wordGrad.addColorStop(0, '#FFFFFF');
+        wordGrad.addColorStop(0.38, '#FFF2B8');
+        wordGrad.addColorStop(0.75, '#FFD37B');
+        wordGrad.addColorStop(1, '#FFC46A');
+        ctx.fillStyle = wordGrad;
+        ctx.shadowBlur = 18;
+        ctx.shadowColor = 'rgba(255, 190, 95, 0.75)';
+        ctx.fillText(t.text, 0, 0);
+
+        ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+        ctx.lineWidth = 1.1;
+        ctx.strokeText(t.text, 0, 0);
+
+        // Gentle highlight pass.
+        ctx.globalCompositeOperation = 'screen';
+        const hiGrad = ctx.createLinearGradient(0, -t.size * 0.9, 0, 0);
+        hiGrad.addColorStop(0, 'rgba(255,255,255,0.75)');
+        hiGrad.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = hiGrad;
+        ctx.fillText(t.text, 0, -t.size * 0.02);
+        ctx.restore();
+      }
+
+      requestAnimationFrame(animate);
+    }
+    animate();
+  </script>
+</body>
+</html>`;
+
+  container.innerHTML = '<iframe style="width:100%;height:100%;border:none;display:block;background:transparent;position:absolute;inset:0;" srcdoc="' + html.replace(/"/g, '&quot;') + '" sandbox="allow-scripts" referrerpolicy="no-referrer"></iframe>';
+
+  _fireworkGraphicTimeout = setTimeout(() => {
+    container.style.display = 'none';
+    container.innerHTML = '';
+    container.style.backdropFilter = '';
+    container.style.webkitBackdropFilter = '';
+    container.style.background = '';
+  }, 7600);
+}
+
+// ══════════════════════════════════════════════════
 //  MOTIVATIONAL CLAP GRAPHICS
 // ══════════════════════════════════════════════════
 let _clapGraphicTimeout = null;
@@ -4175,6 +4711,8 @@ let _clapGraphicInterval = null;
 function showClapGraphics() {
   const container = document.getElementById('clap-graphic');
   if (!container) return;
+  const clapGifUrl = new URL('Html Untouched/dynamicclap.gif', window.location.href).href;
+  const clapStickerUrl = new URL('Html Untouched/clapgif_white_eyes.gif', window.location.href).href;
   
   if (_clapGraphicTimeout) clearTimeout(_clapGraphicTimeout);
   if (_clapGraphicInterval) clearInterval(_clapGraphicInterval);
@@ -4183,6 +4721,7 @@ function showClapGraphics() {
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
+<base href="${window.location.href}">
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Clap</title>
@@ -4200,15 +4739,41 @@ canvas { position:fixed; inset:0; width:100%; height:100%; }
     rgba(255,200,60,0.20) 0%, rgba(255,160,40,0.08) 45%, transparent 70%);
   animation: glowPulse 0.44s ease-in-out infinite;
 }
+.clap-row {
+  position: fixed;
+  left: 4vw;
+  right: 4vw;
+  bottom: 6vh;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  pointer-events: none;
+  z-index: 3;
+}
+.clap-hand {
+  width: clamp(88px, 9.2vw, 152px);
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 16px rgba(0,0,0,0.33));
+  animation: handFloat 1.3s ease-in-out infinite;
+  transform-origin: 50% 80%;
+}
+@keyframes handFloat {
+  0%, 100% { transform: translateY(0px) scale(1); }
+  50% { transform: translateY(-12px) scale(1.03); }
+}
 @keyframes glowPulse { 0%,100%{opacity:0.55} 50%{opacity:1} }
 </style>
 </head>
 <body>
 <div class="glow"></div>
 <canvas id="c"></canvas>
+<div class="clap-row" id="clap-row"></div>
 <script>
 const canvas = document.getElementById('c');
 const ctx    = canvas.getContext('2d');
+const clapRow = document.getElementById('clap-row');
+const CLAP_GIF_URL = ${JSON.stringify(clapGifUrl)};
 
 let hands  = [];
 let notes  = [];
@@ -4264,18 +4829,32 @@ function makeSparks(x, y, n) {
 
 function buildHands() {
   hands = [];
+  if (clapRow) clapRow.innerHTML = '';
+
   const W = canvas.width, H = canvas.height;
   const count  = 7;
   const margin = W * 0.06;
   const span   = W - margin * 2;
+
   for (let i=0; i<count; i++) {
     const t     = i / (count-1);
     const x     = margin + t * span;
     const yOff  = Math.sin(t * Math.PI) * H * 0.05;
     const y     = H * 0.78 - yOff;
-    const fSize = 52 + Math.random() * 28;
+    const fSize = 64 + Math.random() * 26;
     const phase = (i / count) * Math.PI * 2;
-    hands.push(makeHandPair(x, y, fSize, phase));
+    const h = makeHandPair(x, y, fSize, phase);
+    hands.push(h);
+
+    if (clapRow) {
+      const img = document.createElement('img');
+      img.className = 'clap-hand';
+      img.src = CLAP_GIF_URL;
+      img.alt = 'clap hand';
+      img.style.animationDelay = (i * 0.12) + 's';
+      img.style.width = Math.round(fSize * 1.5) + 'px';
+      clapRow.appendChild(img);
+    }
   }
 }
 
@@ -4284,23 +4863,9 @@ function draw() {
 
   hands.forEach(h => {
     h.phase += h.speed;
-    if (h.alpha < 1) h.alpha = Math.min(1, h.alpha + 0.04);
 
     const clap = Math.sin(h.phase);
     const bobY = Math.sin(h.phase * 0.5 + h.bob) * h.bobAmp;
-    const sc   = 1 + (clap + 1) * 0.10;
-    const tilt = clap * 0.15;
-
-    ctx.save();
-    ctx.globalAlpha = h.alpha;
-    ctx.translate(h.x, h.y + bobY);
-    ctx.rotate(tilt);
-    ctx.scale(sc, sc);
-    ctx.font = h.fontSize + 'px serif';
-    ctx.textAlign    = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('👏', 0, 0);
-    ctx.restore();
 
     if (clap > 0.88 && h.noteTimer <= 0) {
       makeSparks(h.x, h.y + bobY - h.fontSize * 0.5, 9);
@@ -4341,8 +4906,8 @@ draw();
 </body>
 </html>`;
 
-  container.innerHTML = '<iframe id="clap-graphic-frame" style="width:100%;height:100%;border:none;display:block;background:transparent;position:absolute;inset:0;" sandbox="allow-scripts" referrerpolicy="no-referrer"></iframe>' +
-    '<img id="clap-sticker-overlay" src="Html%20Untouched/clapgif_white_eyes.gif" alt="clap sticker" style="position:absolute;left:50%;top:28%;transform:translate(-50%, -50%);width:min(230px,30vw);aspect-ratio:1/1;object-fit:contain;pointer-events:none;z-index:4;filter:drop-shadow(0 6px 20px rgba(0,0,0,0.4)); animation: clapPulse 1s infinite alternate;" />';
+  container.innerHTML = `<iframe id="clap-graphic-frame" style="width:100%;height:100%;border:none;display:block;background:transparent;position:absolute;inset:0;" sandbox="allow-scripts allow-same-origin" referrerpolicy="no-referrer"></iframe>
+    <img id="clap-sticker-overlay" src="${clapStickerUrl}" alt="clap sticker" style="position:absolute;left:50%;top:27%;transform:translate(-50%, -50%);width:min(340px,42vw);aspect-ratio:1/1;object-fit:contain;pointer-events:none;z-index:4;filter:drop-shadow(0 8px 26px rgba(0,0,0,0.45)); animation: clapPulse 0.95s infinite alternate;" />`;
   const frame = document.getElementById('clap-graphic-frame');
   if (frame) frame.srcdoc = html;
   
