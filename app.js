@@ -588,14 +588,15 @@ function mediaToHtml(s) {
   const mediaNode = !src
     ? `<div class="media-empty">Choose a ${kind} file path or use Browse in the Media tab.<\/div>`
     : (kind === 'video'
-      ? `<video id="media-video" src="${safeSrc}" autoplay muted loop playsinline preload="auto"><\/video>`
-      : `<img src="${safeSrc}" alt="Slide media" loading="eager">`);
+      ? `<div class="media-stage"><video id="media-video" src="${safeSrc}" autoplay muted loop playsinline preload="auto"><\/video><\/div>`
+      : `<div class="media-stage"><img src="${safeSrc}" alt="Slide media" loading="eager"><\/div>`);
 
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
 *{margin:0;padding:0;box-sizing:border-box;}
 html,body{width:100%;height:100%;overflow:hidden;background:#000;}
 body{display:grid;place-items:center;font-family:'Noto Sans Tamil','Nirmala UI',sans-serif;}
-img,video{width:100%;height:100%;object-fit:contain;background:#000;display:block;}
+.media-stage{width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;background:#000;overflow:hidden;}
+img,video{display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;background:#000;}
 .media-empty{max-width:80vw;padding:24px 28px;border:1px solid rgba(255,255,255,0.2);border-radius:12px;color:#e5e7eb;font-size:22px;line-height:1.55;text-align:center;background:rgba(17,24,39,0.45);}
 <\/style><\/head><body>
 ${mediaNode}
