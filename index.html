@@ -20,6 +20,7 @@
 
 <!-- HIDDEN FILE INPUT for import -->
 <input type="file" id="file-import-input" accept=".prsn,.json" style="display:none">
+<input type="file" id="media-file-input" accept="image/*,video/*" style="display:none">
 
 <!-- TOP BAR -->
 <div id="topbar">
@@ -29,6 +30,7 @@
   </div>
   <div class="tb-sep"></div>
   <button onclick="addSlide('html')">+ HTML Slide</button>
+  <button onclick="addSlide('media')">+ Media Slide</button>
   <button onclick="addSlide('simple')">+ Text Slide</button>
   <button class="vasanam-btn" onclick="openVasanamModal()">✦ வசனம்</button>
   <div class="tb-sep"></div>
@@ -72,6 +74,7 @@
   <div id="editor-panel">
     <div id="editor-tabs">
       <div class="etab active" id="tab-html" onclick="switchTab('html')">HTML</div>
+      <div class="etab" id="tab-media" onclick="switchTab('media')">Media</div>
       <div class="etab" id="tab-simple" onclick="switchTab('simple')">Simple</div>
     </div>
     <div id="editor-body">
@@ -87,6 +90,35 @@
           <textarea id="html-editor" spellcheck="false" placeholder="Paste your full HTML here..."></textarea>
         </div>
         <button class="apply-btn" onclick="applyHtml()">Apply →</button>
+      </div>
+
+      <!-- MEDIA TAB -->
+      <div id="panel-media" style="display:none;flex-direction:column;gap:10px;flex:1;overflow:hidden;">
+        <div>
+          <div class="field-label">Slide Name</div>
+          <input type="text" class="field-input" id="media-slide-name" placeholder="Media Slide" oninput="updateCurrentName(this.value)">
+        </div>
+
+        <div>
+          <div class="field-label">Media Type</div>
+          <select class="field-input" id="media-kind">
+            <option value="image">Photo</option>
+            <option value="video">Video</option>
+          </select>
+        </div>
+
+        <div>
+          <div class="field-label">Media Path / URL</div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input type="text" class="field-input" id="media-src" placeholder="Paste file path, URL, or click Browse" style="flex:1;">
+            <button type="button" onclick="chooseMediaFile()" style="background:#1f2937;border:1px solid #374151;color:#e5e7eb;font-family:'DM Mono',monospace;font-size:11px;padding:8px 10px;border-radius:4px;cursor:pointer;white-space:nowrap;">Browse</button>
+          </div>
+          <div style="margin-top:6px;font-size:10px;color:#6b6b75;line-height:1.45;">
+            You can paste a direct path/URL, or select from file manager. Video slides loop continuously during presentation.
+          </div>
+        </div>
+
+        <button class="apply-btn" onclick="applyMedia()">Apply →</button>
       </div>
 
       <!-- SIMPLE TAB -->

@@ -49,6 +49,41 @@ function showToast(msg, type = 'success', duration = 2500) {
 //  AUTO-SAVE TO localStorage
 // ══════════════════════════════════════════════════
 const STORAGE_KEY = 'presenter_slides_v1';
+const MEDIA_EMBED_MAX_BYTES = 8 * 1024 * 1024; // Keep localStorage reasonably safe when embedding files.
+
+function normalizeSlide(raw) {
+  const s = Object.assign({}, raw || {});
+  s.id = s.id || (Date.now() + Math.random());
+  s.bookmarked = !!s.bookmarked;
+
+  if (s.type === 'html') {
+    s.name = (typeof s.name === 'string' && s.name.trim()) ? s.name : 'HTML Slide';
+    s.html = typeof s.html === 'string' ? s.html : '';
+    return s;
+  }
+
+  if (s.type === 'media') {
+    s.name = (typeof s.name === 'string' && s.name.trim()) ? s.name : 'Media Slide';
+    s.mediaKind = s.mediaKind === 'video' ? 'video' : 'image';
+    s.mediaSrc = typeof s.mediaSrc === 'string' ? s.mediaSrc : '';
+    return s;
+  }
+
+  s.type = 'simple';
+  s.name = (typeof s.name === 'string' && s.name.trim()) ? s.name : 'New Slide';
+  s.title = typeof s.title === 'string' ? s.title : 'Slide Title';
+  s.body = typeof s.body === 'string' ? s.body : '• Point one\n• Point two\n• Point three';
+  s.bg = typeof s.bg === 'string' ? s.bg : '#3c096c';
+  s.color = typeof s.color === 'string' ? s.color : '#ffd700';
+  s.layout = s.layout === 'left' ? 'left' : 'center';
+  s.font = typeof s.font === 'string' ? s.font : 'Noto Serif Tamil';
+  return s;
+}
+
+function normalizeSlides(arr) {
+  if (!Array.isArray(arr)) return [];
+  return arr.map(normalizeSlide);
+}
 
 function scheduleSave() {
   if (_tempBackupSlides) return; // Prevent overwriting DB with temporary presentation slides
@@ -61,10 +96,32 @@ function scheduleSave() {
       try {
         // Serialise only the fields we need; runtime-only props (_thumbHtml etc.) are excluded
         const payload = slides.map(s => {
-          const { id, type, name, html, title, body, bg, color, layout, font, bookmarked } = s;
-          return type === 'html'
-            ? { id, type, name, html, bookmarked: !!bookmarked }
-            : { id, type, name, title, body, bg, color, layout, font, bookmarked: !!bookmarked };
+          const { id, type, name, bookmarked } = s;
+          if (type === 'html') {
+            return { id, type, name, html: s.html || '', bookmarked: !!bookmarked };
+          }
+          if (type === 'media') {
+            return {
+              id,
+              type,
+              name,
+              mediaKind: s.mediaKind === 'video' ? 'video' : 'image',
+              mediaSrc: s.mediaSrc || '',
+              bookmarked: !!bookmarked
+            };
+          }
+          return {
+            id,
+            type: 'simple',
+            name,
+            title: s.title,
+            body: s.body,
+            bg: s.bg,
+            color: s.color,
+            layout: s.layout,
+            font: s.font,
+            bookmarked: !!bookmarked
+          };
         });
         localStorage.setItem(STORAGE_KEY, JSON.stringify({ slides: payload, currentIdx }));
         const ind = document.getElementById('save-indicator');
@@ -89,7 +146,7 @@ function loadFromStorage() {
     if (!raw) return false;
     const data = JSON.parse(raw);
     if (data && Array.isArray(data.slides) && data.slides.length) {
-      slides = data.slides;
+      slides = normalizeSlides(data.slides);
       currentIdx = Math.min(data.currentIdx || 0, slides.length - 1);
       return true;
     }
@@ -183,9 +240,9 @@ function processImport(text, fileName) {
     const data = JSON.parse(text);
     let imported = [];
     if (Array.isArray(data)) {
-      imported = data;
+      imported = normalizeSlides(data);
     } else if (data && Array.isArray(data.slides)) {
-      imported = data.slides;
+      imported = normalizeSlides(data.slides);
     } else {
       throw new Error('Unrecognized file format');
     }
@@ -495,6 +552,15 @@ function createSlide(type) {
   const id = Date.now() + Math.random();
   if (type === 'html') {
     return { id, type: 'html', name: 'HTML Slide', html: '', bookmarked: false };
+  } else if (type === 'media') {
+    return {
+      id,
+      type: 'media',
+      name: 'Media Slide',
+      mediaKind: 'image',
+      mediaSrc: '',
+      bookmarked: false
+    };
   } else {
     return {
       id, type: 'simple', name: 'New Slide', bookmarked: false,
@@ -506,6 +572,55 @@ function createSlide(type) {
 
 // Offline font stacks — no CDN needed
 const GOOGLE_FONT_URLS = {};
+
+function escapeHtmlAttr(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function mediaToHtml(s) {
+  const kind = s.mediaKind === 'video' ? 'video' : 'image';
+  const src = String(s.mediaSrc || '').trim();
+  const safeSrc = escapeHtmlAttr(src);
+  const mediaNode = !src
+    ? `<div class="media-empty">Choose a ${kind} file path or use Browse in the Media tab.<\/div>`
+    : (kind === 'video'
+      ? `<video id="media-video" src="${safeSrc}" autoplay muted loop playsinline preload="auto"><\/video>`
+      : `<img src="${safeSrc}" alt="Slide media" loading="eager">`);
+
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;background:#000;}
+body{display:grid;place-items:center;font-family:'Noto Sans Tamil','Nirmala UI',sans-serif;}
+img,video{width:100%;height:100%;object-fit:contain;background:#000;display:block;}
+.media-empty{max-width:80vw;padding:24px 28px;border:1px solid rgba(255,255,255,0.2);border-radius:12px;color:#e5e7eb;font-size:22px;line-height:1.55;text-align:center;background:rgba(17,24,39,0.45);}
+<\/style><\/head><body>
+${mediaNode}
+<script>
+(function(){
+  var v = document.getElementById('media-video');
+  if (!v) return;
+  function keepPlaying() {
+    var p = v.play();
+    if (p && p.catch) p.catch(function(){});
+  }
+  v.muted = true;
+  v.loop = true;
+  v.autoplay = true;
+  v.playsInline = true;
+  v.addEventListener('loadedmetadata', keepPlaying);
+  v.addEventListener('canplay', keepPlaying);
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) keepPlaying();
+  });
+  keepPlaying();
+})();
+<\/script>
+<\/body><\/html>`;
+}
 
 function simpleToHtml(s) {
   const align      = s.layout === 'left' ? 'left' : 'center';
@@ -603,6 +718,8 @@ window.addEventListener('resize', autoFit);
 }
 
 function getHtml(slide) {
+  if (slide.type === 'simple') return simpleToHtml(slide);
+  if (slide.type === 'media') return mediaToHtml(slide);
   if (slide.type !== 'html') return simpleToHtml(slide);
   var html = slide.html || '';
 
@@ -1087,9 +1204,14 @@ function renderEditor() {
   const s = slides[currentIdx];
 
   document.getElementById('slide-name').value = s.name;
+  const mediaNameEl = document.getElementById('media-slide-name');
+  if (mediaNameEl) mediaNameEl.value = s.name;
 
   if (s.type === 'html') {
     document.getElementById('html-editor').value = s.html;
+  } else if (s.type === 'media') {
+    document.getElementById('media-kind').value = s.mediaKind === 'video' ? 'video' : 'image';
+    document.getElementById('media-src').value = s.mediaSrc || '';
   } else {
     document.getElementById('s-title').value = s.title || '';
     document.getElementById('s-body').value = s.body || '';
@@ -1103,6 +1225,7 @@ function renderEditor() {
 
   // Auto-switch tab based on slide type
   if (s.type === 'html' && activeTab !== 'html') switchTab('html');
+  if (s.type === 'media' && activeTab !== 'media') switchTab('media');
   if (s.type === 'simple' && activeTab !== 'simple') switchTab('simple');
 }
 
@@ -1275,6 +1398,30 @@ function applyHtml() {
   scheduleSave();
 }
 
+function applyMedia() {
+  if (!slides.length) return;
+  const s = slides[currentIdx];
+  const kind = document.getElementById('media-kind').value === 'video' ? 'video' : 'image';
+  const src = document.getElementById('media-src').value.trim();
+  if (!src) {
+    showToast('Choose a media path/URL or browse a file first.', 'error');
+    return;
+  }
+
+  s.type = 'media';
+  s.mediaKind = kind;
+  s.mediaSrc = src;
+
+  if (src.startsWith('data:') && src.length > 3_000_000) {
+    showToast('Large embedded media may exceed browser storage limits.', 'error', 4200);
+  }
+
+  delete s._thumbHtml;
+  updateThumb(currentIdx);
+  renderPreview();
+  scheduleSave();
+}
+
 function applySimple() {
   if (!slides.length) return;
   const s = slides[currentIdx];
@@ -1303,10 +1450,46 @@ function updateCurrentName(val) {
 function switchTab(tab) {
   activeTab = tab;
   document.getElementById('tab-html').className = 'etab' + (tab === 'html' ? ' active' : '');
+  document.getElementById('tab-media').className = 'etab' + (tab === 'media' ? ' active' : '');
   document.getElementById('tab-simple').className = 'etab' + (tab === 'simple' ? ' active' : '');
   document.getElementById('panel-html').style.display = tab === 'html' ? 'flex' : 'none';
+  document.getElementById('panel-media').style.display = tab === 'media' ? 'flex' : 'none';
   document.getElementById('panel-simple').style.display = tab === 'simple' ? 'flex' : 'none';
 }
+
+function chooseMediaFile() {
+  const picker = document.getElementById('media-file-input');
+  if (picker) picker.click();
+}
+
+document.getElementById('media-file-input').addEventListener('change', function() {
+  const file = this.files && this.files[0];
+  if (!file) return;
+
+  const kind = (file.type || '').startsWith('video/') ? 'video' : 'image';
+  const kindEl = document.getElementById('media-kind');
+  const srcEl = document.getElementById('media-src');
+  if (kindEl) kindEl.value = kind;
+
+  if (file.size > MEDIA_EMBED_MAX_BYTES) {
+    const blobUrl = URL.createObjectURL(file);
+    srcEl.value = blobUrl;
+    showToast('File is large; using temporary blob URL for this session.', 'error', 3800);
+    this.value = '';
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    srcEl.value = String(e.target.result || '');
+    showToast('Media file selected. Click Apply to save it on this slide.', 'success', 2600);
+  };
+  reader.onerror = () => {
+    showToast('Could not read selected media file.', 'error');
+  };
+  reader.readAsDataURL(file);
+  this.value = '';
+});
 
 // ══════════════════════════════════════════════════
 //  VASANAM MODAL
