@@ -55,6 +55,7 @@ function normalizeSlide(raw) {
   const s = Object.assign({}, raw || {});
   s.id = s.id || (Date.now() + Math.random());
   s.bookmarked = !!s.bookmarked;
+  s._rev = Number.isInteger(s._rev) ? s._rev : 0;
 
   if (s.type === 'html') {
     s.name = (typeof s.name === 'string' && s.name.trim()) ? s.name : 'HTML Slide';
@@ -551,7 +552,7 @@ window.addEventListener('resize', autoFit);
 function createSlide(type) {
   const id = Date.now() + Math.random();
   if (type === 'html') {
-    return { id, type: 'html', name: 'HTML Slide', html: '', bookmarked: false };
+    return { id, type: 'html', name: 'HTML Slide', html: '', bookmarked: false, _rev: 0 };
   } else if (type === 'media') {
     return {
       id,
@@ -559,15 +560,22 @@ function createSlide(type) {
       name: 'Media Slide',
       mediaKind: 'image',
       mediaSrc: '',
-      bookmarked: false
+      bookmarked: false,
+      _rev: 0
     };
   } else {
     return {
-      id, type: 'simple', name: 'New Slide', bookmarked: false,
+      id, type: 'simple', name: 'New Slide', bookmarked: false, _rev: 0,
       title: 'Slide Title', body: '• Point one\n• Point two\n• Point three',
       bg: '#3c096c', color: '#ffd700', layout: 'center', font: 'Noto Serif Tamil'
     };
   }
+}
+
+function bumpSlideRevision(slide) {
+  if (!slide) return;
+  slide._rev = Number.isInteger(slide._rev) ? (slide._rev + 1) : 1;
+  delete slide._thumbHtml;
 }
 
 // Offline font stacks — no CDN needed
@@ -1164,9 +1172,29 @@ function injectAutoFit(iframe) {
 
 let _previewLoadTimer = null;
 
+function suspendPreviewFrame() {
+  const pf = document.getElementById('preview-frame');
+  if (!pf || pf._suspendedByPresent) return;
+  pf._suspendedByPresent = true;
+  pf.srcdoc = '<body style="margin:0;background:#000"></body>';
+}
+
+function resumePreviewFrame() {
+  const pf = document.getElementById('preview-frame');
+  if (!pf || !pf._suspendedByPresent) return;
+  pf._suspendedByPresent = false;
+  pf._lastSrcdoc = '';
+  renderPreview();
+}
+
 function renderPreview() {
   const pf = document.getElementById('preview-frame');
   const loadingEl = document.getElementById('preview-loading');
+
+  if (pf._suspendedByPresent) {
+    if (loadingEl) loadingEl.classList.remove('visible');
+    return;
+  }
 
   if (!slides.length) {
     pf.srcdoc = '<body style="background:#08080a"></body>';
@@ -1393,7 +1421,7 @@ function applyHtml() {
   if (!slides.length) return;
   slides[currentIdx].html = document.getElementById('html-editor').value;
   slides[currentIdx].type = 'html';
-  delete slides[currentIdx]._thumbHtml;   // invalidate cached thumb HTML
+  bumpSlideRevision(slides[currentIdx]);
   updateThumb(currentIdx);               // refresh the one changed thumbnail
   renderPreview();
   scheduleSave();
@@ -1417,7 +1445,7 @@ function applyMedia() {
     showToast('Large embedded media may exceed browser storage limits.', 'error', 4200);
   }
 
-  delete s._thumbHtml;
+  bumpSlideRevision(s);
   updateThumb(currentIdx);
   renderPreview();
   scheduleSave();
@@ -1433,7 +1461,7 @@ function applySimple() {
   s.color  = document.getElementById('s-color').value;
   s.layout = document.getElementById('s-layout').value;
   s.font   = document.getElementById('s-font').value;
-  delete s._thumbHtml;           // invalidate cached thumb HTML
+  bumpSlideRevision(s);
   updateThumb(currentIdx);       // refresh the one changed thumbnail
   renderPreview();
   scheduleSave();
@@ -1509,7 +1537,7 @@ function addVasanamSlide() {
   const fs   = document.getElementById('vs-fontsize').value;
   if (!text) { alert('வசன உரை தேவை!'); return; }
   const id = Date.now() + Math.random();
-  const slide = { id, type: 'html', name: ref || 'வசனம்', html: createVasanamHtml(text, ref, bg, col, fs) };
+  const slide = { id, type: 'html', name: ref || 'வசனம்', html: createVasanamHtml(text, ref, bg, col, fs), _rev: 0 };
   slides.splice(currentIdx + 1, 0, slide);
   currentIdx = currentIdx + 1;
   closeVasanamModal();
@@ -2754,7 +2782,7 @@ function bpShowFullscreen(startFlipped = false) {
   document.body.style.overflow = 'hidden';
   const pif = document.getElementById('present-iframe');
   injectAutoFit(pif);
-  pif.srcdoc = html;
+  setPresentFrameHtml(html, true);
   document.getElementById('present-indicator').textContent = ref;
 }
 
@@ -3038,7 +3066,7 @@ function spShowFullscreen() {
   overlay.classList.add('active', 'panel-fs');
   document.body.style.overflow = 'hidden';
   const pif = document.getElementById('present-iframe');
-  pif.srcdoc = html;
+  setPresentFrameHtml(html, true);
   document.getElementById('present-indicator').textContent = song.title;
   spSetFsEditorMode('edit');
   spSyncFsEditorFromCurrentSong();
@@ -3179,15 +3207,14 @@ function spOpenNewSongEditor() {
   document.body.style.overflow = 'hidden';
   spSetFsEditorMode('new');
 
-  const pif = document.getElementById('present-iframe');
-  pif.srcdoc = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+  setPresentFrameHtml(`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
     *{margin:0;padding:0;box-sizing:border-box}
     html,body{width:100%;height:100%;overflow:hidden}
     body{display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#0b0f26 0%,#111936 52%,#1a2647 100%);color:#f8fafc;font-family:'Noto Serif Tamil','Nirmala UI',serif;padding:4vw}
     .box{text-align:center;max-width:900px}
     h1{font-size:48px;line-height:1.25;color:#7dd3fc;margin-bottom:12px}
     p{font-size:26px;line-height:1.7;opacity:0.92}
-  <\/style></head><body><div class="box"><h1>➕ New Song</h1><p>Use the editor on the right panel and click <b>Save Song to Database</b>.</p></div></body></html>`;
+  <\/style></head><body><div class="box"><h1>➕ New Song</h1><p>Use the editor on the right panel and click <b>Save Song to Database</b>.</p></div></body></html>`, true);
 
   document.getElementById('present-indicator').textContent = 'New Song';
   document.getElementById('sp-fs-title-text').textContent = 'New Song (unsaved)';
@@ -3259,7 +3286,7 @@ function _spRefreshSongListAndSelect(songId) {
   if (song) document.getElementById('sp-picker-label').textContent = `#${_spSongId} — ${song.title}`;
   if (document.getElementById('present-overlay').classList.contains('panel-fs') && song) {
     const html = _spBuildPageHtml();
-    if (html) document.getElementById('present-iframe').srcdoc = html;
+    if (html) setPresentFrameHtml(html, true);
     document.getElementById('present-indicator').textContent = song.title;
     _spPopulateVerses(song);
   }
@@ -3871,17 +3898,22 @@ function startPresent() {
   overlay.classList.remove('bible-fs');
   overlay.classList.add('active');
   document.body.style.overflow = 'hidden';
+  document.body.classList.add('presenting');
+  suspendPreviewFrame();
   renderPresentBookmarks();
   acquireWakeLock();
 }
 
-// Cache HTML strings for present-mode so rapid navigation never re-serialises
-const _presentHtmlCache = new Map();
 function getPresentHtml(idx) {
   const s = slides[idx];
-  const key = String(s.id) + (s.type === 'html' ? s.html : JSON.stringify(s));
-  if (!_presentHtmlCache.has(key)) _presentHtmlCache.set(key, getHtml(s));
-  return _presentHtmlCache.get(key);
+  if (!s) return '';
+  const rev = Number.isInteger(s._rev) ? s._rev : 0;
+  const key = String(s.id) + '|' + rev;
+  if (s._presentCacheKey !== key) {
+    s._presentCacheKey = key;
+    s._presentHtml = getHtml(s);
+  }
+  return s._presentHtml;
 }
 
 let _presentNavTimer = null;
@@ -3920,10 +3952,19 @@ function openCurrentSlideInBible() {
   bpShowFullscreen();
 }
 
+function setPresentFrameHtml(html, force = false) {
+  const pif = document.getElementById('present-iframe');
+  if (!pif) return;
+  if (!force && pif._lastSrcdoc === html) return;
+  pif._lastSrcdoc = html;
+  pif.srcdoc = html;
+}
+
 function showPresentSlide() {
   const pif = document.getElementById('present-iframe');
   injectAutoFit(pif);
-  pif.srcdoc = getPresentHtml(presentIdx);
+  const html = getPresentHtml(presentIdx);
+  setPresentFrameHtml(html);
   const ind = document.getElementById('present-indicator');
   ind.textContent = `${presentIdx + 1} / ${slides.length}`;
   ind.onclick = showGotoInput;
@@ -4129,12 +4170,12 @@ function exitPresent() {
     if (_spSongId !== null && typeof _spBuildPageHtml === 'function') {
       const html = _spBuildPageHtml();
       if (html) {
-        pif.srcdoc = html;
+        setPresentFrameHtml(html, true);
         const song = songContent[_spSongId];
         if (song) document.getElementById('present-indicator').textContent = song.title;
       }
     } else {
-      pif.srcdoc = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>*{margin:0;padding:0;box-sizing:border-box}html,body{width:100%;height:100%;overflow:hidden}body{display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#0b0f26 0%,#111936 52%,#1a2647 100%);color:#f8fafc;font-family:'Noto Serif Tamil','Nirmala UI',serif;padding:4vw}.box{text-align:center;max-width:900px}h1{font-size:48px;line-height:1.25;color:#7dd3fc;margin-bottom:12px}p{font-size:26px;line-height:1.7;opacity:0.92}<\/style></head><body><div class="box"><h1>➕ New Song</h1><p>Use the editor on the right panel.</p></div></body></html>`;
+      setPresentFrameHtml(`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>*{margin:0;padding:0;box-sizing:border-box}html,body{width:100%;height:100%;overflow:hidden}body{display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#0b0f26 0%,#111936 52%,#1a2647 100%);color:#f8fafc;font-family:'Noto Serif Tamil','Nirmala UI',serif;padding:4vw}.box{text-align:center;max-width:900px}h1{font-size:48px;line-height:1.25;color:#7dd3fc;margin-bottom:12px}p{font-size:26px;line-height:1.7;opacity:0.92}<\/style></head><body><div class="box"><h1>➕ New Song</h1><p>Use the editor on the right panel.</p></div></body></html>`, true);
       document.getElementById('present-indicator').textContent = 'New Song';
     }
     
@@ -4145,6 +4186,8 @@ function exitPresent() {
   // Full exit
   overlay.classList.remove('active', 'panel-fs', 'bible-fs');
   document.body.style.overflow = '';
+  document.body.classList.remove('presenting');
+  resumePreviewFrame();
   document.getElementById('bp-fs-prev').style.display = 'none';
   document.getElementById('bp-fs-next').style.display = 'none';
   renderPresentBookmarks();

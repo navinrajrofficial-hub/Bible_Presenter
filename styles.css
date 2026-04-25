@@ -64,6 +64,10 @@ body {
   position: relative;
 }
 
+body.presenting #app-bg {
+  display: none;
+}
+
 /* ── TOP BAR ── */
 #topbar {
   height: 48px;
