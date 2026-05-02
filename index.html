@@ -277,6 +277,7 @@
     </div>
     <div style="display:flex;gap:10px;margin-top:4px;">
       <button class="apply-btn" style="flex:1;" onclick="addVasanamSlide()">சேர்க்கவும் →</button>
+      <button class="apply-btn golden-btn" style="flex:1;" onclick="addGoldenVasanamSlide()">Golden →</button>
       <button onclick="closeVasanamModal()" style="flex:1;background:none;border:1px solid #2a2a2e;color:#6b6b75;font-family:'DM Mono',monospace;font-size:11px;padding:8px;border-radius:4px;cursor:pointer;">Cancel</button>
     </div>
   </div>
@@ -320,6 +321,7 @@
     <div id="bp-listen-status">Voice status: idle</div>
     <button class="bp-btn present-btn" onclick="bpShowFullscreen()">▶ Show Fullscreen</button>
     <button class="bp-btn add-btn" onclick="bpAddAsSlide()">✦ Add as Slide</button>
+    <button class="bp-btn golden-btn" onclick="bpAddAsGoldenSlide()">✦ Add Golden Slide</button>
   </div>
 </div>
 
@@ -486,6 +488,22 @@
     <div style="display:flex;gap:10px;margin-top:2px;">
       <button class="apply-btn" style="flex:1;background:#ef4444;" onclick="confirmDeleteRange()">Delete →</button>
       <button onclick="closeDeleteRangeModal()" style="flex:1;background:none;border:1px solid #2a2a2e;color:#6b6b75;font-family:'DM Mono',monospace;font-size:11px;padding:8px;border-radius:4px;cursor:pointer;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- REMOTE CONNECT MODAL -->
+<div id="remote-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:10000;align-items:center;justify-content:center;">
+  <div id="remote-modal-card" style="background:#18181b;border:1px solid #2a2a2e;border-radius:10px;width:360px;max-width:95vw;padding:22px;display:flex;flex-direction:column;gap:12px;">
+    <div style="font-family:'Playfair Display',serif;font-size:15px;color:#f5a623;letter-spacing:0.04em;">Phone Remote</div>
+    <div id="remote-modal-status" style="font-size:11px;color:#a1a1aa;">Scan QR or open URL on phone</div>
+    <div style="display:flex;justify-content:center;">
+      <img id="remote-modal-qr" alt="Remote QR" style="width:220px;height:220px;border-radius:8px;border:1px solid #2a2a2e;background:#0f172a;">
+    </div>
+    <div id="remote-modal-url" style="font-size:12px;color:#e5e7eb;word-break:break-all;"></div>
+    <div style="display:flex;gap:10px;">
+      <button class="apply-btn" style="flex:1;" onclick="copyRemoteUrl()">Copy URL</button>
+      <button onclick="closeRemoteModal()" style="flex:1;background:none;border:1px solid #2a2a2e;color:#6b6b75;font-family:'DM Mono',monospace;font-size:11px;padding:8px;border-radius:4px;cursor:pointer;">Close</button>
     </div>
   </div>
 </div>

@@ -657,6 +657,20 @@ body.presenting #app-bg {
   box-shadow: 0 1px 4px rgba(245,166,35,0.15);
   transition-duration: 0.08s;
 }
+.apply-btn.golden-btn {
+  background: linear-gradient(160deg, #fff8c0 0%, #f5d060 20%, #d4a017 45%, #9b6f00 75%, #c89a20 100%);
+  color: #1a1208;
+  box-shadow: 0 2px 12px rgba(212,160,23,0.35);
+}
+.apply-btn.golden-btn:hover {
+  background: linear-gradient(160deg, #c89a20 0%, #fff2b0 35%, #d4a017 65%, #9b6f00 100%);
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: 0 6px 22px rgba(212,160,23,0.45);
+}
+
+#remote-modal-card {
+  box-shadow: 0 20px 40px rgba(0,0,0,0.45);
+}
 
 /* ── SIMPLE SLIDE EDITOR ── */
 #simple-editor {
@@ -1390,6 +1404,16 @@ select.bp-select.tamil { font-family: 'Noto Serif Tamil', serif; font-size: 13px
   border-color: var(--accent);
   color: var(--accent);
   box-shadow: 0 4px 15px rgba(245,166,35,0.15);
+}
+.bp-btn.golden-btn {
+  border-color: rgba(212,160,23,0.5);
+  color: #f5d060;
+  background: linear-gradient(160deg, rgba(255,248,192,0.12) 0%, rgba(212,160,23,0.18) 70%);
+}
+.bp-btn.golden-btn:hover {
+  border-color: rgba(212,160,23,0.9);
+  color: #fff2b0;
+  box-shadow: 0 6px 20px rgba(212,160,23,0.25);
 }
 
 .bp-btn.listen-btn {

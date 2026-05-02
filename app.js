@@ -449,6 +449,80 @@ window.addEventListener('resize', autoFit);
 <\/body><\/html>`;
 }
 
+function createGoldenVasanamHtml(verseText, verseRef) {
+  const refHtml = verseRef ? `<div class="gold-ref">— ${verseRef}</div>` : '';
+  return `<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Golden Elegance</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%; height: 100%;
+    }
+
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(ellipse 120% 120% at 50% 50%, #2a1f0a 0%, #1a1208 40%, #0d0a05 100%);
+      min-height: 100vh;
+      font-family: 'Cinzel', serif;
+    }
+
+    h1 {
+      font-family: 'Cinzel', serif;
+      font-weight: 900;
+      font-size: clamp(2.5rem, 8vw, 5.5rem);
+      letter-spacing: .06em;
+      background: linear-gradient(
+        160deg,
+        #fff8c0 0%,
+        #f5d060 18%,
+        #d4a017 45%,
+        #9b6f00 72%,
+        #c89a20 100%
+      );
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      -webkit-text-stroke: 0.5px #d4a01722;
+      filter: drop-shadow(0 0 22px #b8860b66);
+      animation: glow 4s ease-in-out infinite;
+      user-select: none;
+      text-align: center;
+      padding: 0 6vw;
+      line-height: 1.2;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .gold-ref {
+      margin-top: 1.6vh;
+      font-size: clamp(1rem, 2.2vw, 1.6rem);
+      letter-spacing: .08em;
+      color: #f5d060;
+      text-shadow: 0 0 16px rgba(212,160,23,0.55);
+    }
+
+    @keyframes glow {
+      0%, 100% { filter: drop-shadow(0 0 14px #b8860b55); }
+      50%       { filter: drop-shadow(0 0 36px #d4a017aa); }
+    }
+  </style>
+</head>
+<body>
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;">
+    <h1>${verseText}</h1>
+    ${refHtml}
+  </div>
+</body>
+</html>`;
+}
+
 // ── ANIME (Static dark navy gradient) version of Vasanam slide ──
 function createAnimeVasanamHtml(verseText, verseRef, startFlipped = false) {
   const flippedClass = startFlipped ? ' flipped' : '';
@@ -1538,6 +1612,19 @@ function addVasanamSlide() {
   if (!text) { alert('வசன உரை தேவை!'); return; }
   const id = Date.now() + Math.random();
   const slide = { id, type: 'html', name: ref || 'வசனம்', html: createVasanamHtml(text, ref, bg, col, fs), _rev: 0 };
+  slides.splice(currentIdx + 1, 0, slide);
+  currentIdx = currentIdx + 1;
+  closeVasanamModal();
+  renderAll(); renderPreview(); renderEditor();
+  scheduleSave();
+}
+
+function addGoldenVasanamSlide() {
+  const text = document.getElementById('vs-text').value.trim();
+  const ref  = document.getElementById('vs-ref').value.trim();
+  if (!text) { alert('வசன உரை தேவை!'); return; }
+  const id = Date.now() + Math.random();
+  const slide = { id, type: 'html', name: ref || 'வசனம்', html: createGoldenVasanamHtml(text, ref), _rev: 0 };
   slides.splice(currentIdx + 1, 0, slide);
   currentIdx = currentIdx + 1;
   closeVasanamModal();
@@ -2821,6 +2908,44 @@ function bpAddAsSlide() {
   inp.focus(); inp.select();
 }
 
+function bpAddAsGoldenSlide() {
+  if (!_bpBook || !_bpChapter) { showToast('வசனம் தேர்ந்தெடுக்கவும்', 'error'); return; }
+  const textEl = document.getElementById('bp-preview-text');
+  const refEl = document.getElementById('bp-preview-ref');
+  const verseText = textEl ? textEl.textContent.trim() : '';
+  const ref = refEl ? refEl.textContent.trim() : '';
+  if (!verseText) { showToast('Bible content not loaded yet — add verses first', 'error'); return; }
+  const html = createGoldenVasanamHtml(verseText, ref);
+  const slide = {
+    id: Date.now() + Math.random(),
+    type: 'html',
+    name: ref || 'வசனம்',
+    html,
+    bibleBook: _bpBook,
+    bibleChapter: _bpChapter,
+    bibleVerse: _bpVerse
+  };
+  if (!slides.length) {
+    slides.push(slide);
+    currentIdx = 0;
+    renderAll(); renderPreview(); renderEditor();
+    scheduleSave();
+    showToast(`✓ Slide added: ${ref || 'வசனம்'}`, 'success');
+    return;
+  }
+  _pendingSlide = slide;
+  _pendingSlideType = null;
+  const defaultPos = currentIdx + 2;
+  const inp = document.getElementById('insert-position');
+  inp.value = defaultPos;
+  inp.max = slides.length + 1;
+  document.getElementById('insert-modal-info').textContent =
+    `Current: slide ${currentIdx + 1} of ${slides.length}. Enter 1–${slides.length + 1}:`;
+  const modal = document.getElementById('insert-modal');
+  modal.style.display = 'flex';
+  inp.focus(); inp.select();
+}
+
 // ══════════════════════════════════════════════════
 //  SONG BOOK PANEL
 // ══════════════════════════════════════════════════
@@ -3477,25 +3602,28 @@ function spHistoryPreview() {
   showToast(`History selected: ${count} slide${count === 1 ? '' : 's'}`, 'info', 1200);
 }
 
-function spLogCurrentQueue() {
+function spLogQueueSnapshot(queueItems, opts) {
+  const options = opts && typeof opts === 'object' ? opts : {};
+  const silent = options.silent === true;
   if (_spFsEditorMode === 'new') {
-    showToast('History log works only for saved songs', 'error');
-    return;
+    if (!silent) showToast('History log works only for saved songs', 'error');
+    return false;
   }
   if (_spSongId === null || !songContent[_spSongId]) {
-    showToast('Select a saved song first', 'error');
-    return;
+    if (!silent) showToast('Select a saved song first', 'error');
+    return false;
   }
-  if (_spQueue.length === 0) {
-    showToast('Queue is empty', 'error');
-    return;
+  const sourceQueue = Array.isArray(queueItems) ? queueItems : [];
+  if (sourceQueue.length === 0) {
+    if (!silent) showToast('Queue is empty', 'error');
+    return false;
   }
 
   spEnsureHistoryLoaded();
   const key = String(_spSongId);
   const history = spGetSongHistory(_spSongId);
   const now = Date.now();
-  const newQueue = spCloneQueueItems(_spQueue);
+  const newQueue = spCloneQueueItems(sourceQueue);
   const fp = spBuildQueueFingerprint(newQueue);
   const existingIdx = history.findIndex(entry => spBuildQueueFingerprint(entry.queue) === fp);
 
@@ -3510,9 +3638,11 @@ function spLogCurrentQueue() {
     _spHistoryBySong[key] = history;
     spPersistHistory();
     spRenderHistoryForCurrentSong();
-    document.getElementById('sp-history-select').value = existing.id;
-    showToast('Updated existing queue history', 'success');
-    return;
+    if (!silent) {
+      document.getElementById('sp-history-select').value = existing.id;
+      showToast('Updated existing queue history', 'success');
+    }
+    return true;
   }
 
   const entry = {
@@ -3525,8 +3655,15 @@ function spLogCurrentQueue() {
   _spHistoryBySong[key] = history;
   spPersistHistory();
   spRenderHistoryForCurrentSong();
-  document.getElementById('sp-history-select').value = entry.id;
-  showToast('Queue history logged', 'success');
+  if (!silent) {
+    document.getElementById('sp-history-select').value = entry.id;
+    showToast('Queue history logged', 'success');
+  }
+  return true;
+}
+
+function spLogCurrentQueue() {
+  spLogQueueSnapshot(_spQueue, { silent: false });
 }
 
 function spApplySelectedHistory() {
@@ -3846,6 +3983,7 @@ function spCommitQueueToMain(queueItems, clearCurrentQueue = true) {
   currentIdx = slides.length - 1;
   renderAll(); renderPreview(); renderEditor();
   scheduleSave();
+  spLogQueueSnapshot(sourceQueue, { silent: true });
   const count = sourceQueue.length;
   if (clearCurrentQueue) {
     _spQueue = [];
@@ -3863,6 +4001,8 @@ function spCommitAllToMain() {
 //  PRESENT MODE
 // ══════════════════════════════════════════════════
 let _wakeLock = null;
+let _remoteUrlCache = '';
+let _remoteModalShown = false;
 
 async function acquireWakeLock() {
   if ('wakeLock' in navigator) {
@@ -3902,6 +4042,60 @@ function startPresent() {
   suspendPreviewFrame();
   renderPresentBookmarks();
   acquireWakeLock();
+  showRemoteModalOnce();
+}
+
+async function fetchRemoteUrl() {
+  if (_remoteUrlCache) return _remoteUrlCache;
+  try {
+    const res = await fetch(_remoteBaseUrl + '/ip', { cache: 'no-store' });
+    if (!res.ok) throw new Error('bad');
+    const data = await res.json();
+    const ip = data && data.ip ? String(data.ip) : '';
+    if (ip) {
+      _remoteUrlCache = 'http://' + ip + ':5500/remote.html';
+      return _remoteUrlCache;
+    }
+  } catch (_) {
+    // Ignore and fall back to hostname.
+  }
+  const host = location.hostname || '127.0.0.1';
+  _remoteUrlCache = 'http://' + host + ':5500/remote.html';
+  return _remoteUrlCache;
+}
+
+async function showRemoteModalOnce() {
+  if (_remoteModalShown) return;
+  _remoteModalShown = true;
+  const modal = document.getElementById('remote-modal');
+  const urlEl = document.getElementById('remote-modal-url');
+  const qrEl = document.getElementById('remote-modal-qr');
+  const statusEl = document.getElementById('remote-modal-status');
+  if (!modal || !urlEl) return;
+  const url = await fetchRemoteUrl();
+  urlEl.textContent = url;
+  if (qrEl) {
+    const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + encodeURIComponent(url);
+    qrEl.src = qrUrl;
+    qrEl.alt = 'Remote QR';
+  }
+  if (statusEl) statusEl.textContent = 'Scan QR or open URL on phone';
+  modal.style.display = 'flex';
+}
+
+function closeRemoteModal() {
+  const modal = document.getElementById('remote-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+async function copyRemoteUrl() {
+  const url = _remoteUrlCache || await fetchRemoteUrl();
+  try {
+    await navigator.clipboard.writeText(url);
+    showToast('Remote URL copied', 'success', 1500);
+  } catch (_) {
+    showToast('Copy failed. Long-press to copy.', 'error', 1600);
+  }
 }
 
 function getPresentHtml(idx) {
@@ -3979,6 +4173,7 @@ function showPresentSlide() {
   }
 
   renderPresentBookmarks();
+  markRemoteStateDirty();
 }
 
 function renderPresentBookmarks() {
@@ -4013,6 +4208,7 @@ function renderPresentBookmarks() {
     btn.addEventListener('click', () => presentJumpTo(idx));
     listEl.appendChild(btn);
   });
+  markRemoteStateDirty();
 }
 
 function presentJumpTo(idx) {
@@ -4092,6 +4288,17 @@ function ensurePresentIndex() {
   }
   presentIdx = Math.max(0, Math.min(presentIdx, slides.length - 1));
   return true;
+}
+
+function presentNavImmediate(dir) {
+  if (!ensurePresentIndex()) return;
+  const target = presentIdx + dir;
+  if (target < 0 || target >= slides.length) return;
+  presentIdx = target;
+  _presentNavQueued = null;
+  clearTimeout(_presentNavTimer);
+  showPresentSlide();
+  updateBackBtn();
 }
 
 function presentNav(dir) {
@@ -4327,6 +4534,168 @@ document.addEventListener('keydown', handlePresentHotkeys, true);
 
   presentFrame._hotkeyBridgeAdded = true;
 })();
+
+let _remotePollTimer = null;
+let _remotePollBusy = false;
+const _remoteBaseUrl = 'http://' + (location.hostname || '127.0.0.1') + ':8788';
+let _remoteStateTimer = null;
+let _remoteStateBusy = false;
+let _remoteStateDirty = true;
+let _remoteStateLastSent = 0;
+
+function handleRemoteCommand(cmd, arg) {
+  const clean = String(cmd || '').toLowerCase();
+  const overlay = document.getElementById('present-overlay');
+  const isPresenting = overlay && overlay.classList.contains('active');
+  const needsPresent = (clean === 'next' || clean === 'prev' || clean === 'back' || clean === 'goto');
+
+  if (clean === 'start') { startPresent(); return; }
+  if (clean === 'exit') { exitPresent(); return; }
+  if (clean === 'open_bible') { openCurrentSlideInBible(); return; }
+  if (clean === 'clap') { showClapGraphics(); return; }
+  if (clean === 'amen') { showAmenGraphics(); return; }
+  if (clean === 'fireworks') { showFireworksGraphics(); return; }
+  if (needsPresent && !isPresenting) { startPresent(); }
+  if (clean === 'next') { presentNavImmediate(1); return; }
+  if (clean === 'prev') { presentNavImmediate(-1); return; }
+  if (clean === 'back') { presentGoBack(); return; }
+  if (clean === 'goto') { goToSlide(String(arg || '')); return; }
+}
+
+async function pollRemoteOnce() {
+  if (_remotePollBusy) return;
+  _remotePollBusy = true;
+  try {
+    const res = await fetch(_remoteBaseUrl + '/poll', { cache: 'no-store' });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data && Array.isArray(data.cmds)) {
+      data.cmds.forEach(item => {
+        if (item && item.cmd) handleRemoteCommand(item.cmd, item.arg);
+      });
+    } else if (data && data.cmd) {
+      handleRemoteCommand(data.cmd, data.arg);
+    }
+  } catch (_) {
+    // Ignore if remote server is not running.
+  } finally {
+    _remotePollBusy = false;
+  }
+}
+
+function startRemotePolling() {
+  if (_remotePollTimer) return;
+  _remotePollTimer = setInterval(pollRemoteOnce, 150);
+  pollRemoteOnce();
+}
+
+startRemotePolling();
+
+setInterval(() => {
+  if (slides.length) markRemoteStateDirty();
+}, 1500);
+
+function buildRemoteState() {
+  const htmlToText = (html) => {
+    const raw = String(html || '');
+    const noScript = raw.replace(/<script[\s\S]*?<\/script>/gi, ' ');
+    const noStyle = noScript.replace(/<style[\s\S]*?<\/style>/gi, ' ');
+    const noTags = noStyle.replace(/<[^>]+>/g, ' ');
+    return noTags
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
+  const makeSummary = (slide, index) => {
+    if (!slide) return null;
+    const baseName = slide.name || '';
+    const label = baseName || (slide.title || ('Slide ' + index));
+    let snippet = '';
+    if (slide.type === 'simple') {
+      const body = String(slide.body || '').replace(/\s+/g, ' ').trim();
+      snippet = body.slice(0, 120);
+    }
+    return {
+      index,
+      name: label,
+      snippet
+    };
+  };
+
+  const activeIndex = Number.isInteger(presentIdx) ? (presentIdx + 1) : (currentIdx + 1);
+  const prevSlide = makeSummary(slides[activeIndex - 2], activeIndex - 1);
+  const currSlide = makeSummary(slides[activeIndex - 1], activeIndex);
+  const nextSlide = makeSummary(slides[activeIndex], activeIndex + 1);
+
+  const list = [];
+  for (let i = 0; i < slides.length; i++) {
+    const s = slides[i];
+    if (s && s.bookmarked) {
+      list.push({
+        index: i + 1,
+        name: s.name || ('Slide ' + (i + 1))
+      });
+    }
+  }
+  const slidesList = slides.map((s, i) => {
+    const name = (s && s.name) ? s.name : '';
+    const title = (s && s.type === 'simple' && s.title) ? s.title : '';
+    const label = name || title || ('Slide ' + (i + 1));
+    let snippet = '';
+    if (s && s.type === 'simple') {
+      const body = String(s.body || '').replace(/\s+/g, ' ').trim();
+      snippet = body.slice(0, 120);
+    } else if (s && s.type === 'html') {
+      const text = htmlToText(s.html || '');
+      snippet = text.slice(0, 120);
+    }
+    return { index: i + 1, name: label, snippet };
+  });
+  return {
+    bookmarks: list,
+    slides: slidesList,
+    current: activeIndex,
+    total: slides.length,
+    prev: prevSlide,
+    now: currSlide,
+    next: nextSlide,
+    updatedAt: Date.now()
+  };
+}
+
+async function pushRemoteState() {
+  if (_remoteStateBusy) return;
+  const now = Date.now();
+  if (!_remoteStateDirty && now - _remoteStateLastSent < 800) return;
+  _remoteStateBusy = true;
+  _remoteStateDirty = false;
+  try {
+    const payload = buildRemoteState();
+    await fetch(_remoteBaseUrl + '/state', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    _remoteStateLastSent = Date.now();
+  } catch (_) {
+    // Ignore if remote server is not running.
+  } finally {
+    _remoteStateBusy = false;
+  }
+}
+
+function markRemoteStateDirty() {
+  _remoteStateDirty = true;
+  if (!_remoteStateTimer) {
+    _remoteStateTimer = setInterval(pushRemoteState, 700);
+  }
+  pushRemoteState();
+}
 
 // ══════════════════════════════════════════════════
 //  MOTIVATIONAL AMEN GRAPHICS (HOLY FIRE EFFECT)

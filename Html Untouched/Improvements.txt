@@ -1,3 +1,12 @@
 vasanum title in the top
 
-when add songs to main slide auto save in the log.
+when add songs to main slide auto save in the log. -> done
+
+Remote Control + Mobile Viewer: a phone controller for next/prev, black screen, jump‑to, and a separate low‑latency “viewer” mode for TVs or overflow rooms.
+
+one toggle to disable remote control
+
+make phone ui beautiful
+
+implement almost all the navigation features, without the adding stuff.
+
