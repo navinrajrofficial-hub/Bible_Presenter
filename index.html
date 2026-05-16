@@ -38,6 +38,7 @@
   <button class="import-btn" onclick="triggerImport()" title="Import slides from a .prsn file">⬆ Import</button>
   <div class="tb-sep"></div>
   <button class="primary" onclick="startPresent()">▶ Present</button>
+  <button id="voice-btn" class="voice-btn" onclick="toggleVoiceControl()" title="Voice control (offline)">🎤 Voice</button>
   <button id="btn-bible-panel" class="bible-btn" onclick="toggleBiblePanel()">📖 பரிசுத்த வேதாகமம்</button>
   <button id="btn-song-panel" class="song-btn" onclick="toggleSongPanel()">🎵 பாடல் புத்தகம்</button>
   <button class="shortcuts-btn" onclick="openShortcutsModal()" title="View Keyboard Shortcuts">⌨ Shortcuts</button>
@@ -51,6 +52,10 @@
 <div id="footer-bar"><span class="footer-icon">✨</span> <span id="footer-church">'நல்ல சமாரியன் இயேசு ஜெப வீடு'</span> சபைக்காக சிறப்பாக வடிவமைக்கப்பட்டது</div>
 
 <!-- MAIN -->
+<!-- Voice Status Bar Overlay (hidden by default) -->
+<div id="voice-status-bar" style="display: none; background: #333; color: #fff; padding: 5px 15px; text-align: center; font-size: 14px; border-bottom: 2px solid #d33cff; z-index: 10;">
+  🎙️ <strong>Listening:</strong> <span id="voice-transcript-text">Waiting for speech...</span>
+</div>
 <div id="main">
 
   <!-- SLIDE LIST -->
@@ -339,7 +344,16 @@
         <span id="sp-picker-arrow">▼</span>
       </div>
       <div id="sp-picker-body">
-        <input type="text" class="sp-search" id="sp-search" placeholder="பாடல் பெயர் / எண் தேடுக..." oninput="spOnSearch()">
+        <div class="sp-search-row">
+          <input type="text" class="sp-search" id="sp-search" placeholder="பாடல் பெயர் / எண் தேடுக..." oninput="spOnSearch()">
+          <button type="button" id="sp-tamil-btn" title="Tamil letters" onclick="spToggleTamilKeys()">
+            <span class="sp-tamil-icon">கீ</span>
+            <span class="sp-tamil-label">தமிழ்</span>
+          </button>
+        </div>
+        <div id="sp-tamil-keys" aria-label="Tamil letters" style="display:none;">
+          <div id="sp-tamil-combos" style="display:none;"></div>
+        </div>
         <select class="sp-select tamil" id="sp-song" size="6" onchange="spOnSongChange()">
         </select>
       </div>
@@ -356,7 +370,22 @@
   <div id="song-panel-footer">
     <button class="sp-btn new-song-btn" onclick="spOpenNewSongEditor()">➕ New Song</button>
     <button class="sp-btn present-btn" onclick="spShowFullscreen()">▶ Show Fullscreen</button>
+    <button class="sp-btn quick-btn" onclick="spOpenQuickSlideModal()" title="Paste lyrics and present as temp slides">⚡ Quick Slide</button>
     <button class="sp-btn add-btn" onclick="spAddAsSlide()">✦ Add as Slide</button>
+  </div>
+</div>
+
+<!-- QUICK SLIDE MODAL -->
+<div id="sp-quick-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:10000;align-items:center;justify-content:center;">
+  <div style="background:#18181b;border:1px solid #2a2a2e;border-radius:10px;width:420px;max-width:95vw;padding:20px;display:flex;flex-direction:column;gap:12px;">
+    <div style="font-family:'Playfair Display',serif;font-size:15px;color:#fde047;letter-spacing:0.04em;">⚡ Quick Slide</div>
+    <div style="font-size:11px;color:#6b6b75;line-height:1.4;">Paste lyrics below. Use a blank line between verses. Each verse becomes one temp slide.</div>
+    <input id="sp-quick-title" class="field-input" type="text" placeholder="Song title (optional)">
+    <textarea id="sp-quick-lyrics" class="field-input" rows="8" placeholder="Paste lyrics here..." style="resize:vertical;line-height:1.5;"></textarea>
+    <div style="display:flex;gap:10px;">
+      <button class="apply-btn" style="flex:1;background:#fde047;color:#000;" onclick="spRunQuickSlideModal()">▶ Show Temp Slides</button>
+      <button onclick="spCloseQuickSlideModal()" style="flex:1;background:none;border:1px solid #2a2a2e;color:#6b6b75;font-family:'DM Mono',monospace;font-size:11px;padding:8px;border-radius:4px;cursor:pointer;">Cancel</button>
+    </div>
   </div>
 </div>
 
@@ -408,8 +437,11 @@
         <label class="sp-fs-db-label" for="sp-db-artist">Artist (optional)</label>
         <input id="sp-db-artist" class="sp-fs-db-input" type="text" placeholder="Artist">
       </div>
-      <div class="sp-fs-db-row">
-        <label class="sp-fs-db-label" for="sp-db-content">Lyrics</label>
+      <div class="sp-fs-db-row sp-fs-collapsible" id="sp-db-content-row">
+        <div class="sp-fs-label-row">
+          <label class="sp-fs-db-label" for="sp-db-content">Lyrics</label>
+          <button type="button" class="sp-fs-collapse-btn" onclick="spToggleFsSection('sp-db-content-row', this)" title="Toggle Lyrics">-</button>
+        </div>
         <textarea id="sp-db-content" class="sp-fs-db-ta tamil" placeholder="Song lyrics..."></textarea>
       </div>
     </div>
@@ -419,12 +451,18 @@
       <button onclick="spAutoGenerateQueue()" style="font-size:9px; font-weight:bold; padding:2px 6px; background:#ffd700; color:#000; border:none; border-radius:3px; cursor:pointer;" title="Generate Sequence: Main > Sub > Stanza > Sub > Main">⚡ Auto Build</button>
     </div>
     <div id="sp-fs-chorus-custom">
-      <div class="sp-fs-chorus-block">
-        <label for="sp-custom-main">Main Chorus (optional custom text)</label>
+      <div class="sp-fs-chorus-block sp-fs-collapsible" id="sp-chorus-main-row">
+        <div class="sp-fs-label-row">
+          <label for="sp-custom-main">Main Chorus (optional custom text)</label>
+          <button type="button" class="sp-fs-collapse-btn" onclick="spToggleFsSection('sp-chorus-main-row', this)" title="Toggle Main Chorus">-</button>
+        </div>
         <textarea id="sp-custom-main" class="sp-fs-chorus-ta tamil" placeholder="Type custom main chorus (optional). If filled, Auto Build uses this instead of M selection."></textarea>
       </div>
-      <div class="sp-fs-chorus-block">
-        <label for="sp-custom-sub">Sub Chorus (optional custom text)</label>
+      <div class="sp-fs-chorus-block sp-fs-collapsible" id="sp-chorus-sub-row">
+        <div class="sp-fs-label-row">
+          <label for="sp-custom-sub">Sub Chorus (optional custom text)</label>
+          <button type="button" class="sp-fs-collapse-btn" onclick="spToggleFsSection('sp-chorus-sub-row', this)" title="Toggle Sub Chorus">-</button>
+        </div>
         <textarea id="sp-custom-sub" class="sp-fs-chorus-ta tamil" placeholder="Type custom sub chorus (optional). If filled, Auto Build uses this instead of m selection."></textarea>
       </div>
     </div>
@@ -438,7 +476,7 @@
         <div class="sp-fs-history-label">HISTORY LOG</div>
         <div class="sp-fs-history-row">
           <select id="sp-history-select" class="sp-fs-history-select" onchange="spHistoryPreview()">
-            <option value="">No logged history for this song</option>
+            <option value="">No log found for this song</option>
           </select>
           <button id="sp-history-save-btn" onclick="spLogCurrentQueue()" title="Save current queue as history">Log</button>
           <button id="sp-history-load-btn" onclick="spApplySelectedHistory()" title="Load selected history to queue">Load</button>
@@ -448,6 +486,7 @@
       </div>
       <div id="sp-fs-present-controls">
         <button id="sp-fs-commit-btn" onclick="spCommitAllToMain()">✦ Add All to Main Slides</button>
+        <button id="sp-fs-quick-btn" onclick="spQuickTempSlides()" title="Present lyrics split by blank lines without adding to main slides">⚡ Quick Slide</button>
         <button id="sp-fs-temp-btn" onclick="spShowTempSlides()" title="Present without adding to main slides">▶ Temp Slide</button>
       </div>
       <button id="sp-fs-update-song-btn" onclick="spUpdateExistingSong()" style="display: none; background: #3b82f6; color: #fff; width: 100%; border-radius: 6px; padding: 12px 10px; border: none; font-weight: 700; font-family: 'DM Mono', monospace; cursor: pointer; letter-spacing: 0.04em;">📝 Update Song in Database</button>

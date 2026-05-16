@@ -10,6 +10,17 @@ let activeTab = 'html';
 let saveTimer = null;
 let _tempBackupSlides = null;
 let _tempBackupIdx = -1;
+let _voiceActive = false;
+let _voiceBusy = false;
+let _voiceAudioCtx = null;
+let _voiceSource = null;
+let _voiceProcessor = null;
+let _voiceSamples = [];
+let _voiceTimer = null;
+let _voiceIndex = [];
+const _voiceSampleRate = 16000;
+const _voiceChunkMs = 3200;
+const _voiceServerUrl = 'http://localhost:8123/transcribe';
 
 // ── LAZY THUMBNAIL LOADER ──
 // Only renders an iframe's srcdoc when the thumbnail scrolls into view.
@@ -204,7 +215,11 @@ function doExport() {
     subset = slides.slice(from - 1, Math.min(to, slides.length));
   }
   if (!subset.length) { showToast('No slides in selected range!', 'error'); return; }
-  const payload = JSON.stringify({ version: 1, slides: subset }, null, 2);
+  const bookmarks = [];
+  subset.forEach((s, i) => {
+    if (s && s.bookmarked) bookmarks.push(i + 1);
+  });
+  const payload = JSON.stringify({ version: 1, slides: subset, bookmarks }, null, 2);
   const blob = new Blob([payload], { type: 'application/json' });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
@@ -240,10 +255,21 @@ function processImport(text, fileName) {
   try {
     const data = JSON.parse(text);
     let imported = [];
+    const applyBookmarks = (slidesArr, bookmarksArr) => {
+      if (!Array.isArray(bookmarksArr)) return;
+      slidesArr.forEach(s => { if (s) s.bookmarked = false; });
+      bookmarksArr.forEach(raw => {
+        const idx = parseInt(raw, 10);
+        if (!Number.isNaN(idx) && idx >= 1 && idx <= slidesArr.length) {
+          slidesArr[idx - 1].bookmarked = true;
+        }
+      });
+    };
     if (Array.isArray(data)) {
       imported = normalizeSlides(data);
     } else if (data && Array.isArray(data.slides)) {
       imported = normalizeSlides(data.slides);
+      applyBookmarks(imported, data.bookmarks);
     } else {
       throw new Error('Unrecognized file format');
     }
@@ -1061,6 +1087,224 @@ function renderAll() {
     slides.length ? `${currentIdx + 1} / ${slides.length}` : '— / —';
 
   renderPresentBookmarks();
+  buildVoiceIndex();
+}
+
+function buildVoiceIndex() {
+  _voiceIndex = slides.map((s, idx) => {
+    return { idx, text: normalizeVoiceText(extractSlideText(s)) };
+  });
+}
+
+function extractSlideText(slide) {
+  if (!slide) return '';
+  if (slide.type === 'simple') {
+    const t = slide.title || '';
+    const b = slide.body || '';
+    return `${t}\n${b}`;
+  }
+  if (slide.type === 'media') {
+    return slide.name || '';
+  }
+  const html = slide.html || '';
+  return html.replace(/<[^>]*>/g, ' ');
+}
+
+function normalizeVoiceText(text) {
+  return String(text || '')
+    .toLowerCase()
+    .replace(/[\u200c\u200d]/g, '')
+    .replace(/[^\p{L}\p{N}\s]+/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function voiceMatchSlide(transcript) {
+  const norm = normalizeVoiceText(transcript);
+  if (!norm) return null;
+  const tokens = norm.split(' ').filter(Boolean);
+  let best = null;
+  let bestScore = 0;
+  _voiceIndex.forEach(entry => {
+    if (!entry.text) return;
+    const score = voiceSimilarity(tokens, entry.text);
+    if (score > bestScore) {
+      bestScore = score;
+      best = entry.idx;
+    }
+  });
+  if (best === null) return null;
+  return { idx: best, score: bestScore };
+}
+
+function voiceSimilarity(tokens, slideText) {
+  const slideTokens = slideText.split(' ').filter(Boolean);
+  if (slideTokens.length === 0) return 0;
+  let hits = 0;
+  const slideSet = new Set(slideTokens);
+  tokens.forEach(t => { if (slideSet.has(t)) hits++; });
+  return hits / Math.max(tokens.length, 1);
+}
+
+async function toggleVoiceControl() {
+  if (_voiceActive) {
+    stopVoiceControl();
+  } else {
+    await startVoiceControl();
+  }
+}
+
+async function startVoiceControl() {
+  if (_voiceActive) return;
+  if (location.protocol === 'file:') {
+    showToast('Open app via http://localhost (mic blocked on file://)', 'error');
+    return;
+  }
+  try {
+    await fetch(_voiceServerUrl + '?ping=1', { method: 'GET' });
+  } catch (_) {
+    showToast('Voice server not running (start start_voice_control.bat)', 'error');
+    return;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    _voiceAudioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: _voiceSampleRate });
+    if (_voiceAudioCtx.state === 'suspended') {
+      await _voiceAudioCtx.resume();
+    }
+    _voiceSource = _voiceAudioCtx.createMediaStreamSource(stream);
+    _voiceProcessor = _voiceAudioCtx.createScriptProcessor(4096, 1, 1);
+    _voiceSamples = [];
+    _voiceProcessor.onaudioprocess = (ev) => {
+      if (!_voiceActive) return;
+      const input = ev.inputBuffer.getChannelData(0);
+      _voiceSamples.push(new Float32Array(input));
+    };
+    _voiceSource.connect(_voiceProcessor);
+    _voiceProcessor.connect(_voiceAudioCtx.destination);
+    _voiceActive = true;
+    document.getElementById('voice-btn')?.classList.add('active');
+    
+    // Show status bar
+    const statusBar = document.getElementById('voice-status-bar');
+    if(statusBar) statusBar.style.display = 'block';
+    const transcriptEl = document.getElementById('voice-transcript-text');
+    if(transcriptEl) transcriptEl.innerText = 'Listening...';
+
+    scheduleVoiceChunk();
+    showToast('Voice control started', 'success');
+  } catch (e) {
+    showToast('Microphone permission denied', 'error');
+  }
+}
+
+function stopVoiceControl() {
+  _voiceActive = false;
+  if (_voiceTimer) { clearTimeout(_voiceTimer); _voiceTimer = null; }
+  if (_voiceProcessor) { _voiceProcessor.disconnect(); _voiceProcessor = null; }
+  if (_voiceSource) { _voiceSource.disconnect(); _voiceSource = null; }
+  if (_voiceAudioCtx) { _voiceAudioCtx.close(); _voiceAudioCtx = null; }
+  _voiceSamples = [];
+  document.getElementById('voice-btn')?.classList.remove('active');
+  const statusBar = document.getElementById('voice-status-bar');
+  if(statusBar) statusBar.style.display = 'none';
+  showToast('Voice control stopped', 'info');
+}
+
+function scheduleVoiceChunk() {
+  if (!_voiceActive) return;
+  _voiceTimer = setTimeout(async () => {
+    if (!_voiceActive || _voiceBusy) { scheduleVoiceChunk(); return; }
+    const wav = buildVoiceWav(_voiceSamples, _voiceSampleRate);
+    _voiceSamples = [];
+    if (wav && wav.size > 1024) {
+      _voiceBusy = true;
+      try {
+        const res = await fetch(_voiceServerUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'audio/wav' },
+          body: wav
+        });
+        if (!res.ok) {
+          const errText = await res.text();
+          console.error('Voice server error:', res.status, errText);
+          const transcriptEl = document.getElementById('voice-transcript-text');
+          if (transcriptEl) transcriptEl.innerText = 'Server Error: ' + errText;
+          return;
+        }
+        const data = await res.json();
+        
+        const transcriptEl = document.getElementById('voice-transcript-text');
+        
+        if (data && data.text) {
+          const transcript = String(data.text).trim();
+          if (transcript) {
+            console.log('Voice transcript:', transcript);
+            if(transcriptEl) transcriptEl.innerText = transcript;
+            
+            showToast('🎤 ' + transcript, 'info', 1200);
+          } else {
+            console.log('Voice processed but empty (silence or background noise)');
+            if(transcriptEl && transcriptEl.innerText.startsWith('Listening')) {
+               transcriptEl.innerText = '(Hearing silence...)';
+            }
+          }
+          const match = voiceMatchSlide(transcript);
+          if (match && match.score >= 0.2) {
+            const overlay = document.getElementById('present-overlay');
+            if (overlay && overlay.classList.contains('active') && !overlay.classList.contains('panel-fs')) {
+              presentJumpTo(match.idx);
+            } else {
+              selectSlide(match.idx);
+              document.querySelector(`#slide-list .thumb[data-idx="${match.idx}"]`)?.scrollIntoView({ block: 'nearest' });
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Voice loop error:', err);
+        const transcriptEl = document.getElementById('voice-transcript-text');
+        if (transcriptEl) transcriptEl.innerText = 'Network Error: Check Python server';
+      } finally {
+        _voiceBusy = false;
+      }
+    }
+    scheduleVoiceChunk();
+  }, _voiceChunkMs);
+}
+
+function buildVoiceWav(chunks, sampleRate) {
+  const length = chunks.reduce((sum, c) => sum + c.length, 0);
+  if (length === 0) return null;
+  const buffer = new Float32Array(length);
+  let offset = 0;
+  chunks.forEach(c => { buffer.set(c, offset); offset += c.length; });
+  const wavBuffer = encodeWav(buffer, sampleRate);
+  return new Blob([wavBuffer], { type: 'audio/wav' });
+}
+
+function encodeWav(samples, sampleRate) {
+  const buffer = new ArrayBuffer(44 + samples.length * 2);
+  const view = new DataView(buffer);
+  const writeString = (off, str) => { for (let i = 0; i < str.length; i++) view.setUint8(off + i, str.charCodeAt(i)); };
+  writeString(0, 'RIFF');
+  view.setUint32(4, 36 + samples.length * 2, true);
+  writeString(8, 'WAVE');
+  writeString(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  writeString(36, 'data');
+  view.setUint32(40, samples.length * 2, true);
+  let offset = 44;
+  for (let i = 0; i < samples.length; i++, offset += 2) {
+    let s = Math.max(-1, Math.min(1, samples[i]));
+    view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+  }
+  return buffer;
 }
 
 function moveSlide(idx, dir) {
@@ -2966,6 +3210,7 @@ let _spHistoryServerChecked = false;
   _spSongKeys = Object.keys(songContent).map(Number).sort((a, b) => a - b);
   _spFilteredKeys = _spSongKeys.slice();
   spPopulateList(_spFilteredKeys);
+  spRenderTamilKeys();
 
   // Try to sync song queue history from shared project file via SongSaver.
   spTryLoadHistoryFromServer();
@@ -2987,6 +3232,95 @@ let _spHistoryServerChecked = false;
     } catch (e) {}
   }, 300);
 })();
+
+function spRenderTamilKeys() {
+  const wrap = document.getElementById('sp-tamil-keys');
+  if (!wrap) return;
+  const combosWrap = document.getElementById('sp-tamil-combos');
+  const vowels = ['அ','ஆ','இ','ஈ','உ','ஊ','எ','ஏ','ஐ','ஒ','ஓ','ஔ','ஃ'];
+  const consonants = ['க','ங','ச','ஞ','ட','ண','த','ந','ப','ம','ய','ர','ல','வ','ழ','ள','ற','ன'];
+  const vowelMarks = ['','ா','ி','ீ','ு','ூ','ெ','ே','ை','ொ','ோ','ௌ','்'];
+  if (combosWrap) combosWrap.style.display = 'none';
+  const rows = [vowels, consonants];
+  wrap.innerHTML = '';
+  if (combosWrap) wrap.appendChild(combosWrap);
+  rows.forEach((row) => {
+    const rowEl = document.createElement('div');
+    rowEl.className = 'sp-tamil-row';
+    row.forEach((ch) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'sp-tamil-key';
+      btn.textContent = ch;
+      btn.addEventListener('click', () => {
+        if (consonants.includes(ch)) {
+          spShowTamilCombos(ch, vowelMarks);
+        } else {
+          spHideTamilCombos();
+          spInsertTamilChar(ch);
+        }
+      });
+      rowEl.appendChild(btn);
+    });
+    wrap.appendChild(rowEl);
+  });
+}
+
+function spToggleTamilKeys() {
+  const wrap = document.getElementById('sp-tamil-keys');
+  if (!wrap) return;
+  const willShow = wrap.style.display === 'none' || wrap.style.display === '';
+  wrap.style.display = willShow ? 'block' : 'none';
+  if (!willShow) spHideTamilCombos();
+  if (willShow) {
+    const input = document.getElementById('sp-search');
+    if (input) input.focus();
+  }
+}
+
+function spShowTamilCombos(base, marks) {
+  const wrap = document.getElementById('sp-tamil-combos');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  const row = document.createElement('div');
+  row.className = 'sp-tamil-row sp-tamil-combo-row';
+  marks.forEach((mark) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'sp-tamil-key';
+    const combo = base + mark;
+    btn.textContent = combo;
+    btn.addEventListener('click', () => {
+      spInsertTamilChar(combo);
+      spHideTamilCombos();
+    });
+    row.appendChild(btn);
+  });
+  wrap.appendChild(row);
+  wrap.style.display = 'block';
+}
+
+function spHideTamilCombos() {
+  const wrap = document.getElementById('sp-tamil-combos');
+  if (!wrap) return;
+  wrap.style.display = 'none';
+  wrap.innerHTML = '';
+}
+
+function spInsertTamilChar(ch) {
+  const input = document.getElementById('sp-search');
+  if (!input) return;
+  const start = typeof input.selectionStart === 'number' ? input.selectionStart : input.value.length;
+  const end = typeof input.selectionEnd === 'number' ? input.selectionEnd : input.value.length;
+  const before = input.value.slice(0, start);
+  const after = input.value.slice(end);
+  input.value = before + ch + after;
+  const pos = start + ch.length;
+  input.selectionStart = pos;
+  input.selectionEnd = pos;
+  input.focus();
+  spOnSearch();
+}
 
 function spPopulateList(keys) {
   const sel = document.getElementById('sp-song');
@@ -3198,6 +3532,63 @@ function spShowFullscreen() {
   spBindFsEditorLiveRefresh();
   _spPopulateVerses(song);
   spRenderHistoryForCurrentSong();
+  spSetFsDefaultCollapsed(true);
+}
+
+function spOpenQuickSlideModal() {
+  const modal = document.getElementById('sp-quick-modal');
+  if (!modal) return;
+  const titleEl = document.getElementById('sp-quick-title');
+  const lyricsEl = document.getElementById('sp-quick-lyrics');
+  if (titleEl) titleEl.value = '';
+  if (lyricsEl) lyricsEl.value = '';
+  modal.style.display = 'flex';
+  if (lyricsEl) lyricsEl.focus();
+}
+
+function spCloseQuickSlideModal() {
+  const modal = document.getElementById('sp-quick-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+function spRunQuickSlideModal() {
+  const lyricsEl = document.getElementById('sp-quick-lyrics');
+  if (!lyricsEl) { showToast('Lyrics not available', 'error'); return; }
+  const raw = String(lyricsEl.value || '').replace(/\r\n/g, '\n');
+  const verses = raw
+    .split(/\n\s*\n+/)
+    .map(v => v.trim())
+    .filter(v => v.length > 0);
+  if (verses.length === 0) {
+    showToast('No verses found. Separate verses with a blank line.', 'error');
+    return;
+  }
+  const titleEl = document.getElementById('sp-quick-title');
+  const songName = titleEl && titleEl.value ? String(titleEl.value).trim() : '';
+  spCloseQuickSlideModal();
+  spShowTempSlidesFromText(verses, songName || 'Quick Song');
+}
+
+function spToggleFsSection(rowId, btnEl) {
+  const row = document.getElementById(rowId);
+  if (!row) return;
+  const willCollapse = !row.classList.contains('sp-fs-collapsed');
+  spSetFsSectionCollapsed(row, willCollapse);
+  if (btnEl) btnEl.blur();
+}
+
+function spSetFsSectionCollapsed(rowEl, collapsed) {
+  if (!rowEl) return;
+  rowEl.classList.toggle('sp-fs-collapsed', collapsed);
+  const btn = rowEl.querySelector('.sp-fs-collapse-btn');
+  if (btn) btn.textContent = collapsed ? '+' : '-';
+}
+
+function spSetFsDefaultCollapsed(collapsed) {
+  ['sp-db-content-row', 'sp-chorus-main-row', 'sp-chorus-sub-row'].forEach(id => {
+    const row = document.getElementById(id);
+    if (row) spSetFsSectionCollapsed(row, collapsed);
+  });
 }
 
 function spBindFsEditorLiveRefresh() {
@@ -3357,6 +3748,7 @@ function spOpenNewSongEditor() {
   document.getElementById('sp-fs-verses').innerHTML = '<div class="sp-fs-empty">New song mode — enter lyrics and save as new</div>';
   _spRenderQueue();
   spClearHistoryUi('History is available after selecting a saved song');
+  spSetFsDefaultCollapsed(true);
 }
 
 function spSyncFsEditorFromCurrentSong() {
@@ -3561,7 +3953,7 @@ function spFormatHistoryLabel(entry) {
 function spClearHistoryUi(placeholderText) {
   const sel = document.getElementById('sp-history-select');
   if (!sel) return;
-  const msg = placeholderText || 'No logged history for this song';
+  const msg = placeholderText || 'No log found for this song';
   sel.innerHTML = `<option value="">${msg}</option>`;
   sel.value = '';
 }
@@ -3570,21 +3962,22 @@ function spRenderHistoryForCurrentSong() {
   const sel = document.getElementById('sp-history-select');
   if (!sel) return;
   if (_spSongId === null || !songContent[_spSongId]) {
-    spClearHistoryUi('No logged history for this song');
+    spClearHistoryUi('No log found for this song');
     return;
   }
   const history = spGetSongHistory(_spSongId);
   if (!history.length) {
-    spClearHistoryUi('No logged history for this song');
+    spClearHistoryUi('No log found for this song');
     return;
   }
-  sel.innerHTML = '<option value="">Select logged history</option>';
+  sel.innerHTML = '';
   history.forEach(entry => {
     const opt = document.createElement('option');
     opt.value = entry.id;
     opt.textContent = spFormatHistoryLabel(entry);
     sel.appendChild(opt);
   });
+  sel.value = String(history[0].id || '');
 }
 
 function spGetSelectedHistoryEntry() {
@@ -3628,6 +4021,7 @@ function spLogQueueSnapshot(queueItems, opts) {
   const existingIdx = history.findIndex(entry => spBuildQueueFingerprint(entry.queue) === fp);
 
   if (existingIdx >= 0) {
+    if (silent) return true;
     const existing = history[existingIdx];
     history.splice(existingIdx, 1);
     history.unshift({
@@ -3751,7 +4145,7 @@ function _spRenderVerseList(verses) {
       '<div class="sp-fs-verse-ctrls">' +
         '<div class="sp-tag-group"><input type="checkbox" id="sp-m-'+i+'" name="sp-auto-main" value="'+i+'" onclick="spToggleExclusiveTag(\'sp-auto-main\', this)"><label for="sp-m-'+i+'" class="lbl-m" title="Set as Main Chorus">M</label></div>' +
         '<div class="sp-tag-group"><input type="checkbox" id="sp-s-'+i+'" name="sp-auto-sub" value="'+i+'" onclick="spToggleExclusiveTag(\'sp-auto-sub\', this)"><label for="sp-s-'+i+'" class="lbl-s" title="Set as Mid/Sub Chorus">m</label></div>' +
-        '<input type="number" id="sp-stz-'+i+'" class="sp-ord-in" min="1" placeholder="#" title="Stanza Order">' +
+        '<input type="number" id="sp-stz-'+i+'" class="sp-ord-in" min="1" placeholder="#" title="Stanza Order" onwheel="event.preventDefault(); this.blur();">' +
         '<button class="sp-fs-verse-add" onclick="spQueueAdd(' + i + ')" title="Add to queue manually">➕</button>' +
       '</div>';
     container.appendChild(div);
@@ -4325,13 +4719,34 @@ function spShowTempSlides() {
   if (_spQueue.length === 0) { showToast('Queue is empty', 'error'); return; }
   const song = songContent[_spSongId];
   const songName = song ? song.title : 'Song';
+  const queueText = _spQueue.map(item => item.text);
+  spShowTempSlidesFromText(queueText, songName);
+}
+
+function spQuickTempSlides() {
+  const contentEl = document.getElementById('sp-db-content');
+  if (!contentEl) { showToast('Lyrics not available', 'error'); return; }
+  const raw = String(contentEl.value || '').replace(/\r\n/g, '\n');
+  const verses = _spSplitVerses(raw);
+  if (verses.length === 0) {
+    showToast('No verses found. Separate verses with a blank line.', 'error');
+    return;
+  }
+  const titleEl = document.getElementById('sp-db-title');
+  const song = songContent[_spSongId];
+  const songName = (titleEl && titleEl.value ? String(titleEl.value).trim() : '') || (song ? song.title : 'Song');
+  spShowTempSlidesFromText(verses, songName || 'Song');
+}
+
+function spShowTempSlidesFromText(textItems, songName) {
+  const source = Array.isArray(textItems) ? textItems : [];
+  if (source.length === 0) { showToast('No verses found', 'error'); return; }
   const songSlideBg = 'linear-gradient(180deg,#0b0f26 0%,#111936 52%,#1a2647 100%)';
-  
-  const tempSlides = [];
-  _spQueue.forEach((item, i) => {
-    const ref = songName + '  (Song #' + _spSongId + ')';
-    const html = createSongLyricSlideHtml(item.text, ref, songSlideBg, '#f8fafc');
-    tempSlides.push({ id: Date.now() + Math.random(), type: 'html', name: songName + ' - ' + (i + 1), html });
+  const refBase = _spSongId !== null ? (songName + '  (Song #' + _spSongId + ')') : (songName + '  (Quick Song)');
+
+  const tempSlides = source.map((text, i) => {
+    const html = createSongLyricSlideHtml(text, refBase, songSlideBg, '#f8fafc');
+    return { id: Date.now() + Math.random(), type: 'html', name: songName + ' - ' + (i + 1), html };
   });
 
   _tempBackupSlides = [...slides];
@@ -4343,7 +4758,6 @@ function spShowTempSlides() {
 
   const overlay = document.getElementById('present-overlay');
   overlay.classList.remove('panel-fs'); // hiding the song panel
-  
   startPresent();
 }
 

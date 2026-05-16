@@ -10,3 +10,8 @@ make phone ui beautiful
 
 implement almost all the navigation features, without the adding stuff.
 
+in the song ddl for history, if any history is there, that should prepopulate first in the ddl. we just need to click load.
+
+add bookmarks in the psrn file as well.
+currently only slides are being saved.
+
