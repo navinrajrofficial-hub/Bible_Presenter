@@ -42,6 +42,7 @@
   <button id="btn-bible-panel" class="bible-btn" onclick="toggleBiblePanel()">📖 பரிசுத்த வேதாகமம்</button>
   <button id="btn-song-panel" class="song-btn" onclick="toggleSongPanel()">🎵 பாடல் புத்தகம்</button>
   <button class="shortcuts-btn" onclick="openShortcutsModal()" title="View Keyboard Shortcuts">⌨ Shortcuts</button>
+  <button class="extract-btn" onclick="openExtractVersesModal()" title="Extract verses from image">🖼 Extract Verses</button>
   <button class="danger" onclick="deleteCurrentSlide()">✕ Delete</button>
   <button class="danger" style="background:#b91c1c;color:#fff;" onclick="openDeleteRangeModal()">✕ Delete Range</button>
   <div id="save-indicator">● saved</div>
@@ -283,6 +284,7 @@
     <div style="display:flex;gap:10px;margin-top:4px;">
       <button class="apply-btn" style="flex:1;" onclick="addVasanamSlide()">சேர்க்கவும் →</button>
       <button class="apply-btn golden-btn" style="flex:1;" onclick="addGoldenVasanamSlide()">Golden →</button>
+      <button class="apply-btn color-btn" style="flex:1;" onclick="addColorVasanamSlide()">Color →</button>
       <button onclick="closeVasanamModal()" style="flex:1;background:none;border:1px solid #2a2a2e;color:#6b6b75;font-family:'DM Mono',monospace;font-size:11px;padding:8px;border-radius:4px;cursor:pointer;">Cancel</button>
     </div>
   </div>
@@ -327,6 +329,7 @@
     <button class="bp-btn present-btn" onclick="bpShowFullscreen()">▶ Show Fullscreen</button>
     <button class="bp-btn add-btn" onclick="bpAddAsSlide()">✦ Add as Slide</button>
     <button class="bp-btn golden-btn" onclick="bpAddAsGoldenSlide()">✦ Add Golden Slide</button>
+    <button class="bp-btn color-btn" onclick="bpAddAsColorSlide()">✦ Add Color Slide</button>
   </div>
 </div>
 
@@ -575,6 +578,64 @@
   </div>
 </div>
 
+<!-- START: AI CHAT MODAL -->
+<div id="extract-verses-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:10000;align-items:center;justify-content:center;">
+  <div style="background:#18181b;border:1px solid #2a2a2e;border-radius:12px;width:500px;height:80vh;max-width:95vw;max-height:800px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,0.5);">
+    <!-- Header -->
+    <div style="padding:16px 20px;border-bottom:1px solid #2a2a2e;display:flex;justify-content:space-between;align-items:center;background:#1e1e22;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:20px;">✨</span>
+        <div>
+          <h3 style="margin:0;font-size:16px;color:#fff;font-weight:600;">AI Verse Assistant</h3>
+          <div style="color:#a1a1aa;font-size:12px;">Paste image (Ctrl+V) or text to extract verses</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <select id="ai-provider-select" style="background:#0f172a;border:1px solid #2a2a2e;color:#e5e7eb;font-size:11px;padding:6px 10px;border-radius:6px;cursor:pointer;">
+          <option value="gemini">Gemini</option>
+          <option value="openai">OpenAI</option>
+          <option value="groq">Groq</option>
+          <option value="openrouter">OpenRouter</option>
+        </select>
+        <button onclick="listAvailableModels()" style="background:#0f172a;border:1px solid #2a2a2e;color:#93c5fd;font-size:11px;padding:6px 10px;border-radius:6px;cursor:pointer;">List Models</button>
+        <button onclick="closeExtractVersesModal()" style="background:none;border:none;color:#a1a1aa;cursor:pointer;font-size:20px;padding:4px;line-height:1;">✕</button>
+      </div>
+    </div>
+    
+    <!-- Chat History / Messages -->
+    <div id="ai-chat-history" style="flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px;">
+      <!-- Welcome message -->
+      <div style="display:flex;gap:12px;align-items:flex-start;">
+        <div style="background:#2a2a2e;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">🤖</div>
+        <div style="background:#2a2a2e;padding:12px 16px;border-radius:2px 12px 12px 12px;color:#e4e4e7;font-size:14px;line-height:1.5;">
+          Hi! You can paste a screenshot directly here using <b>Ctrl+V</b>. <br><br>Alternatively, if you already extracted text from another AI, just paste the raw text below and hit send. I'll format it into a checklist for your main slides.
+        </div>
+      </div>
+    </div>
+    
+    <!-- Checklist Actions (Hidden by default, shown when verses are extrated) -->
+    <div id="ai-chat-actions" style="display:none;padding:12px 20px;border-top:1px solid #2a2a2e;background:#1e1e22;flex-direction:column;gap:10px;">
+      <div id="ai-chat-checklist" style="max-height:150px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;font-size:14px;"></div>
+      <button id="ai-add-verses-btn" onclick="addSelectedVersesToMain()" style="width:100%;background:#22c55e;color:#18181b;border:none;padding:10px;border-radius:6px;cursor:pointer;font-family:'DM Mono',monospace;font-weight:600;transition:0.2s;">Add Selected to Slides</button>
+    </div>
+
+    <!-- Input Area -->
+    <div style="padding:16px 20px;border-top:1px solid #2a2a2e;background:#1e1e22;display:flex;gap:10px;align-items:flex-end;">
+      <div style="flex:1;position:relative;background:#09090b;border:1px solid #3f3f46;border-radius:8px;padding:8px 12px;display:flex;flex-direction:column;gap:8px;">
+        <div id="ai-input-preview-container" style="display:none;position:relative;width:fit-content;">
+          <img id="ai-input-image-preview" style="height:60px;border-radius:4px;border:1px solid #3f3f46;" />
+          <button onclick="clearAIImage()" style="position:absolute;top:-6px;right:-6px;background:#ef4444;color:white;border:none;border-radius:50%;width:20px;height:20px;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+        </div>
+        <textarea id="ai-chat-input" placeholder="Paste image or text here (Ctrl+V)..." style="width:100%;background:none;border:none;color:#fff;resize:none;outline:none;font-family:inherit;font-size:14px;min-height:24px;max-height:120px;line-height:1.4;" rows="1" oninput="this.style.height='';this.style.height=this.scrollHeight+'px'"></textarea>
+      </div>
+      <button onclick="processAIInput()" style="background:#2563eb;color:#fff;border:none;width:40px;height:40px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:0.2s;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+      </button>
+    </div>
+  </div>
+</div>
+<!-- END: AI CHAT MODAL -->
+
 <div id="clap-graphic" style="display:none;position:fixed;inset:0;z-index:999999;pointer-events:none;overflow:hidden;perspective:1000px;">
 </div>
 
@@ -587,6 +648,8 @@
 <div id="transition-veil"></div>
 <div id="toast"></div>
 
+<script src="ai_config.js"></script>
+<script src="ai_handler.js"></script>
 <script src="song_content.js?v=1"></script>
 <script src="app.js"></script>
 <script src="bible_content.js"></script>

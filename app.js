@@ -549,6 +549,158 @@ function createGoldenVasanamHtml(verseText, verseRef) {
 </html>`;
 }
 
+// ── DYNAMIC COLOR SLIDE (Animated gradient background) ──
+function createColorVasanamHtml(verseText, verseRef, startFlipped = false) {
+  const flippedClass = startFlipped ? ' flipped' : '';
+  return `<!DOCTYPE html><html lang="ta"><head><meta charset="UTF-8">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap');
+@font-face{font-family:'Noto Serif Tamil';src:local('Noto Serif Tamil'),local('Nirmala UI'),local('Vijaya'),local('Latha'),local('Tamil Sangam MN');font-weight:400 900;}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;}
+body{
+  background: linear-gradient(135deg, #1e3a8a, #1e40af, #3b82f6, #60a5fa);
+  background-size: 400% 400%;
+  animation: gradientShift 8s ease infinite;
+  perspective:2000px;
+  font-family:'Noto Serif Tamil',serif;
+  position: relative;
+}
+
+@keyframes gradientShift {
+  0% {
+    background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 25%, #3b82f6 50%, #60a5fa 100%);
+  }
+  25% {
+    background: linear-gradient(135deg, #065f46 0%, #047857 25%, #10b981 50%, #34d399 100%);
+  }
+  50% {
+    background: linear-gradient(135deg, #7c2d12 0%, #9a3412 25%, #ea580c 50%, #fb923c 100%);
+  }
+  75% {
+    background: linear-gradient(135deg, #4c1d95 0%, #5b21b6 25%, #7c3aed 50%, #a78bfa 100%);
+  }
+  100% {
+    background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 25%, #3b82f6 50%, #60a5fa 100%);
+  }
+}
+
+.flip-card {
+  width:100%;height:100%;position:relative;
+  transition:transform 0.8s cubic-bezier(0.4,0,0.2,1);
+  transform-style:preserve-3d;cursor:pointer;z-index:5;
+}
+.flip-card.flipped {transform:rotateY(180deg);}
+.flip-card-front, .flip-card-back {
+  position:absolute;width:100%;height:100%;
+  backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  display:flex;align-items:center;justify-content:center;
+}
+.flip-card-front {flex-direction:column;}
+.flip-card-back {transform:rotateY(180deg);padding:1.2vw;}
+.front-title {
+  font-size:15vh;font-weight:900;color:#ffffff;
+  text-align:center;padding:0 4vw;line-height:1.2;
+  text-shadow:0 4px 20px rgba(0,0,0,0.6), 0 0 40px rgba(255,255,255,0.3);
+  -webkit-text-stroke: 0.04em currentColor;
+}
+.front-graphics {
+  font-family:'Caveat', cursive;font-size:8vh;color:#ffffff;
+  opacity:0.9;margin-top:3vh;
+  text-shadow:0 2px 10px rgba(0,0,0,0.5);
+}
+.verse-wrap{
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;width:100%;height:100%;gap:0.6vh;overflow:hidden;
+}
+.verse-text{
+  font-weight:900;color:#ffffff;text-align:center;
+  line-height:1.22;word-break:break-word;width:100%;
+  white-space:pre-wrap;
+  text-shadow:0 4px 20px rgba(0,0,0,0.6), 0 0 40px rgba(255,255,255,0.3);
+  -webkit-text-stroke: 0.04em currentColor;
+}
+.verse-ref{
+  color:#ffffff;opacity:0.95;font-style:italic;
+  letter-spacing:2px;text-align:right;align-self:flex-end;
+  padding-right:1vw;font-weight:900;
+  text-shadow:0 2px 10px rgba(0,0,0,0.5);
+}
+<\/style><\/head><body>
+<div class="flip-card${flippedClass}" id="flip-card" onclick="this.classList.toggle('flipped')">
+  <div class="flip-card-front">
+    <div class="front-title" id="frontTitle">${verseRef || 'வசனம்'}</div>
+  </div>
+  <div class="flip-card-back">
+    <div class="verse-wrap" id="vwrap">
+      <div class="verse-text" id="vtext">${verseText}<\/div>
+      ${verseRef ? `<div class="verse-ref" id="vref">— ${verseRef}<\/div>` : ''}
+    </div>
+  </div>
+</div>
+<script>
+var MAX_FONT = 130;
+function autoFit() {
+  var wrap = document.getElementById('vwrap');
+  var vt   = document.getElementById('vtext');
+  var vr   = document.getElementById('vref');
+  if (!wrap || !vt) return;
+  var availW = wrap.clientWidth || window.innerWidth;
+  var availH = wrap.clientHeight || window.innerHeight;
+  if (availH < 10 || availW < 10) { setTimeout(autoFit, 100); return; }
+  vt.style.width = '100%';
+  var lo = 8, hi = Math.min(availH, MAX_FONT);
+  for (var i = 0; i < 30; i++) {
+    var mid = (lo + hi) / 2;
+    vt.style.fontSize = mid + 'px';
+    if (vr) vr.style.fontSize = (mid * 0.32) + 'px';
+    var needed = vt.scrollHeight + (vr ? vr.offsetHeight + mid * 0.2 : 0);
+    if (needed > availH || vt.scrollWidth > availW) {
+      hi = mid;
+    } else {
+      lo = mid;
+    }
+  }
+  vt.style.fontSize = lo + 'px';
+  if (vr) vr.style.fontSize = (lo * 0.32) + 'px';
+
+  var fTitle = document.getElementById('frontTitle');
+  if (fTitle && fTitle.scrollWidth > window.innerWidth * 0.9) {
+    fTitle.style.fontSize = '12vh';
+  }
+}
+document.addEventListener("visibilitychange", function() {
+    if (document.hidden) {
+        var card = document.getElementById('flip-card');
+        if (card) card.classList.remove('flipped');
+    }
+});
+if (typeof IntersectionObserver !== 'undefined') {
+  let observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if(!entry.isIntersecting) {
+         var card = document.getElementById('flip-card');
+         if (card) card.classList.remove('flipped');
+      }
+    });
+  });
+  observer.observe(document.body);
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+      var card = document.getElementById('flip-card');
+      if (card) card.classList.toggle('flipped');
+      e.preventDefault();
+  }
+});
+
+document.fonts ? document.fonts.ready.then(autoFit) : window.addEventListener('load', autoFit);
+window.addEventListener('resize', autoFit);
+<\/script>
+<\/body><\/html>`;
+}
+
 // ── ANIME (Static dark navy gradient) version of Vasanam slide ──
 function createAnimeVasanamHtml(verseText, verseRef, startFlipped = false) {
   const flippedClass = startFlipped ? ' flipped' : '';
@@ -1876,6 +2028,19 @@ function addGoldenVasanamSlide() {
   scheduleSave();
 }
 
+function addColorVasanamSlide() {
+  const text = document.getElementById('vs-text').value.trim();
+  const ref  = document.getElementById('vs-ref').value.trim();
+  if (!text) { alert('வசன உரை தேவை!'); return; }
+  const id = Date.now() + Math.random();
+  const slide = { id, type: 'html', name: ref || 'வசனம் (Color)', html: createColorVasanamHtml(text, ref), _rev: 0 };
+  slides.splice(currentIdx + 1, 0, slide);
+  currentIdx = currentIdx + 1;
+  closeVasanamModal();
+  renderAll(); renderPreview(); renderEditor();
+  scheduleSave();
+}
+
 // Vasanam color pickers sync
 document.getElementById('vs-bg').addEventListener('input', e => {
   document.getElementById('vs-bg-text').value = e.target.value;
@@ -3175,6 +3340,44 @@ function bpAddAsGoldenSlide() {
     renderAll(); renderPreview(); renderEditor();
     scheduleSave();
     showToast(`✓ Slide added: ${ref || 'வசனம்'}`, 'success');
+    return;
+  }
+  _pendingSlide = slide;
+  _pendingSlideType = null;
+  const defaultPos = currentIdx + 2;
+  const inp = document.getElementById('insert-position');
+  inp.value = defaultPos;
+  inp.max = slides.length + 1;
+  document.getElementById('insert-modal-info').textContent =
+    `Current: slide ${currentIdx + 1} of ${slides.length}. Enter 1–${slides.length + 1}:`;
+  const modal = document.getElementById('insert-modal');
+  modal.style.display = 'flex';
+  inp.focus(); inp.select();
+}
+
+function bpAddAsColorSlide() {
+  if (!_bpBook || !_bpChapter) { showToast('வசனம் தேர்ந்தெடுக்கவும்', 'error'); return; }
+  const textEl = document.getElementById('bp-preview-text');
+  const refEl = document.getElementById('bp-preview-ref');
+  const verseText = textEl ? textEl.textContent.trim() : '';
+  const ref = refEl ? refEl.textContent.trim() : '';
+  if (!verseText) { showToast('Bible content not loaded yet — add verses first', 'error'); return; }
+  const html = createColorVasanamHtml(verseText, ref);
+  const slide = {
+    id: Date.now() + Math.random(),
+    type: 'html',
+    name: ref || 'வசனம் (Color)',
+    html,
+    bibleBook: _bpBook,
+    bibleChapter: _bpChapter,
+    bibleVerse: _bpVerse
+  };
+  if (!slides.length) {
+    slides.push(slide);
+    currentIdx = 0;
+    renderAll(); renderPreview(); renderEditor();
+    scheduleSave();
+    showToast(`✓ Color slide added: ${ref || 'வசனம்'}`, 'success');
     return;
   }
   _pendingSlide = slide;
