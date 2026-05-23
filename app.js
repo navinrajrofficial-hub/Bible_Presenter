@@ -559,29 +559,51 @@ function createColorVasanamHtml(verseText, verseRef, startFlipped = false) {
 *{margin:0;padding:0;box-sizing:border-box;}
 html,body{width:100%;height:100%;overflow:hidden;}
 body{
-  background: linear-gradient(135deg, #1e3a8a, #1e40af, #3b82f6, #60a5fa);
-  background-size: 400% 400%;
-  animation: gradientShift 8s ease infinite;
   perspective:2000px;
   font-family:'Noto Serif Tamil',serif;
   position: relative;
+  overflow: hidden;
+  background: #1a1a2e;
+}
+
+/* Large multi-color gradient that shifts position */
+body::before {
+  content: '';
+  position: absolute;
+  inset: -50%;
+  z-index: 0;
+  background: linear-gradient(
+    135deg,
+    #1e3a8a 0%,
+    #3b82f6 15%,
+    #8b5cf6 30%,
+    #ec4899 45%,
+    #ef4444 60%,
+    #f59e0b 75%,
+    #10b981 90%,
+    #1e3a8a 100%
+  );
+  background-size: 200% 200%;
+  animation: gradientShift 20s ease-in-out infinite;
+  filter: blur(60px);
+  opacity: 0.9;
 }
 
 @keyframes gradientShift {
   0% {
-    background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 25%, #3b82f6 50%, #60a5fa 100%);
+    background-position: 0% 50%;
   }
   25% {
-    background: linear-gradient(135deg, #065f46 0%, #047857 25%, #10b981 50%, #34d399 100%);
+    background-position: 50% 100%;
   }
   50% {
-    background: linear-gradient(135deg, #7c2d12 0%, #9a3412 25%, #ea580c 50%, #fb923c 100%);
+    background-position: 100% 50%;
   }
   75% {
-    background: linear-gradient(135deg, #4c1d95 0%, #5b21b6 25%, #7c3aed 50%, #a78bfa 100%);
+    background-position: 50% 0%;
   }
   100% {
-    background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 25%, #3b82f6 50%, #60a5fa 100%);
+    background-position: 0% 50%;
   }
 }
 
