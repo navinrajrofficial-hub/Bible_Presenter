@@ -1126,6 +1126,7 @@ function lookupVerseInBible(bookName, chapter, verse) {
 
 /**
  * Add a Color Slide (using createColorVasanamHtml) directly to slides
+ * Automatically bookmarked for easy access
  */
 function addColorSlideFromVerse(verseText, verseRef) {
   if (typeof slides === 'undefined' || typeof createColorVasanamHtml === 'undefined') {
@@ -1139,6 +1140,7 @@ function addColorSlideFromVerse(verseText, verseRef) {
     type: 'html',
     name: verseRef || 'வசனம் (Color)',
     html: html,
+    bookmarked: true, // ✅ Auto-bookmark all AI-added verses
     _rev: 0
   };
 

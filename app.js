@@ -3314,6 +3314,7 @@ function bpAddAsSlide() {
     type: 'html', 
     name: ref, 
     html,
+    bookmarked: true, // ✅ Auto-bookmark Bible verses
     bibleBook: _bpBook,
     bibleChapter: _bpChapter,
     bibleVerse: _bpVerse 
@@ -3352,6 +3353,7 @@ function bpAddAsGoldenSlide() {
     type: 'html',
     name: ref || 'வசனம்',
     html,
+    bookmarked: true, // ✅ Auto-bookmark Bible verses
     bibleBook: _bpBook,
     bibleChapter: _bpChapter,
     bibleVerse: _bpVerse
@@ -3390,6 +3392,7 @@ function bpAddAsColorSlide() {
     type: 'html',
     name: ref || 'வசனம் (Color)',
     html,
+    bookmarked: true, // ✅ Auto-bookmark Bible verses
     bibleBook: _bpBook,
     bibleChapter: _bpChapter,
     bibleVerse: _bpVerse
