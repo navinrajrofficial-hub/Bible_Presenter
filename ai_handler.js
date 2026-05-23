@@ -112,17 +112,33 @@ function processAIInput() {
   if (uploadedBase64Image) {
     extractVersesFromImage();
   } else if (textValue) {
+    // Parse verse references from text (offline, no API needed)
     const parsed = extractRefsFromText(textValue);
     if (parsed.length === 0) {
       appendChatMessage("assistant", "No Bible references found in the pasted text.");
       return;
     }
+    
+    // Look up each verse in local bibleData and add as Color Slide
     let addedCount = 0;
+    let notFoundRefs = [];
+    
     parsed.forEach((ref) => {
-      const added = addVerseToMain(ref.book, ref.chapter, ref.verse);
-      if (added) addedCount++;
+      const verseData = lookupVerseInBible(ref.book, ref.chapter, ref.verse);
+      if (verseData) {
+        addColorSlideFromVerse(verseData.text, verseData.reference);
+        addedCount++;
+      } else {
+        notFoundRefs.push(`${ref.book} ${ref.chapter}:${ref.verse}`);
+      }
     });
-    appendChatMessage("assistant", `Added ${addedCount} verse(s) from pasted text.`);
+    
+    if (addedCount > 0) {
+      appendChatMessage("assistant", `✓ Added ${addedCount} Color Slide(s) from pasted text.`);
+    }
+    if (notFoundRefs.length > 0) {
+      appendChatMessage("assistant", `⚠ Not found in Bible: ${notFoundRefs.join(", ")}`);
+    }
   }
 }
 
@@ -451,16 +467,15 @@ function getBookRegex() {
   if (cachedBookRegex) return cachedBookRegex;
 
   let names = [];
-  if (typeof bibleData !== "undefined" && Array.isArray(bibleData)) {
-    names = bibleData
-      .map((b) => (b && b.BookName ? b.BookName.trim() : ""))
-      .filter((name) => name.length > 0);
+  if (typeof bibleData !== "undefined") {
+    // bibleData is an object with book names as keys
+    names = Object.keys(bibleData).filter((name) => name && name.trim().length > 0);
   }
 
   if (names.length === 0) return null;
 
   cachedBookNames = names.sort((a, b) => b.length - a.length);
-  const escaped = cachedBookNames.map((name) => name.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&"));
+  const escaped = cachedBookNames.map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
 
   cachedBookRegex = `(${escaped.join("|")})`;
   return cachedBookRegex;
@@ -1047,3 +1062,92 @@ function addVerseToMain(bookName, chapter, verse) {
 }
 
 initAIVerseAssistant();
+
+
+// ══════════════════════════════════════════════════
+//  OFFLINE VERSE LOOKUP & COLOR SLIDE HELPERS
+// ══════════════════════════════════════════════════
+
+/**
+ * Look up a verse in the local bibleData
+ * Returns {text: string, reference: string} or null if not found
+ */
+function lookupVerseInBible(bookName, chapter, verse) {
+  if (typeof bibleData === 'undefined') {
+    console.error('bibleData not available');
+    return null;
+  }
+
+  // bibleData is an object with book names as keys
+  const searchName = bookName.trim();
+  
+  // Try exact match first
+  let targetBook = bibleData[searchName];
+  
+  // If not found, try partial match
+  if (!targetBook) {
+    const bookKeys = Object.keys(bibleData);
+    for (let i = 0; i < bookKeys.length; i++) {
+      const key = bookKeys[i];
+      if (key.includes(searchName) || searchName.includes(key)) {
+        targetBook = bibleData[key];
+        bookName = key; // Use the full book name
+        break;
+      }
+    }
+  }
+
+  if (!targetBook) {
+    console.warn(`Book not found: ${bookName}`);
+    return null;
+  }
+
+  // Get verse text from the content structure
+  let verseText = '';
+  try {
+    if (targetBook.content && targetBook.content[chapter] && targetBook.content[chapter][verse]) {
+      verseText = targetBook.content[chapter][verse];
+    }
+  } catch (e) {
+    console.warn(`Verse not found: ${bookName} ${chapter}:${verse}`, e);
+  }
+
+  if (!verseText || !verseText.trim()) {
+    console.warn(`Verse text empty: ${bookName} ${chapter}:${verse}`);
+    return null;
+  }
+
+  const reference = `${bookName} ${chapter}:${verse}`;
+  return {
+    text: verseText.trim(),
+    reference: reference
+  };
+}
+
+/**
+ * Add a Color Slide (using createColorVasanamHtml) directly to slides
+ */
+function addColorSlideFromVerse(verseText, verseRef) {
+  if (typeof slides === 'undefined' || typeof createColorVasanamHtml === 'undefined') {
+    console.error('Required functions not available');
+    return false;
+  }
+
+  const html = createColorVasanamHtml(verseText, verseRef);
+  const slide = {
+    id: Date.now() + Math.random(),
+    type: 'html',
+    name: verseRef || 'வசனம் (Color)',
+    html: html,
+    _rev: 0
+  };
+
+  // Add to end of slides
+  slides.push(slide);
+
+  // Update UI if functions are available
+  if (typeof renderAll === 'function') renderAll();
+  if (typeof scheduleSave === 'function') scheduleSave();
+
+  return true;
+}

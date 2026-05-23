@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>நல்ல சமாரியன் இயேசு ஜெப வீடு</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Tamil:wght@400;600;700;900&family=Playfair+Display:ital,wght@1,400;0,700;0,900&family=IM+Fell+English:ital@1&display=swap" rel="stylesheet">
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.stage {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+  background: #1a1a2e;
+}
+
+/* ══════════════════════════════
+   COLORFUL GRADIENT BACKGROUND
+   ══════════════════════════════ */
+
+/* Primary large gradient with full rainbow spectrum */
+.stage::before {
+  content: '';
+  position: absolute;
+  inset: -70%;
+  z-index: 0;
+  background: linear-gradient(
+    125deg,
+    #2563eb 0%,
+    #3b82f6 7%,
+    #0ea5e9 14%,
+    #06b6d4 21%,
+    #14b8a6 28%,
+    #10b981 35%,
+    #22c55e 42%,
+    #84cc16 49%,
+    #eab308 56%,
+    #f59e0b 63%,
+    #f97316 70%,
+    #ef4444 77%,
+    #ec4899 84%,
+    #d946ef 91%,
+    #2563eb 100%
+  );
+  background-size: 400% 400%;
+  animation: gradientFlow 40s ease-in-out infinite;
+  filter: blur(100px);
+  opacity: 0.7;
+}
+
+/* Secondary gradient layer for depth */
+.stage::after {
+  content: '';
+  position: absolute;
+  inset: -60%;
+  z-index: 1;
+  background: radial-gradient(
+    ellipse at 20% 30%,
+    rgba(139, 92, 246, 0.4) 0%,
+    transparent 50%
+  ),
+  radial-gradient(
+    ellipse at 80% 70%,
+    rgba(6, 182, 212, 0.4) 0%,
+    transparent 50%
+  ),
+  radial-gradient(
+    ellipse at 50% 90%,
+    rgba(245, 158, 11, 0.4) 0%,
+    transparent 50%
+  ),
+  radial-gradient(
+    ellipse at 70% 20%,
+    rgba(236, 72, 153, 0.4) 0%,
+    transparent 50%
+  );
+  background-size: 250% 250%;
+  animation: radialShift 50s ease-in-out infinite;
+  filter: blur(90px);
+  opacity: 0.5;
+}
+
+@keyframes gradientFlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  25% {
+    background-position: 50% 100%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  75% {
+    background-position: 50% 0%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes radialShift {
+  0% {
+    background-position: 20% 30%, 80% 70%, 50% 90%, 70% 20%;
+  }
+  25% {
+    background-position: 80% 20%, 20% 80%, 60% 10%, 40% 90%;
+  }
+  50% {
+    background-position: 70% 80%, 30% 20%, 90% 50%, 10% 60%;
+  }
+  75% {
+    background-position: 30% 70%, 70% 30%, 20% 80%, 80% 10%;
+  }
+  100% {
+    background-position: 20% 30%, 80% 70%, 50% 90%, 70% 20%;
+  }
+}
+
+/* ── VIGNETTE ── */
+.vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  background: radial-gradient(
+    ellipse 85% 85% at 50% 50%,
+    transparent 30%,
+    rgba(10, 4, 20, 0.3) 60%,
+    rgba(5, 2, 10, 0.7) 100%
+  );
+  pointer-events: none;
+}
+
+/* ── ORNAMENTAL FRAME ── */
+.frame {
+  position: absolute;
+  inset: 3vmin;
+  z-index: 6;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  pointer-events: none;
+}
+
+.frame::before {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* corner ornaments */
+.frame-corner {
+  position: absolute;
+  width: 50px;
+  height: 50px;
+  z-index: 7;
+  pointer-events: none;
+  opacity: 0;
+  animation: fadeIn 1s ease forwards;
+}
+
+.frame-corner svg {
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: 1.2;
+  opacity: 0.7;
+}
+
+.fc-tl {
+  top: 3vmin;
+  left: 3vmin;
+  animation-delay: 0.8s;
+}
+
+.fc-tr {
+  top: 3vmin;
+  right: 3vmin;
+  transform: scaleX(-1);
+  animation-delay: 1s;
+}
+
+.fc-bl {
+  bottom: 3vmin;
+  left: 3vmin;
+  transform: scaleY(-1);
+  animation-delay: 1.2s;
+}
+
+.fc-br {
+  bottom: 3vmin;
+  right: 3vmin;
+  transform: scale(-1, -1);
+  animation-delay: 1.4s;
+}
+
+/* ── CONTENT CENTER ── */
+.content {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── HALO RING ── */
+.halo {
+  position: relative;
+  margin-bottom: 3vh;
+  opacity: 0;
+  animation: haloIn 1.5s cubic-bezier(0.2, 1, 0.4, 1) forwards 0.2s;
+}
+
+@keyframes haloIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+    filter: blur(30px);
+  }
+  60% {
+    opacity: 1;
+    filter: blur(2px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+}
+
+.halo-ring {
+  width: clamp(80px, 10vw, 140px);
+  height: clamp(80px, 10vw, 140px);
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  animation: rotateSlow 20s linear infinite;
+}
+
+@keyframes rotateSlow {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.halo-ring::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  border-top-color: #ffffff;
+  border-right-color: rgba(255, 255, 255, 0.4);
+  animation: rotateFast 4s linear infinite;
+}
+
+@keyframes rotateFast {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+.halo-ring::after {
+  content: '';
+  position: absolute;
+  inset: -14px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-bottom-color: rgba(255, 255, 255, 0.6);
+  animation: rotateFast 7s linear infinite reverse;
+}
+
+.cross-symbol {
+  font-size: clamp(28px, 4vw, 56px);
+  line-height: 1;
+  animation: rotateSlow 20s linear infinite reverse;
+  color: #ffffff;
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.8)) 
+          drop-shadow(0 0 20px rgba(255, 255, 255, 0.4));
+}
+
+/* ── TOP TAG ── */
+.tag {
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: clamp(10px, 1.2vw, 15px);
+  letter-spacing: 8px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 2.5vh;
+  opacity: 0;
+  animation: fadeUp 0.8s ease forwards 1.2s;
+}
+
+/* ── DIVIDER ── */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 1.5vw;
+  margin-bottom: 2.5vh;
+  opacity: 0;
+  animation: fadeIn 0.8s ease forwards 1.5s;
+}
+
+.div-line {
+  height: 1px;
+  width: clamp(40px, 8vw, 120px);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6));
+}
+
+.div-line.r {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.6), transparent);
+}
+
+.div-gem {
+  font-size: clamp(8px, 1vw, 13px);
+  color: #ffffff;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+}
+
+/* ── MAIN TITLE ── */
+.title-block {
+  text-align: center;
+  margin-bottom: 2vh;
+}
+
+.t1 {
+  display: block;
+  font-family: 'Noto Serif Tamil', serif;
+  font-size: clamp(40px, 7vw, 110px);
+  font-weight: 900;
+  line-height: 1.15;
+  letter-spacing: 4px;
+  color: #ffffff;
+  text-shadow: 
+    0 1px 0 rgba(0, 0, 0, 0.8),
+    0 2px 0 rgba(0, 0, 0, 0.7),
+    0 3px 0 rgba(0, 0, 0, 0.6),
+    0 4px 0 rgba(0, 0, 0, 0.5),
+    0 5px 0 rgba(0, 0, 0, 0.4),
+    0 6px 0 rgba(0, 0, 0, 0.3),
+    0 7px 0 rgba(0, 0, 0, 0.2),
+    0 8px 0 rgba(0, 0, 0, 0.1),
+    0 10px 20px rgba(0, 0, 0, 0.8),
+    0 0 40px rgba(255, 255, 255, 0.3);
+  -webkit-text-stroke: 0.03em currentColor;
+  opacity: 0;
+  animation: slideDown 1s cubic-bezier(0.2, 1.4, 0.4, 1) forwards 1.8s;
+}
+
+.t2 {
+  display: block;
+  font-family: 'Noto Serif Tamil', serif;
+  font-size: clamp(24px, 4vw, 64px);
+  font-weight: 600;
+  letter-spacing: 14px;
+  color: #ffffff;
+  text-shadow: 
+    0 1px 0 rgba(0, 0, 0, 0.7),
+    0 2px 0 rgba(0, 0, 0, 0.6),
+    0 3px 0 rgba(0, 0, 0, 0.5),
+    0 4px 0 rgba(0, 0, 0, 0.4),
+    0 5px 0 rgba(0, 0, 0, 0.3),
+    0 6px 0 rgba(0, 0, 0, 0.2),
+    0 8px 15px rgba(0, 0, 0, 0.7),
+    0 0 30px rgba(255, 255, 255, 0.2);
+  animation: slideDown 1s cubic-bezier(0.2, 1.4, 0.4, 1) forwards 2.1s;
+  opacity: 0;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+/* ── DIVIDER 2 ── */
+.divider2 {
+  margin-bottom: 2.5vh;
+  opacity: 0;
+  animation: fadeIn 0.8s ease forwards 2.6s;
+  display: flex;
+  align-items: center;
+  gap: 1vw;
+}
+
+.div2-line {
+  height: 1px;
+  width: clamp(30px, 6vw, 90px);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4));
+}
+
+.div2-line.r {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.4), transparent);
+}
+
+.div2-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+}
+
+/* ── VERSE ── */
+.verse {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: clamp(10px, 1.2vw, 16px);
+  color: rgba(255, 255, 255, 0.75);
+  letter-spacing: 1.5px;
+  text-align: center;
+  padding: 0 12vw;
+  line-height: 1.8;
+  opacity: 0;
+  animation: fadeUp 0.8s ease forwards 2.9s;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+}
+
+.verse cite {
+  display: block;
+  font-style: normal;
+  font-family: 'IM Fell English', serif;
+  font-size: 0.9em;
+  color: rgba(255, 255, 255, 0.55);
+  letter-spacing: 4px;
+  margin-top: 0.5em;
+  text-transform: uppercase;
+}
+
+/* ── BOTTOM TAGLINE ── */
+.tagline {
+  position: absolute;
+  bottom: 5vh;
+  left: 0;
+  right: 0;
+  text-align: center;
+  z-index: 11;
+  font-family: 'IM Fell English', serif;
+  font-style: italic;
+  font-size: clamp(9px, 1vw, 13px);
+  letter-spacing: 6px;
+  color: rgba(255, 255, 255, 0.45);
+  text-transform: uppercase;
+  opacity: 0;
+  animation: fadeIn 1.5s ease forwards 3.5s;
+}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+  }
+}
+
+/* ── FLOATING PARTICLES ── */
+.particle {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+  z-index: 3;
+  animation: float linear infinite;
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(100vh) translateX(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-10vh) translateX(var(--drift));
+    opacity: 0;
+  }
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="vignette"></div>
+  
+  <!-- Floating particles -->
+  <div class="particle" style="left: 10%; animation-duration: 15s; animation-delay: 0s; --drift: 20px;"></div>
+  <div class="particle" style="left: 25%; animation-duration: 18s; animation-delay: 2s; --drift: -30px;"></div>
+  <div class="particle" style="left: 40%; animation-duration: 20s; animation-delay: 4s; --drift: 15px;"></div>
+  <div class="particle" style="left: 55%; animation-duration: 16s; animation-delay: 1s; --drift: -20px;"></div>
+  <div class="particle" style="left: 70%; animation-duration: 19s; animation-delay: 3s; --drift: 25px;"></div>
+  <div class="particle" style="left: 85%; animation-duration: 17s; animation-delay: 5s; --drift: -15px;"></div>
+  
+  <!-- Frame -->
+  <div class="frame"></div>
+  <div class="frame-corner fc-tl">
+    <svg viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
+      <path d="M2 48 L2 2 L48 2" stroke-linecap="round"/>
+      <path d="M2 20 L2 2 L20 2" stroke-width="2.5" opacity=".8"/>
+      <circle cx="2" cy="2" r="2.5" fill="#ffffff" stroke="none"/>
+      <path d="M10 2 L10 8 M2 10 L8 10" opacity=".5"/>
+    </svg>
+  </div>
+  <div class="frame-corner fc-tr">
+    <svg viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
+      <path d="M2 48 L2 2 L48 2" stroke-linecap="round"/>
+      <path d="M2 20 L2 2 L20 2" stroke-width="2.5" opacity=".8"/>
+      <circle cx="2" cy="2" r="2.5" fill="#ffffff" stroke="none"/>
+      <path d="M10 2 L10 8 M2 10 L8 10" opacity=".5"/>
+    </svg>
+  </div>
+  <div class="frame-corner fc-bl">
+    <svg viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
+      <path d="M2 48 L2 2 L48 2" stroke-linecap="round"/>
+      <path d="M2 20 L2 2 L20 2" stroke-width="2.5" opacity=".8"/>
+      <circle cx="2" cy="2" r="2.5" fill="#ffffff" stroke="none"/>
+      <path d="M10 2 L10 8 M2 10 L8 10" opacity=".5"/>
+    </svg>
+  </div>
+  <div class="frame-corner fc-br">
+    <svg viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
+      <path d="M2 48 L2 2 L48 2" stroke-linecap="round"/>
+      <path d="M2 20 L2 2 L20 2" stroke-width="2.5" opacity=".8"/>
+      <circle cx="2" cy="2" r="2.5" fill="#ffffff" stroke="none"/>
+      <path d="M10 2 L10 8 M2 10 L8 10" opacity=".5"/>
+    </svg>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+    <div class="halo">
+      <div class="halo-ring">
+        <span class="cross-symbol">✝</span>
+      </div>
+    </div>
+
+    <div class="tag">Welcome to</div>
+
+    <div class="divider">
+      <div class="div-line"></div>
+      <span class="div-gem">✦</span>
+      <span class="div-gem" style="font-size: 0.6em; opacity: 0.5;">✦</span>
+      <span class="div-gem">✦</span>
+      <div class="div-line r"></div>
+    </div>
+
+    <div class="title-block">
+      <span class="t1">நல்ல சமாரியன் இயேசு</span>
+      <span class="t2">ஜெப வீடு</span>
+    </div>
+
+    <div class="divider2">
+      <div class="div2-line"></div>
+      <div class="div2-dot"></div>
+      <div class="div2-dot" style="opacity: 0.4; width: 3px; height: 3px;"></div>
+      <div class="div2-dot" style="opacity: 0.2; width: 2px; height: 2px;"></div>
+      <div class="div2-dot" style="opacity: 0.2; width: 2px; height: 2px;"></div>
+      <div class="div2-dot" style="opacity: 0.4; width: 3px; height: 3px;"></div>
+      <div class="div2-dot"></div>
+      <div class="div2-line r"></div>
+    </div>
+
+    <div class="verse">
+      என்னுடைய வீடு ஜெபவீடு என்னப்படும்
+      <cite>— மத்தேயு 21:13</cite>
+    </div>
+  </div>
+
+  <div class="tagline">Good Samaritan Jesus Prayer House</div>
+</div>
+</body>
+</html>
