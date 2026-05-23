@@ -4050,7 +4050,13 @@ function spAddAsSlide() {
   if (!html) { showToast('Song content not available', 'error'); return; }
   const song = songContent[_spSongId];
   const name = `${song.title} (#${_spSongId})`;
-  const slide = { id: Date.now() + Math.random(), type: 'html', name, html };
+  const slide = { 
+    id: Date.now() + Math.random(), 
+    type: 'html', 
+    name, 
+    html,
+    bookmarked: true  // Auto-bookmark song slide
+  };
   slides.push(slide);
   currentIdx = slides.length - 1;
   renderAll(); renderPreview(); renderEditor();
@@ -4599,7 +4605,13 @@ function spCommitQueueToMain(queueItems, clearCurrentQueue = true) {
   sourceQueue.forEach((item, i) => {
     const ref = songName + '  (Song #' + _spSongId + ')';
     const html = createSongLyricSlideHtml(item.text, ref, songSlideBg, '#f8fafc');
-    const slide = { id: Date.now() + Math.random(), type: 'html', name: songName + ' - ' + (i + 1), html };
+    const slide = { 
+      id: Date.now() + Math.random(), 
+      type: 'html', 
+      name: songName + ' - ' + (i + 1), 
+      html,
+      bookmarked: i === 0  // Auto-bookmark first slide only
+    };
     slides.push(slide);
   });
   currentIdx = slides.length - 1;
