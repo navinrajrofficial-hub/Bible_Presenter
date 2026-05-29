@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>பிறந்தநாள் & திருமண நாள் ஆசீர்வாதம்</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Tamil:wght@400;700;900&family=Playfair+Display:wght@700;900&family=Dancing+Script:wght@600;700&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  font-family: 'Noto Serif Tamil', serif;
+}
+
+.stage {
+  width: 100vw; height: 100vh;
+  position: relative;
+  background: linear-gradient(135deg, 
+    #0f0c29 0%, 
+    #302b63 40%, 
+    #24243e 100%);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Animated gradient overlay - REMOVED ── */
+
+/* ── Floating balloons ── */
+.balloons {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.balloon {
+  position: absolute;
+  font-size: clamp(40px, 5vw, 80px);
+  animation: balloonFloat linear infinite;
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3));
+}
+
+@keyframes balloonFloat {
+  0% { 
+    transform: translateY(110vh) translateX(0) rotate(0deg); 
+    opacity: 0; 
+  }
+  10% { opacity: 1; }
+  90% { opacity: 0.8; }
+  100% { 
+    transform: translateY(-20vh) translateX(var(--drift)) rotate(var(--rotate)); 
+    opacity: 0; 
+  }
+}
+
+/* ── Sparkle particles ── */
+canvas#sparkles {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* ── Main content card ── */
+.content-card {
+  position: relative;
+  z-index: 10;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: clamp(25px, 3.5vh, 50px) clamp(30px, 4.5vw, 80px);
+  box-shadow: none;
+  max-width: 95vw;
+  width: auto;
+  opacity: 0;
+  animation: cardEntrance 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards 0.3s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+@keyframes cardEntrance {
+  from { 
+    opacity: 0; 
+    transform: scale(0.85) translateY(40px); 
+    filter: blur(12px);
+  }
+  to { 
+    opacity: 1; 
+    transform: scale(1) translateY(0); 
+    filter: blur(0);
+  }
+}
+
+/* ── Top icon section ── */
+.celebration-icons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(20px, 3vw, 45px);
+  margin-bottom: clamp(8px, 1.2vh, 16px);
+  opacity: 0;
+  animation: fadeSlideDown 1s ease forwards 0.8s;
+}
+
+@keyframes fadeSlideDown {
+  from { opacity: 0; transform: translateY(-25px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.celebration-icon {
+  font-size: clamp(50px, 7vw, 100px);
+  animation: iconBounce 2.5s ease-in-out infinite;
+  filter: drop-shadow(0 0 18px rgba(255, 215, 0, 0.8));
+}
+
+.celebration-icon:nth-child(1) { animation-delay: 0s; }
+.celebration-icon:nth-child(2) { animation-delay: 0.3s; }
+.celebration-icon:nth-child(3) { animation-delay: 0.6s; }
+
+@keyframes iconBounce {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-12px) scale(1.1); }
+}
+
+/* ── Decorative divider ── */
+.divider-fancy {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(12px, 2vw, 25px);
+  margin-bottom: clamp(8px, 1.2vh, 16px);
+  opacity: 0;
+  animation: fadeSlideDown 1s ease forwards 1s;
+}
+
+.divider-line {
+  width: clamp(60px, 10vw, 140px);
+  height: 2px;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(255, 215, 0, 0.7), 
+    rgba(255, 182, 193, 0.7), 
+    transparent);
+}
+
+.divider-gem {
+  font-size: clamp(16px, 2vw, 28px);
+  color: #ffd700;
+  filter: drop-shadow(0 0 8px #ffd700);
+}
+
+/* ── Main title ── */
+.main-title {
+  text-align: center;
+  margin-bottom: clamp(6px, 1vh, 12px);
+  opacity: 0;
+  animation: titleReveal 1.3s cubic-bezier(0.22, 1, 0.36, 1) forwards 1.2s;
+}
+
+@keyframes titleReveal {
+  from { 
+    opacity: 0; 
+    transform: scale(0.9); 
+    filter: blur(8px);
+  }
+  to { 
+    opacity: 1; 
+    transform: scale(1); 
+    filter: blur(0);
+  }
+}
+
+.title-tamil {
+  font-size: clamp(56px, 8.5vw, 130px);
+  font-weight: 900;
+  line-height: 1.2;
+  letter-spacing: 3px;
+  background: linear-gradient(135deg, 
+    #ffd700 0%, 
+    #ffed4e 20%, 
+    #ffa500 40%, 
+    #ff69b4 60%, 
+    #ff1493 80%, 
+    #ffd700 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 4px 30px rgba(255, 215, 0, 0.6));
+  text-shadow: none;
+  max-width: 100%;
+}
+
+.title-english {
+  font-family: 'Dancing Script', cursive;
+  font-size: clamp(28px, 4.2vw, 58px);
+  font-weight: 700;
+  color: rgba(255, 215, 0, 0.95);
+  letter-spacing: 2px;
+  margin-top: clamp(4px, 0.8vh, 10px);
+  text-shadow: 0 2px 20px rgba(255, 215, 0, 0.8);
+  max-width: 100%;
+}
+
+/* ── Subtitle label ── */
+.subtitle-label {
+  text-align: center;
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(16px, 2.2vw, 32px);
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.85);
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  margin-bottom: clamp(10px, 1.8vh, 24px);
+  opacity: 0;
+  animation: fadeSlideDown 1s ease forwards 1.5s;
+  max-width: 100%;
+  text-shadow: 0 2px 10px rgba(255, 255, 255, 0.3);
+}
+
+/* ── Message box ── */
+.message-box {
+  background: transparent;
+  border: 2px solid rgba(255, 215, 0, 0.5);
+  border-radius: 18px;
+  padding: clamp(14px, 2.2vh, 28px) clamp(22px, 3.5vw, 48px);
+  margin-bottom: clamp(12px, 2vh, 28px);
+  text-align: center;
+  opacity: 0;
+  animation: fadeSlideUp 1s ease forwards 1.8s;
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  max-width: 100%;
+}
+
+.message-box::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 100%; height: 100%;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(255, 255, 255, 0.15), 
+    transparent);
+  animation: shimmerSweep 3s ease-in-out infinite;
+  animation-delay: 2.5s;
+}
+
+@keyframes shimmerSweep {
+  0% { left: -100%; }
+  50%, 100% { left: 100%; }
+}
+
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(25px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.message-text {
+  font-size: clamp(20px, 2.6vw, 38px);
+  color: rgba(255, 255, 255, 0.95);
+  line-height: 1.7;
+  letter-spacing: 1.5px;
+  max-width: 100%;
+}
+
+.message-highlight {
+  color: #ff69b4;
+  font-weight: 700;
+  text-shadow: 0 0 15px rgba(255, 105, 180, 0.8);
+}
+
+/* ── Call to action ── */
+.call-to-action {
+  text-align: center;
+  font-size: clamp(18px, 2.5vw, 36px);
+  color: rgba(255, 215, 0, 0.95);
+  font-weight: 700;
+  letter-spacing: 2px;
+  margin-bottom: clamp(16px, 2.5vh, 35px);
+  opacity: 0;
+  animation: fadeSlideUp 1s ease forwards 2.1s;
+  text-shadow: 0 2px 15px rgba(255, 215, 0, 0.6);
+  max-width: 100%;
+}
+
+/* ── Prayer section ── */
+.prayer-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(15px, 2.5vw, 35px);
+  opacity: 0;
+  animation: fadeSlideUp 1s ease forwards 2.4s;
+}
+
+.prayer-emoji {
+  font-size: clamp(32px, 4.5vw, 65px);
+  animation: prayerPulse 2s ease-in-out infinite;
+  filter: drop-shadow(0 0 12px rgba(255, 215, 0, 0.7));
+}
+
+@keyframes prayerPulse {
+  0%, 100% { transform: scale(1) rotate(-5deg); }
+  50% { transform: scale(1.15) rotate(5deg); }
+}
+
+.prayer-text {
+  font-family: 'Dancing Script', cursive;
+  font-size: clamp(22px, 3.2vw, 46px);
+  color: rgba(255, 255, 255, 0.95);
+  font-style: italic;
+  letter-spacing: 1px;
+  text-shadow: 0 2px 20px rgba(255, 255, 255, 0.5);
+  max-width: 100%;
+  text-align: center;
+}
+
+/* ── Floating hearts ── */
+.hearts-container {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.heart {
+  position: absolute;
+  font-size: clamp(18px, 2.5vw, 40px);
+  animation: heartFloat linear infinite;
+  opacity: 0;
+}
+
+@keyframes heartFloat {
+  0% { 
+    transform: translateY(110vh) scale(0.5) rotate(0deg); 
+    opacity: 0; 
+  }
+  10% { opacity: 0.8; }
+  90% { opacity: 0.5; }
+  100% { 
+    transform: translateY(-10vh) scale(1.2) rotate(360deg); 
+    opacity: 0; 
+  }
+}
+
+/* ── Confetti burst ── */
+.confetti {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  z-index: 5;
+  animation: confettiBurst 4s ease-out forwards;
+}
+
+@keyframes confettiBurst {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--x), var(--y)) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+/* ── Responsive adjustments ── */
+@media (max-width: 1200px) {
+  .title-tamil {
+    font-size: clamp(48px, 7.5vw, 110px);
+  }
+  
+  .title-english {
+    font-size: clamp(24px, 3.8vw, 50px);
+  }
+}
+
+@media (max-width: 768px) {
+  .content-card {
+    padding: clamp(28px, 4.5vh, 55px) clamp(32px, 5.5vw, 85px);
+    max-width: 96vw;
+  }
+  
+  .title-tamil {
+    font-size: clamp(40px, 7vw, 95px);
+  }
+  
+  .title-english {
+    font-size: clamp(22px, 3.5vw, 45px);
+  }
+  
+  .message-text {
+    font-size: clamp(18px, 2.5vw, 32px);
+  }
+  
+  .celebration-icon {
+    font-size: clamp(42px, 6vw, 80px);
+  }
+  
+  .subtitle-label {
+    font-size: clamp(14px, 2vw, 28px);
+    letter-spacing: 4px;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <!-- Sparkle canvas -->
+  <canvas id="sparkles"></canvas>
+  
+  <!-- Floating balloons -->
+  <div class="balloons" id="balloons"></div>
+  
+  <!-- Floating hearts -->
+  <div class="hearts-container" id="hearts"></div>
+  
+  <!-- Main content card -->
+  <div class="content-card">
+    <!-- Celebration icons -->
+    <div class="celebration-icons">
+      <span class="celebration-icon">🎂</span>
+      <span class="celebration-icon">🎉</span>
+      <span class="celebration-icon">💍</span>
+    </div>
+    
+    <!-- Decorative divider -->
+    <div class="divider-fancy">
+      <div class="divider-line"></div>
+      <span class="divider-gem">✦</span>
+      <div class="divider-line"></div>
+    </div>
+    
+    <!-- Main title -->
+    <div class="main-title">
+      <div class="title-tamil">பிறந்தநாள் & திருமண நாள்</div>
+      <div class="title-english">Birthday & Anniversary</div>
+    </div>
+    
+    <!-- Subtitle -->
+    <div class="subtitle-label">Special Blessing Time</div>
+    
+    <!-- Message box -->
+    <div class="message-box">
+      <div class="message-text">
+        இந்த வாரம் / இன்று <span class="message-highlight">பிறந்தநாள்</span> அல்லது<br>
+        <span class="message-highlight">திருமண நாள்</span> உள்ளவர்கள்<br>
+        தயவுசெய்து எழுந்து நிற்கவும்
+      </div>
+    </div>
+    
+    <!-- Call to action -->
+    <div class="call-to-action">
+      நாம் உங்களுக்காக ஜெபிப்போம்! 🙌
+    </div>
+    
+    <!-- Prayer section -->
+    <div class="prayer-section">
+      <span class="prayer-emoji">🙏</span>
+      <span class="prayer-text">கர்த்தர் உங்களை ஆசீர்வதிப்பார்</span>
+      <span class="prayer-emoji">🙏</span>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── Sparkle particles ── */
+const sparkleCanvas = document.getElementById('sparkles');
+const sparkleCtx = sparkleCanvas.getContext('2d');
+
+function resizeSparkle() {
+  sparkleCanvas.width = window.innerWidth;
+  sparkleCanvas.height = window.innerHeight;
+}
+resizeSparkle();
+window.addEventListener('resize', resizeSparkle);
+
+const sparkles = Array.from({length: 60}, () => ({
+  x: Math.random() * sparkleCanvas.width,
+  y: Math.random() * sparkleCanvas.height,
+  size: Math.random() * 3 + 0.5,
+  speedX: (Math.random() - 0.5) * 0.4,
+  speedY: (Math.random() - 0.5) * 0.4,
+  alpha: Math.random(),
+  alphaSpeed: (Math.random() - 0.5) * 0.01,
+  color: Math.random() > 0.5 ? 'rgba(255,215,0,' : 'rgba(255,182,193,'
+}));
+
+function animateSparkles() {
+  sparkleCtx.clearRect(0, 0, sparkleCanvas.width, sparkleCanvas.height);
+  
+  sparkles.forEach(s => {
+    sparkleCtx.beginPath();
+    sparkleCtx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+    sparkleCtx.fillStyle = s.color + s.alpha + ')';
+    sparkleCtx.shadowBlur = 8;
+    sparkleCtx.shadowColor = s.color + '0.8)';
+    sparkleCtx.fill();
+    
+    s.x += s.speedX;
+    s.y += s.speedY;
+    s.alpha += s.alphaSpeed;
+    
+    if (s.alpha <= 0 || s.alpha >= 1) s.alphaSpeed *= -1;
+    if (s.x < 0 || s.x > sparkleCanvas.width) s.speedX *= -1;
+    if (s.y < 0 || s.y > sparkleCanvas.height) s.speedY *= -1;
+  });
+  
+  requestAnimationFrame(animateSparkles);
+}
+animateSparkles();
+
+/* ── Floating balloons ── */
+const balloonsContainer = document.getElementById('balloons');
+const balloonEmojis = ['🎈', '🎈', '🎈', '🎊', '🎉'];
+
+for (let i = 0; i < 8; i++) {
+  const balloon = document.createElement('div');
+  balloon.className = 'balloon';
+  balloon.textContent = balloonEmojis[Math.floor(Math.random() * balloonEmojis.length)];
+  balloon.style.left = Math.random() * 100 + 'vw';
+  balloon.style.setProperty('--drift', (Math.random() - 0.5) * 200 + 'px');
+  balloon.style.setProperty('--rotate', (Math.random() - 0.5) * 360 + 'deg');
+  balloon.style.animationDuration = (12 + Math.random() * 10) + 's';
+  balloon.style.animationDelay = Math.random() * 6 + 's';
+  balloonsContainer.appendChild(balloon);
+}
+
+/* ── Floating hearts ── */
+const heartsContainer = document.getElementById('hearts');
+const heartEmojis = ['💖', '💕', '💗', '💝', '❤️', '💛'];
+
+for (let i = 0; i < 10; i++) {
+  const heart = document.createElement('div');
+  heart.className = 'heart';
+  heart.textContent = heartEmojis[Math.floor(Math.random() * heartEmojis.length)];
+  heart.style.left = Math.random() * 100 + 'vw';
+  heart.style.animationDuration = (10 + Math.random() * 8) + 's';
+  heart.style.animationDelay = Math.random() * 5 + 's';
+  heartsContainer.appendChild(heart);
+}
+
+/* ── Confetti burst on load ── */
+setTimeout(() => {
+  const colors = ['#ffd700', '#ff69b4', '#ff1493', '#00bfff', '#7fff00', '#ff4500'];
+  for (let i = 0; i < 50; i++) {
+    const confetti = document.createElement('div');
+    confetti.className = 'confetti';
+    confetti.style.left = '50%';
+    confetti.style.top = '50%';
+    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+    confetti.style.setProperty('--x', (Math.random() - 0.5) * 1000 + 'px');
+    confetti.style.setProperty('--y', (Math.random() - 0.5) * 1000 + 'px');
+    confetti.style.animationDelay = Math.random() * 0.3 + 's';
+    document.body.appendChild(confetti);
+    
+    setTimeout(() => confetti.remove(), 4000);
+  }
+}, 1500);
+</script>
+
+</body>
+</html>

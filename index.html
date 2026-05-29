@@ -284,7 +284,6 @@
     <div style="display:flex;gap:10px;margin-top:4px;">
       <button class="apply-btn" style="flex:1;" onclick="addVasanamSlide()">சேர்க்கவும் →</button>
       <button class="apply-btn golden-btn" style="flex:1;" onclick="addGoldenVasanamSlide()">Golden →</button>
-      <button class="apply-btn color-btn" style="flex:1;" onclick="addColorVasanamSlide()">Color →</button>
       <button onclick="closeVasanamModal()" style="flex:1;background:none;border:1px solid #2a2a2e;color:#6b6b75;font-family:'DM Mono',monospace;font-size:11px;padding:8px;border-radius:4px;cursor:pointer;">Cancel</button>
     </div>
   </div>
@@ -329,7 +328,6 @@
     <button class="bp-btn present-btn" onclick="bpShowFullscreen()">▶ Show Fullscreen</button>
     <button class="bp-btn add-btn" onclick="bpAddAsSlide()">✦ Add as Slide</button>
     <button class="bp-btn golden-btn" onclick="bpAddAsGoldenSlide()">✦ Add Golden Slide</button>
-    <button class="bp-btn color-btn" onclick="bpAddAsColorSlide()">✦ Add Color Slide</button>
   </div>
 </div>
 
@@ -515,7 +513,7 @@
 <div id="delete-range-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:10000;align-items:center;justify-content:center;">
   <div style="background:#18181b;border:1px solid #2a2a2e;border-radius:10px;width:320px;max-width:95vw;padding:24px;display:flex;flex-direction:column;gap:14px;">
     <div style="font-family:'Playfair Display',serif;font-size:15px;color:#ef4444;letter-spacing:0.04em;">✕ Delete Slide Range</div>
-    <div style="font-size:12px;color:#f0ede8;">Select the range of slides to delete:</div>
+    <div style="font-size:12px;color:#f0ede8;">Select the range of slides to delete: <span id="delete-range-max-info" style="color:#10b981;font-weight:600;"></span></div>
     <div style="display:flex;align-items:center;gap:10px;">
       <div style="flex:1;">
         <label style="font-size:11px;color:#6b6b75;">From Slide #</label>

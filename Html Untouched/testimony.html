@@ -5,359 +5,371 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>சாட்சி நேரம் – Testimony Time</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Noto+Serif+Tamil:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Noto+Serif+Tamil:ital,wght@0,400;0,600;0,700;1,400&display=swap');
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+* { 
+    margin: 0; 
+    padding: 0; 
+    box-sizing: border-box; 
+}
 
-  html, body {
-    width: 100%; height: 100%;
+html, body {
+    width: 100%;
+    height: 100%;
     background: #0d0c18;
-    display: flex; align-items: center; justify-content: center;
     font-family: 'Noto Serif Tamil', serif;
     overflow: hidden;
-  }
+}
 
-  /* ─── SLIDE CANVAS ─── */
-  .slide {
-    position: relative;
-    width: 100vw; height: 100vh;
-    max-width: 1280px;
+/* ─── SLIDE CANVAS ─── */
+.slide {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
     overflow: hidden;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-  }
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
 
-  /* ─── HEAVEN SKY BACKGROUND ─── */
-  .sky {
-    position: absolute; inset: 0;
+/* ─── HEAVEN SKY BACKGROUND ─── */
+.sky {
+    position: absolute; 
+    inset: 0;
     background: radial-gradient(ellipse 100% 80% at 50% 0%,
-      #e8dfc8 0%, #c4a96d 20%, #8a6f3e 40%,
-      #4a3520 60%, #1e1510 80%, #0d0c18 100%);
-  }
+        #e8dfc8 0%, #c4a96d 20%, #8a6f3e 40%,
+        #4a3520 60%, #1e1510 80%, #0d0c18 100%);
+}
 
-  /* Heavenly clouds layer */
-  .clouds-layer {
-    position: absolute; inset: 0;
+.clouds-layer {
+    position: absolute; 
+    inset: 0;
     background-image:
-      radial-gradient(ellipse 300px 60px at 20% 15%, rgba(255,248,235,0.18) 0%, transparent 100%),
-      radial-gradient(ellipse 200px 40px at 70% 10%, rgba(255,248,235,0.12) 0%, transparent 100%),
-      radial-gradient(ellipse 400px 80px at 50% 20%, rgba(255,245,225,0.08) 0%, transparent 100%),
-      radial-gradient(ellipse 150px 35px at 85% 18%, rgba(255,248,235,0.10) 0%, transparent 100%);
+        radial-gradient(ellipse 300px 60px at 20% 15%, rgba(255,248,235,0.18) 0%, transparent 100%),
+        radial-gradient(ellipse 200px 40px at 70% 10%, rgba(255,248,235,0.12) 0%, transparent 100%),
+        radial-gradient(ellipse 400px 80px at 50% 20%, rgba(255,245,225,0.08) 0%, transparent 100%),
+        radial-gradient(ellipse 150px 35px at 85% 18%, rgba(255,248,235,0.10) 0%, transparent 100%);
     animation: cloudDrift 20s ease-in-out infinite alternate;
-  }
-  @keyframes cloudDrift {
-    0%   { transform: translateX(0); }
+}
+
+@keyframes cloudDrift {
+    0% { transform: translateX(0); }
     100% { transform: translateX(18px); }
-  }
+}
 
-  /* Divine light beam from top */
-  .light-beam {
+.light-beam {
     position: absolute;
-    top: 0; left: 50%; transform: translateX(-50%);
-    width: 600px; height: 100%;
-    background: conic-gradient(
-      from 270deg at 50% 0%,
-      transparent 0deg,
-      rgba(255,245,200,0.04) 8deg,
-      rgba(255,245,200,0.09) 12deg,
-      rgba(255,245,200,0.04) 16deg,
-      transparent 24deg,
-      rgba(255,245,200,0.06) 30deg,
-      rgba(255,245,200,0.10) 34deg,
-      rgba(255,245,200,0.06) 38deg,
-      transparent 46deg,
-      rgba(255,245,200,0.04) 52deg,
-      rgba(255,245,200,0.08) 56deg,
-      rgba(255,245,200,0.04) 60deg,
-      transparent 68deg
-    );
+    top: 0; 
+    left: 50%; 
+    transform: translateX(-50%);
+    width: min(92vw, 900px);
+    height: 100%;
+    background: conic-gradient(from 270deg at 50% 0%,
+        transparent 0deg,
+        rgba(255,245,200,0.04) 8deg,
+        rgba(255,245,200,0.09) 12deg,
+        rgba(255,245,200,0.04) 16deg,
+        transparent 24deg,
+        rgba(255,245,200,0.06) 30deg,
+        rgba(255,245,200,0.10) 34deg,
+        rgba(255,245,200,0.06) 38deg,
+        transparent 46deg,
+        rgba(255,245,200,0.04) 52deg,
+        rgba(255,245,200,0.08) 56deg,
+        rgba(255,245,200,0.04) 60deg,
+        transparent 68deg);
     animation: beamPulse 5s ease-in-out infinite;
-  }
-  @keyframes beamPulse {
+}
+
+@keyframes beamPulse {
     0%, 100% { opacity: 0.7; }
-    50%       { opacity: 1; }
-  }
+    50% { opacity: 1; }
+}
 
-  /* ─── ANGEL WINGS (SVG inline below) ─── */
-
-  /* ─── DARK BOTTOM VIGNETTE ─── */
-  .vignette-bottom {
+.vignette-bottom {
     position: absolute;
-    bottom: 0; left: 0; right: 0; height: 55%;
+    bottom: 0; 
+    left: 0; 
+    right: 0; 
+    height: 55%;
     background: linear-gradient(0deg, rgba(13,12,24,0.97) 0%, rgba(13,12,24,0.6) 55%, transparent 100%);
-  }
-  .vignette-sides {
-    position: absolute; inset: 0;
-    background: radial-gradient(ellipse 80% 100% at 50% 50%, transparent 55%, rgba(13,12,24,0.7) 100%);
-  }
+}
 
-  /* ─── FLOATING STARS / LIGHT MOTES ─── */
-  .motes { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
-  .mote {
+.vignette-sides {
+    position: absolute; 
+    inset: 0;
+    background: radial-gradient(ellipse 80% 100% at 50% 50%, transparent 55%, rgba(13,12,24,0.7) 100%);
+}
+
+.motes { 
+    position: absolute; 
+    inset: 0; 
+    pointer-events: none; 
+    overflow: hidden; 
+}
+
+.mote {
     position: absolute;
     border-radius: 50%;
     background: rgba(255, 245, 200, 0.85);
     animation: moteFloat linear infinite;
-  }
-  @keyframes moteFloat {
-    0%   { opacity: 0; transform: translateY(0)   scale(0.5); }
+}
+
+@keyframes moteFloat {
+    0%   { opacity: 0; transform: translateY(0) scale(0.5); }
     15%  { opacity: 1; }
     85%  { opacity: 0.6; }
     100% { opacity: 0; transform: translateY(-90vh) scale(1.5); }
-  }
+}
 
-  /* ─── CONTENT ─── */
-  .content {
-    position: relative; z-index: 10;
-    display: flex; flex-direction: column;
-    align-items: center; gap: 0;
-    width: 100%; padding: 0 40px;
-  }
+.content {
+    position: relative; 
+    z-index: 10;
+    display: flex; 
+    flex-direction: column;
+    align-items: center; 
+    gap: 0;
+    width: 100%;
+    max-width: 1400px;
+    padding: 0 40px;
+    margin-top: 12vh;
+}
 
-  /* Church name */
-  .church-label {
+.church-label {
     font-family: 'Cinzel', serif;
-    font-size: clamp(9px, 1.1vw, 13px);
-    letter-spacing: 4px;
-    color: rgba(212, 178, 100, 0.75);
+    font-size: clamp(16px, 1.8vw, 24px);
+    letter-spacing: 5px;
+    color: rgba(255, 245, 220, 0.95);
     text-transform: uppercase;
-    margin-bottom: 14px;
-    animation: fadeIn 1.5s ease forwards;
-  }
-
-  /* Divider line */
-  .divider {
-    width: 180px; height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(212,178,100,0.5), transparent);
-    margin-bottom: 28px;
-    animation: fadeIn 1.8s ease forwards;
-  }
-
-  /* Mic + dove icon area */
-  .icon-wrap {
-    position: relative;
     margin-bottom: 24px;
-    animation: floatIcon 4s ease-in-out infinite;
-  }
-  @keyframes floatIcon { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+    animation: fadeIn 1.5s ease forwards;
+    text-align: center;
+    background: rgba(20, 15, 30, 0.65);
+    padding: 12px 40px;
+    border-radius: 8px;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
 
-  /* Tamil main title */
-  .title-ta {
+.divider {
+    width: 240px; 
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(212,178,100,0.6), transparent);
+    margin-bottom: 40px;
+    animation: fadeIn 1.8s ease forwards;
+}
+
+.title-ta {
     font-family: 'Noto Serif Tamil', serif;
-    font-size: clamp(52px, 9vw, 96px);
+    font-size: clamp(72px, 12vw, 160px);
     font-weight: 700;
     color: #ffffff;
     text-align: center;
-    line-height: 1.15;
-    letter-spacing: 3px;
+    line-height: 1.2;
+    letter-spacing: 6px;
     text-shadow:
-      0 0 30px rgba(212,178,100,0.55),
-      0 0 70px rgba(212,178,100,0.2),
-      0 6px 40px rgba(0,0,0,0.9);
+        0 0 40px rgba(212,178,100,0.6),
+        0 0 80px rgba(212,178,100,0.3),
+        0 8px 50px rgba(0,0,0,0.9);
     animation: titleReveal 1.2s ease forwards;
-    margin-bottom: 12px;
-  }
-  @keyframes titleReveal {
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 32px;
+    flex-wrap: wrap;
+}
+
+@keyframes titleReveal {
     from { opacity:0; transform: translateY(24px); }
     to   { opacity:1; transform: translateY(0); }
-  }
+}
 
-  /* English subtitle */
-  .title-en {
+.title-en {
     font-family: 'Cinzel', serif;
-    font-size: clamp(14px, 2.4vw, 26px);
-    font-weight: 400;
+    font-size: clamp(24px, 3.5vw, 42px);
     color: rgba(212, 178, 100, 0.9);
-    letter-spacing: 6px;
+    letter-spacing: 8px;
     text-transform: uppercase;
-    text-shadow: 0 0 20px rgba(212,178,100,0.4);
+    text-shadow: 0 0 25px rgba(212,178,100,0.5);
     animation: fadeIn 1.6s ease forwards;
-    margin-bottom: 28px;
-  }
+    margin-bottom: 40px;
+    text-align: center;
+}
 
-  .divider-bottom {
-    display: flex; align-items: center; gap: 14px;
-    margin-bottom: 22px;
+.divider-bottom {
+    display: flex; 
+    align-items: center; 
+    gap: 18px;
+    margin-bottom: 32px;
     animation: fadeIn 2s ease forwards;
-  }
-  .dl { width: 80px; height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(212,178,100,0.45)); }
-  .dr { width: 80px; height: 1px;
-    background: linear-gradient(90deg, rgba(212,178,100,0.45), transparent); }
-  .dot {
-    width: 5px; height: 5px; border-radius: 50%;
-    background: rgba(212,178,100,0.85);
-    box-shadow: 0 0 8px rgba(212,178,100,0.6);
-  }
+}
 
-  /* Scripture reference */
-  .scripture {
+.dl { 
+    width: 100px; 
+    height: 2px; 
+    background: linear-gradient(90deg, transparent, rgba(212,178,100,0.5)); 
+}
+
+.dr { 
+    width: 100px; 
+    height: 2px; 
+    background: linear-gradient(90deg, rgba(212,178,100,0.5), transparent); 
+}
+
+.dot {
+    width: 6px; 
+    height: 6px; 
+    border-radius: 50%;
+    background: rgba(212,178,100,0.85);
+    box-shadow: 0 0 10px rgba(212,178,100,0.7);
+}
+
+.scripture {
     font-family: 'Noto Serif Tamil', serif;
-    font-size: clamp(11px, 1.4vw, 15px);
+    font-size: clamp(18px, 2.2vw, 28px);
     font-style: italic;
-    color: rgba(212,178,100,0.55);
-    letter-spacing: 1px;
+    color: rgba(255, 245, 220, 0.95);
+    letter-spacing: 1.5px;
     text-align: center;
     animation: fadeIn 2.2s ease forwards;
-  }
+    max-width: 90vw;
+    line-height: 1.6;
+    background: rgba(20, 15, 30, 0.7);
+    padding: 20px 50px;
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 6px 30px rgba(0, 0, 0, 0.5);
+}
 
-  @keyframes fadeIn {
-    from { opacity:0; } to { opacity:1; }
-  }
+@keyframes fadeIn { 
+    from { opacity:0; } 
+    to { opacity:1; } 
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .content {
+        margin-top: 8vh;
+    }
+    
+    .title-ta {
+        gap: 20px;
+    }
+}
 </style>
 </head>
 <body>
 <div class="slide">
-
-  <!-- SKY -->
-  <div class="sky"></div>
-  <div class="clouds-layer"></div>
-  <div class="light-beam"></div>
-
-  <!-- ANGEL WINGS SVG -->
-  <svg style="position:absolute;top:0;left:50%;transform:translateX(-50%);width:100%;max-width:900px;height:auto;z-index:2;opacity:0.22;pointer-events:none"
-       viewBox="0 0 900 420" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <linearGradient id="wg1" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="#fff8e0" stop-opacity="1"/>
-        <stop offset="70%" stop-color="#e8d090" stop-opacity="0.7"/>
-        <stop offset="100%" stop-color="#c4a060" stop-opacity="0"/>
-      </linearGradient>
-      <linearGradient id="wg2" x1="1" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#fff8e0" stop-opacity="1"/>
-        <stop offset="70%" stop-color="#e8d090" stop-opacity="0.7"/>
-        <stop offset="100%" stop-color="#c4a060" stop-opacity="0"/>
-      </linearGradient>
-    </defs>
-
-    <!-- LEFT WING — multiple feather layers -->
-    <g transform="translate(450,30) scale(-1,1)">
-      <!-- Outer primary feathers -->
-      <path d="M0,0 Q120,80 280,180 Q320,210 340,250 Q310,230 290,200 Q200,140 80,60 Q40,35 0,0Z"
-            fill="url(#wg1)" opacity="0.9"/>
-      <!-- Mid feathers -->
-      <path d="M0,0 Q90,70 200,150 Q250,185 280,230 Q240,200 210,170 Q130,110 50,50 Q25,30 0,0Z"
-            fill="url(#wg1)" opacity="0.7"/>
-      <!-- Inner coverts -->
-      <path d="M0,0 Q60,50 140,110 Q185,145 210,190 Q170,155 140,130 Q80,90 30,45 Q15,25 0,0Z"
-            fill="url(#wg1)" opacity="0.55"/>
-      <!-- Feather stroke lines for detail -->
-      <path d="M0,0 Q50,60 120,130" fill="none" stroke="#fff8e0" stroke-width="0.8" opacity="0.4"/>
-      <path d="M10,5 Q80,80 170,160" fill="none" stroke="#fff8e0" stroke-width="0.7" opacity="0.3"/>
-      <path d="M20,10 Q110,95 210,180" fill="none" stroke="#fff8e0" stroke-width="0.6" opacity="0.25"/>
-      <path d="M5,15 Q70,90 160,175" fill="none" stroke="#fff8e0" stroke-width="0.5" opacity="0.2"/>
-      <!-- Wing tip glow -->
-      <ellipse cx="320" cy="220" rx="40" ry="15" fill="#fff8e0" opacity="0.15" transform="rotate(-30, 320, 220)"/>
-    </g>
-
-    <!-- RIGHT WING -->
-    <g transform="translate(450,30)">
-      <path d="M0,0 Q120,80 280,180 Q320,210 340,250 Q310,230 290,200 Q200,140 80,60 Q40,35 0,0Z"
-            fill="url(#wg2)" opacity="0.9"/>
-      <path d="M0,0 Q90,70 200,150 Q250,185 280,230 Q240,200 210,170 Q130,110 50,50 Q25,30 0,0Z"
-            fill="url(#wg2)" opacity="0.7"/>
-      <path d="M0,0 Q60,50 140,110 Q185,145 210,190 Q170,155 140,130 Q80,90 30,45 Q15,25 0,0Z"
-            fill="url(#wg2)" opacity="0.55"/>
-      <path d="M0,0 Q50,60 120,130" fill="none" stroke="#fff8e0" stroke-width="0.8" opacity="0.4"/>
-      <path d="M10,5 Q80,80 170,160" fill="none" stroke="#fff8e0" stroke-width="0.7" opacity="0.3"/>
-      <path d="M20,10 Q110,95 210,180" fill="none" stroke="#fff8e0" stroke-width="0.6" opacity="0.25"/>
-      <ellipse cx="320" cy="220" rx="40" ry="15" fill="#fff8e0" opacity="0.15" transform="rotate(30, 320, 220)"/>
-    </g>
-
-    <!-- Centre halo / glory circle -->
-    <ellipse cx="450" cy="30" rx="55" ry="22" fill="#fff8d0" opacity="0.18"/>
-    <ellipse cx="450" cy="30" rx="40" ry="15" fill="#fff8d0" opacity="0.22"/>
-    <circle  cx="450" cy="30" r="10"  fill="#fffae0" opacity="0.35"/>
-  </svg>
-
-  <!-- DOVE SVG (floating above title) -->
-  <svg style="position:absolute;top:22%;left:50%;transform:translate(-50%,-50%);width:80px;z-index:5;opacity:0;animation:doveAppear 2s 0.5s ease forwards;pointer-events:none"
-       viewBox="0 0 80 55" xmlns="http://www.w3.org/2000/svg">
-    <style>@keyframes doveAppear{from{opacity:0;transform:translate(-50%,-58%)}to{opacity:0.85;transform:translate(-50%,-50%)}}</style>
-    <!-- Dove body -->
-    <ellipse cx="38" cy="30" rx="18" ry="10" fill="#fffcf0"/>
-    <!-- Dove head -->
-    <circle cx="54" cy="23" r="7" fill="#fffcf0"/>
-    <!-- Beak -->
-    <path d="M60,22 L67,21 L60,24Z" fill="#e8c870"/>
-    <!-- Left wing spread -->
-    <path d="M30,28 Q15,14 8,20 Q18,22 26,30Z" fill="#fff8e0" opacity="0.95"/>
-    <path d="M32,26 Q20,8 10,12 Q22,18 28,28Z" fill="#fff8e0" opacity="0.75"/>
-    <!-- Tail -->
-    <path d="M20,32 Q10,38 6,36 Q14,33 20,30Z" fill="#fffcf0"/>
-    <!-- Eye -->
-    <circle cx="57" cy="22" r="2" fill="#2a1a08"/>
-    <circle cx="57.7" cy="21.3" r="0.7" fill="#fff"/>
-    <!-- Olive branch -->
-    <path d="M52,30 Q60,35 65,38" fill="none" stroke="#7a9a40" stroke-width="1.2" stroke-linecap="round"/>
-    <ellipse cx="60" cy="34" rx="4" ry="2.5" fill="#7a9a40" transform="rotate(-20,60,34)"/>
-    <ellipse cx="64" cy="37" rx="3.5" ry="2" fill="#6a8a34" transform="rotate(-10,64,37)"/>
-  </svg>
-
-
-
-  <!-- BOTTOM VIGNETTE -->
-  <div class="vignette-bottom"></div>
-  <div class="vignette-sides"></div>
-
-  <!-- FLOATING MOTES -->
-  <div class="motes" id="motes"></div>
-
-  <!-- ═══ MAIN CONTENT ═══ -->
-  <div class="content" style="margin-top:14vh">
-    <div class="church-label">நல்ல சமாரியன் இயேசு ஜெப வீடு</div>
-    <div class="divider"></div>
-
-    <div class="title-ta" style="display:flex;align-items:center;justify-content:center;gap:32px;">
-      <span>சாட்சி</span>
-      <svg width="52" height="70" viewBox="0 0 60 80" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;opacity:0.92;filter:drop-shadow(0 0 10px rgba(212,168,67,0.5))">
+    <div class="sky"></div>
+    <div class="clouds-layer"></div>
+    <div class="light-beam"></div>
+    
+    <svg style="position:absolute;top:0;left:50%;transform:translateX(-50%);width:100%;max-width:900px;height:auto;z-index:2;opacity:0.22;pointer-events:none"
+         viewBox="0 0 900 420" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <linearGradient id="mg2" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stop-color="#fff5d0"/>
-            <stop offset="100%" stop-color="#d4a843"/>
-          </linearGradient>
+            <linearGradient id="wg1" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#fff8e0" stop-opacity="1"/>
+                <stop offset="70%" stop-color="#e8d090" stop-opacity="0.7"/>
+                <stop offset="100%" stop-color="#c4a060" stop-opacity="0"/>
+            </linearGradient>
+            <linearGradient id="wg2" x1="1" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#fff8e0" stop-opacity="1"/>
+                <stop offset="70%" stop-color="#e8d090" stop-opacity="0.7"/>
+                <stop offset="100%" stop-color="#c4a060" stop-opacity="0"/>
+            </linearGradient>
         </defs>
-        <rect x="18" y="4" width="24" height="38" rx="12" fill="url(#mg2)" stroke="rgba(212,168,67,0.5)" stroke-width="1"/>
-        <line x1="18" y1="18" x2="42" y2="18" stroke="rgba(180,130,30,0.4)" stroke-width="1"/>
-        <line x1="18" y1="25" x2="42" y2="25" stroke="rgba(180,130,30,0.4)" stroke-width="1"/>
-        <line x1="18" y1="32" x2="42" y2="32" stroke="rgba(180,130,30,0.4)" stroke-width="1"/>
-        <path d="M12,38 Q10,52 30,52 Q50,52 48,38" fill="none" stroke="url(#mg2)" stroke-width="2.5" stroke-linecap="round"/>
-        <line x1="30" y1="52" x2="30" y2="68" stroke="url(#mg2)" stroke-width="2.5" stroke-linecap="round"/>
-        <rect x="14" y="67" width="32" height="5" rx="2.5" fill="url(#mg2)"/>
-      </svg>
-      <span>நேரம்</span>
+        <g transform="translate(450,30) scale(-1,1)">
+            <path d="M0,0 Q120,80 280,180 Q320,210 340,250 Q310,230 290,200 Q200,140 80,60 Q40,35 0,0Z" fill="url(#wg1)" opacity="0.9"/>
+            <path d="M0,0 Q90,70 200,150 Q250,185 280,230 Q240,200 210,170 Q130,110 50,50 Q25,30 0,0Z" fill="url(#wg1)" opacity="0.7"/>
+            <path d="M0,0 Q60,50 140,110 Q185,145 210,190 Q170,155 140,130 Q80,90 30,45 Q15,25 0,0Z" fill="url(#wg1)" opacity="0.55"/>
+        </g>
+        <g transform="translate(450,30)">
+            <path d="M0,0 Q120,80 280,180 Q320,210 340,250 Q310,230 290,200 Q200,140 80,60 Q40,35 0,0Z" fill="url(#wg2)" opacity="0.9"/>
+            <path d="M0,0 Q90,70 200,150 Q250,185 280,230 Q240,200 210,170 Q130,110 50,50 Q25,30 0,0Z" fill="url(#wg2)" opacity="0.7"/>
+            <path d="M0,0 Q60,50 140,110 Q185,145 210,190 Q170,155 140,130 Q80,90 30,45 Q15,25 0,0Z" fill="url(#wg2)" opacity="0.55"/>
+        </g>
+        <ellipse cx="450" cy="30" rx="55" ry="22" fill="#fff8d0" opacity="0.18"/>
+        <ellipse cx="450" cy="30" rx="40" ry="15" fill="#fff8d0" opacity="0.22"/>
+        <circle cx="450" cy="30" r="10" fill="#fffae0" opacity="0.35"/>
+    </svg>
+    
+    <svg style="position:absolute;top:12%;left:50%;transform:translate(-50%,-50%);width:100px;z-index:5;opacity:0;animation:doveAppear 2s 0.5s ease forwards;pointer-events:none"
+         viewBox="0 0 80 55" xmlns="http://www.w3.org/2000/svg">
+        <style>
+            @keyframes doveAppear{
+                from{opacity:0;transform:translate(-50%,-60%)}
+                to{opacity:0.85;transform:translate(-50%,-50%)}
+            }
+        </style>
+        <ellipse cx="38" cy="30" rx="18" ry="10" fill="#fffcf0"/>
+        <circle cx="54" cy="23" r="7" fill="#fffcf0"/>
+        <path d="M60,22 L67,21 L60,24Z" fill="#e8c870"/>
+        <path d="M30,28 Q15,14 8,20 Q18,22 26,30Z" fill="#fff8e0" opacity="0.95"/>
+        <path d="M32,26 Q20,8 10,12 Q22,18 28,28Z" fill="#fff8e0" opacity="0.75"/>
+        <path d="M20,32 Q10,38 6,36 Q14,33 20,30Z" fill="#fffcf0"/>
+        <circle cx="57" cy="22" r="2" fill="#2a1a08"/>
+        <circle cx="57.7" cy="21.3" r="0.7" fill="#fff"/>
+    </svg>
+    
+    <div class="vignette-bottom"></div>
+    <div class="vignette-sides"></div>
+    <div class="motes" id="motes"></div>
+    
+    <div class="content">
+        <div class="church-label">நல்ல சமாரியன் இயேசு ஜெப வீடு</div>
+        <div class="divider"></div>
+        
+        <div class="title-ta">
+            <span>சாட்சி</span>
+            <svg width="70" height="90" viewBox="0 0 60 80" xmlns="http://www.w3.org/2000/svg" 
+                 style="flex-shrink:0;opacity:0.92;filter:drop-shadow(0 0 12px rgba(212,168,67,0.6))">
+                <defs>
+                    <linearGradient id="mg2" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stop-color="#fff5d0"/>
+                        <stop offset="100%" stop-color="#d4a843"/>
+                    </linearGradient>
+                </defs>
+                <rect x="18" y="4" width="24" height="38" rx="12" fill="url(#mg2)" stroke="rgba(212,168,67,0.5)" stroke-width="1"/>
+                <line x1="18" y1="18" x2="42" y2="18" stroke="rgba(180,130,30,0.4)" stroke-width="1"/>
+                <line x1="18" y1="25" x2="42" y2="25" stroke="rgba(180,130,30,0.4)" stroke-width="1"/>
+                <line x1="18" y1="32" x2="42" y2="32" stroke="rgba(180,130,30,0.4)" stroke-width="1"/>
+                <path d="M12,38 Q10,52 30,52 Q50,52 48,38" fill="none" stroke="url(#mg2)" stroke-width="2.5" stroke-linecap="round"/>
+                <line x1="30" y1="52" x2="30" y2="68" stroke="url(#mg2)" stroke-width="2.5" stroke-linecap="round"/>
+                <rect x="14" y="67" width="32" height="5" rx="2.5" fill="url(#mg2)"/>
+            </svg>
+            <span>நேரம்</span>
+        </div>
+        
+        <div class="title-en">Testimony Time</div>
+        
+        <div class="divider-bottom">
+            <div class="dl"></div>
+            <div class="dot"></div>
+            <div class="dr"></div>
+        </div>
+        
+        <div class="scripture">"உங்கள் வாயால் சொல்லுங்கள், கர்த்தர் என்னை இரட்சித்தார்" — ஏசாயா 38:20</div>
     </div>
-    <div class="title-en">Testimony Time</div>
-
-    <div class="divider-bottom">
-      <div class="dl"></div>
-      <div class="dot"></div>
-      <div class="dr"></div>
-    </div>
-
-    <div class="scripture">
-      "உங்கள் வாயால் சொல்லுங்கள், கர்த்தர் என்னை இரட்சித்தார்" — ஏசாயா 38:20
-    </div>
-  </div>
-
 </div>
 
 <script>
-  // Floating light motes
-  const container = document.getElementById('motes');
-  for (let i = 0; i < 50; i++) {
+const container = document.getElementById('motes');
+for (let i = 0; i < 50; i++) {
     const m = document.createElement('div');
     m.classList.add('mote');
     const size = 1 + Math.random() * 3;
-    m.style.width  = size + 'px';
+    m.style.width = size + 'px';
     m.style.height = size + 'px';
-    m.style.left   = Math.random() * 100 + '%';
+    m.style.left = Math.random() * 100 + '%';
     m.style.bottom = (Math.random() * 30) + '%';
-    m.style.animationDuration  = (8 + Math.random() * 14) + 's';
-    m.style.animationDelay     = (Math.random() * 10) + 's';
+    m.style.animationDuration = (8 + Math.random() * 14) + 's';
+    m.style.animationDelay = (Math.random() * 10) + 's';
     m.style.opacity = 0;
     container.appendChild(m);
-  }
+}
 </script>
 </body>
 </html>

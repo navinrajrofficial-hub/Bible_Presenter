@@ -119,14 +119,14 @@ function processAIInput() {
       return;
     }
     
-    // Look up each verse in local bibleData and add as Color Slide
+    // Look up each verse in local bibleData and add as Vasanam Slide
     let addedCount = 0;
     let notFoundRefs = [];
     
     parsed.forEach((ref) => {
       const verseData = lookupVerseInBible(ref.book, ref.chapter, ref.verse);
       if (verseData) {
-        addColorSlideFromVerse(verseData.text, verseData.reference);
+        addSlideFromVerse(verseData.text, verseData.reference);
         addedCount++;
       } else {
         notFoundRefs.push(`${ref.book} ${ref.chapter}:${ref.verse}`);
@@ -134,7 +134,7 @@ function processAIInput() {
     });
     
     if (addedCount > 0) {
-      appendChatMessage("assistant", `✓ Added ${addedCount} Color Slide(s) from pasted text.`);
+      appendChatMessage("assistant", `✓ Added ${addedCount} Vasanam Slide(s) from pasted text.`);
     }
     if (notFoundRefs.length > 0) {
       appendChatMessage("assistant", `⚠ Not found in Bible: ${notFoundRefs.join(", ")}`);
@@ -1065,7 +1065,7 @@ initAIVerseAssistant();
 
 
 // ══════════════════════════════════════════════════
-//  OFFLINE VERSE LOOKUP & COLOR SLIDE HELPERS
+//  OFFLINE VERSE LOOKUP & SLIDE HELPERS
 // ══════════════════════════════════════════════════
 
 /**
@@ -1125,20 +1125,21 @@ function lookupVerseInBible(bookName, chapter, verse) {
 }
 
 /**
- * Add a Color Slide (using createColorVasanamHtml) directly to slides
+ * Add a verse slide with flip card (front: title, back: verse text)
+ * Same logic as Bible panel - click to flip between reference and verse
  * Automatically bookmarked for easy access
  */
-function addColorSlideFromVerse(verseText, verseRef) {
-  if (typeof slides === 'undefined' || typeof createColorVasanamHtml === 'undefined') {
+function addSlideFromVerse(verseText, verseRef) {
+  if (typeof slides === 'undefined' || typeof createAnimeVasanamHtml === 'undefined') {
     console.error('Required functions not available');
     return false;
   }
 
-  const html = createColorVasanamHtml(verseText, verseRef);
+  const html = createAnimeVasanamHtml(verseText, verseRef, false);
   const slide = {
     id: Date.now() + Math.random(),
     type: 'html',
-    name: verseRef || 'வசனம் (Color)',
+    name: verseRef || 'வசனம்',
     html: html,
     bookmarked: true, // ✅ Auto-bookmark all AI-added verses
     _rev: 0
