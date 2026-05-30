@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cathrin & Charu Sings!</title>
+<link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Poppins:wght@700;900&display=swap" rel="stylesheet">
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  background: linear-gradient(135deg, 
+    #667eea 0%, 
+    #764ba2 25%, 
+    #f093fb 50%, 
+    #4facfe 75%, 
+    #00f2fe 100%
+  );
+  background-size: 400% 400%;
+  animation: gradientShift 8s ease infinite;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Poppins', sans-serif;
+  position: relative;
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Floating music notes */
+.music-note {
+  position: absolute;
+  font-size: clamp(24px, 3vw, 48px);
+  opacity: 0;
+  animation: floatNote 4s ease-in-out infinite;
+  filter: drop-shadow(0 0 10px rgba(255,255,255,0.6));
+}
+
+@keyframes floatNote {
+  0% {
+    opacity: 0;
+    transform: translateY(100vh) rotate(0deg) scale(0.5);
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-20vh) rotate(360deg) scale(1.2);
+  }
+}
+
+.music-note:nth-child(1) { left: 10%; animation-delay: 0s; }
+.music-note:nth-child(2) { left: 25%; animation-delay: 0.8s; }
+.music-note:nth-child(3) { left: 40%; animation-delay: 1.6s; }
+.music-note:nth-child(4) { left: 55%; animation-delay: 2.4s; }
+.music-note:nth-child(5) { left: 70%; animation-delay: 3.2s; }
+.music-note:nth-child(6) { left: 85%; animation-delay: 1.2s; }
+.music-note:nth-child(7) { left: 15%; animation-delay: 2s; }
+.music-note:nth-child(8) { left: 60%; animation-delay: 0.4s; }
+
+/* Main content */
+.content {
+  text-align: center;
+  z-index: 10;
+  padding: 2vw;
+  max-width: 90vw;
+}
+
+.emoji-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(20px, 3vw, 40px);
+  margin-bottom: clamp(20px, 3vh, 40px);
+  animation: bounceIn 1s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.emoji {
+  font-size: clamp(50px, 8vw, 100px);
+  animation: bounce 2s ease-in-out infinite;
+  filter: drop-shadow(0 4px 20px rgba(0,0,0,0.3));
+}
+
+.emoji:nth-child(1) { animation-delay: 0s; }
+.emoji:nth-child(2) { animation-delay: 0.2s; }
+.emoji:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-20px) scale(1.1);
+  }
+}
+
+@keyframes bounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.title {
+  font-family: 'Pacifico', cursive;
+  font-size: clamp(40px, 8vw, 100px);
+  color: #fff;
+  text-shadow: 
+    0 0 20px rgba(255,255,255,0.8),
+    0 0 40px rgba(255,255,255,0.6),
+    0 4px 30px rgba(0,0,0,0.4);
+  margin-bottom: clamp(15px, 2vh, 30px);
+  animation: titlePulse 2s ease-in-out infinite, slideIn 1s ease-out;
+  line-height: 1.2;
+}
+
+@keyframes titlePulse {
+  0%, 100% {
+    transform: scale(1);
+    text-shadow: 
+      0 0 20px rgba(255,255,255,0.8),
+      0 0 40px rgba(255,255,255,0.6),
+      0 4px 30px rgba(0,0,0,0.4);
+  }
+  50% {
+    transform: scale(1.05);
+    text-shadow: 
+      0 0 30px rgba(255,255,255,1),
+      0 0 60px rgba(255,255,255,0.8),
+      0 4px 40px rgba(0,0,0,0.5);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.subtitle {
+  font-size: clamp(24px, 4vw, 48px);
+  font-weight: 900;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: clamp(3px, 0.5vw, 8px);
+  margin-bottom: clamp(20px, 3vh, 40px);
+  text-shadow: 0 2px 20px rgba(0,0,0,0.5);
+  animation: fadeInUp 1s ease-out 0.3s backwards;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.message {
+  font-size: clamp(18px, 2.5vw, 32px);
+  font-weight: 700;
+  color: #fff;
+  background: rgba(0,0,0,0.2);
+  backdrop-filter: blur(10px);
+  padding: clamp(15px, 2vh, 30px) clamp(25px, 3vw, 50px);
+  border-radius: 20px;
+  border: 2px solid rgba(255,255,255,0.3);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  animation: fadeInUp 1s ease-out 0.6s backwards;
+  line-height: 1.6;
+  max-width: 85vw;
+  margin: 0 auto;
+}
+
+.sparkle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 0 10px white;
+  animation: sparkleAnim 2s ease-in-out infinite;
+  opacity: 0;
+}
+
+@keyframes sparkleAnim {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.sparkle:nth-child(1) { top: 15%; left: 20%; animation-delay: 0s; }
+.sparkle:nth-child(2) { top: 25%; left: 80%; animation-delay: 0.5s; }
+.sparkle:nth-child(3) { top: 70%; left: 15%; animation-delay: 1s; }
+.sparkle:nth-child(4) { top: 80%; left: 85%; animation-delay: 1.5s; }
+.sparkle:nth-child(5) { top: 40%; left: 10%; animation-delay: 0.3s; }
+.sparkle:nth-child(6) { top: 60%; left: 90%; animation-delay: 0.8s; }
+.sparkle:nth-child(7) { top: 10%; left: 50%; animation-delay: 1.2s; }
+.sparkle:nth-child(8) { top: 90%; left: 50%; animation-delay: 0.6s; }
+
+/* Microphone animation */
+.mic-container {
+  margin-top: clamp(20px, 3vh, 40px);
+  animation: fadeInUp 1s ease-out 0.9s backwards;
+}
+
+.mic {
+  font-size: clamp(40px, 6vw, 80px);
+  display: inline-block;
+  animation: micSwing 1.5s ease-in-out infinite;
+  filter: drop-shadow(0 4px 20px rgba(255,255,255,0.5));
+}
+
+@keyframes micSwing {
+  0%, 100% {
+    transform: rotate(-10deg);
+  }
+  50% {
+    transform: rotate(10deg);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .title {
+    font-size: clamp(32px, 10vw, 60px);
+  }
+  
+  .subtitle {
+    font-size: clamp(18px, 5vw, 32px);
+  }
+  
+  .message {
+    font-size: clamp(14px, 3.5vw, 24px);
+  }
+}
+</style>
+</head>
+<body>
+<!-- Floating music notes -->
+<div class="music-note">🎵</div>
+<div class="music-note">🎶</div>
+<div class="music-note">🎵</div>
+<div class="music-note">🎶</div>
+<div class="music-note">🎵</div>
+<div class="music-note">🎶</div>
+<div class="music-note">🎵</div>
+<div class="music-note">🎶</div>
+
+<!-- Sparkles -->
+<div class="sparkle"></div>
+<div class="sparkle"></div>
+<div class="sparkle"></div>
+<div class="sparkle"></div>
+<div class="sparkle"></div>
+<div class="sparkle"></div>
+<div class="sparkle"></div>
+<div class="sparkle"></div>
+
+<!-- Main content -->
+<div class="content">
+  <div class="emoji-row">
+    <span class="emoji">🎤</span>
+    <span class="emoji">⭐</span>
+    <span class="emoji">🎤</span>
+  </div>
+  
+  <h1 class="title">Cathrin & Charu</h1>
+  
+  <div class="subtitle">Are About to Sing!</div>
+  
+  <div class="message">
+    🎉 Get ready for some heavenly voices! 🎉<br>
+    Time to sit back, relax, and enjoy the show! 😄
+  </div>
+  
+  <div class="mic-container">
+    <span class="mic">🎙️</span>
+  </div>
+</div>
+
+<script>
+// Add some random sparkle positions
+function createRandomSparkles() {
+  const sparkles = document.querySelectorAll('.sparkle');
+  sparkles.forEach((sparkle, index) => {
+    const randomTop = Math.random() * 100;
+    const randomLeft = Math.random() * 100;
+    sparkle.style.top = randomTop + '%';
+    sparkle.style.left = randomLeft + '%';
+  });
+}
+
+// Randomize sparkle positions every 3 seconds
+setInterval(createRandomSparkles, 3000);
+createRandomSparkles();
+</script>
+</body>
+</html>

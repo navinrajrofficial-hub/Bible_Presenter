@@ -3260,7 +3260,9 @@ function spRenderTamilKeys() {
       btn.type = 'button';
       btn.className = 'sp-tamil-key';
       btn.textContent = ch;
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         if (consonants.includes(ch)) {
           spShowTamilCombos(ch, vowelMarks);
         } else {
@@ -3298,7 +3300,9 @@ function spShowTamilCombos(base, marks) {
     btn.className = 'sp-tamil-key';
     const combo = base + mark;
     btn.textContent = combo;
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       spInsertTamilChar(combo);
       spHideTamilCombos();
     });
@@ -4628,10 +4632,13 @@ function renderPresentBookmarks() {
 function presentJumpTo(idx) {
   if (idx < 0 || idx >= slides.length) return;
   if (presentIdx === idx) return;
-  _presentPrevIdx = presentIdx;
-  presentIdx = idx;
-  showPresentSlide();
-  updateBackBtn();
+  
+  applySlideTransition(() => {
+    _presentPrevIdx = presentIdx;
+    presentIdx = idx;
+    showPresentSlide();
+    updateBackBtn();
+  });
 }
 
 function showGotoInput() {
@@ -4670,26 +4677,78 @@ function goToSlide(val) {
     }
     return;
   }
-  _presentPrevIdx = presentIdx;
-  presentIdx = num - 1;
-  showPresentSlide();
-  updateBackBtn();
-  document.getElementById('present-indicator').onclick = showGotoInput;
+  
+  applySlideTransition(() => {
+    _presentPrevIdx = presentIdx;
+    presentIdx = num - 1;
+    showPresentSlide();
+    updateBackBtn();
+    document.getElementById('present-indicator').onclick = showGotoInput;
+  });
 }
 
 function presentGoBack() {
   if (_presentPrevIdx === null) return;
-  const tmp = presentIdx;
-  presentIdx = _presentPrevIdx;
-  _presentPrevIdx = tmp;
-  showPresentSlide();
-  updateBackBtn();
+  
+  applySlideTransition(() => {
+    const tmp = presentIdx;
+    presentIdx = _presentPrevIdx;
+    _presentPrevIdx = tmp;
+    showPresentSlide();
+    updateBackBtn();
+  });
 }
 
 function updateBackBtn() {
   const btn = document.getElementById('present-back-btn');
   if (!btn) return;
   btn.style.display = _presentPrevIdx !== null ? '' : 'none';
+}
+
+// ══════════════════════════════════════════════════
+//  SLIDE TRANSITION ANIMATIONS
+// ══════════════════════════════════════════════════
+const TRANSITION_TYPES = ['fade', 'slide-left', 'slide-right', 'zoom', 'flip', 'rotate'];
+let _lastTransition = null;
+
+function getRandomTransition() {
+  // Get a random transition different from the last one for variety
+  let transition;
+  do {
+    transition = TRANSITION_TYPES[Math.floor(Math.random() * TRANSITION_TYPES.length)];
+  } while (transition === _lastTransition && TRANSITION_TYPES.length > 1);
+  _lastTransition = transition;
+  return transition;
+}
+
+function applySlideTransition(callback) {
+  const pif = document.getElementById('present-iframe');
+  if (!pif) {
+    if (callback) callback();
+    return;
+  }
+
+  const transition = getRandomTransition();
+  
+  // Remove any existing transition classes
+  pif.className = '';
+  
+  // Apply exit animation
+  pif.classList.add(`transition-${transition}-out`);
+  
+  // Wait for exit animation to complete, then load new slide
+  setTimeout(() => {
+    if (callback) callback();
+    
+    // Apply enter animation
+    pif.className = '';
+    pif.classList.add(`transition-${transition}-in`);
+    
+    // Clean up after enter animation
+    setTimeout(() => {
+      pif.className = '';
+    }, 350);
+  }, transition === 'fade' || transition === 'zoom' ? 250 : 300);
 }
 
 function ensurePresentIndex() {
@@ -4708,11 +4767,14 @@ function presentNavImmediate(dir) {
   if (!ensurePresentIndex()) return;
   const target = presentIdx + dir;
   if (target < 0 || target >= slides.length) return;
-  presentIdx = target;
-  _presentNavQueued = null;
-  clearTimeout(_presentNavTimer);
-  showPresentSlide();
-  updateBackBtn();
+  
+  applySlideTransition(() => {
+    presentIdx = target;
+    _presentNavQueued = null;
+    clearTimeout(_presentNavTimer);
+    showPresentSlide();
+    updateBackBtn();
+  });
 }
 
 function presentNav(dir) {
@@ -4728,9 +4790,11 @@ function presentNav(dir) {
 
   clearTimeout(_presentNavTimer);
   _presentNavTimer = setTimeout(() => {
-    presentIdx = _presentNavQueued;
-    _presentNavQueued = null;
-    showPresentSlide();
+    applySlideTransition(() => {
+      presentIdx = _presentNavQueued;
+      _presentNavQueued = null;
+      showPresentSlide();
+    });
     setTimeout(() => veil.classList.remove('flash'), 200);
   }, 80); // wait 80 ms for burst key-presses to settle before loading iframe
 }
@@ -4994,6 +5058,30 @@ function handleRemoteCommand(cmd, arg) {
   if (clean === 'prev') { presentNavImmediate(-1); return; }
   if (clean === 'back') { presentGoBack(); return; }
   if (clean === 'goto') { goToSlide(String(arg || '')); return; }
+  if (clean === 'import_new_song') {
+    if (arg && arg.title && Array.isArray(arg.queue)) {
+      const songName = arg.title || 'Imported Song';
+      const songSlideBg = 'linear-gradient(180deg,#0b0f26 0%,#111936 52%,#1a2647 100%)';
+      const tempSlides = arg.queue.map((item, i) => {
+        const refName = (item.name ? (songName + ' - ' + item.name) : songName);
+        const html = createSongLyricSlideHtml(item.text, refName, songSlideBg, '#f8fafc');
+        return { 
+          id: Date.now() + Math.random(), 
+          type: 'html', 
+          name: songName + ' - ' + (i + 1), 
+          html,
+          bookmarked: i === 0 // Bookmark first slide
+        };
+      });
+      slides.push(...tempSlides);
+      currentIdx = slides.length - tempSlides.length;
+      renderAll(); renderPreview(); renderEditor();
+      scheduleSave();
+      showToast('✓ ' + tempSlides.length + ' slides imported from ' + songName, 'success', 3000);
+      if (!isPresenting) startPresent(); // Auto start presentation for imported song
+    }
+    return;
+  }
 }
 
 async function pollRemoteOnce() {
