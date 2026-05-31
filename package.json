@@ -1,0 +1,40 @@
+{
+  "name": "bible-presenter",
+  "version": "1.0.0",
+  "description": "Tamil Bible/Song presentation tool with web-based UI and Android WebView wrapper",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "build:dev": "tsc && vite build --mode development",
+    "build:staging": "tsc && vite build --mode staging",
+    "build:production": "tsc && vite build --mode production",
+    "preview": "vite preview",
+    "type-check": "tsc --noEmit",
+    "test": "jest",
+    "test:unit": "jest --testPathPattern=tests/unit",
+    "test:integration": "jest --testPathPattern=tests/integration",
+    "test:e2e": "playwright test",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "prepare": "husky install"
+  },
+  "keywords": [
+    "bible",
+    "presentation",
+    "tamil",
+    "songs"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@preact/preset-vite": "^2.9.2",
+    "@types/node": "^22.10.5",
+    "typescript": "^5.7.3",
+    "vite": "^6.0.7",
+    "vite-plugin-checker": "^0.8.0"
+  },
+  "dependencies": {
+    "preact": "^10.26.1"
+  }
+}
