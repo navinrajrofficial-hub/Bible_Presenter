@@ -1,5 +1,13 @@
 
-try to search in the English / tanglish / or use tamil keyboard kinda thing for song choose thing?
+
+song slide, full content is not shwi.
+
+while adding sub chorus 
+
+add it inbetween the stance only 
+not after the main chorus.
+
+while exporting add the date in the file.
 
 make song content js file splitted and good performance?
 
@@ -10,17 +18,13 @@ publish it to the free tier web application?
 
 ========================
 
-in song slide, now auto matic numbers is moving whiel specifying verse slide -> fix it. -> Done
-
-in song quick temp slide feature, just add the songs verse with space and add temp slide it just adds all to a one one slide based on space. => Done
 
 song add feature , make it dynamic minimize, maximize, scrolling  -> Done
 
 
 AI Feature?
-
-AMEN
-
-ALLELUYah
+bible verse partially included?
 
 prayer time one image?
+
+fix the html with correct font size?
