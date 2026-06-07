@@ -71,6 +71,13 @@ function normalizeSlide(raw) {
   if (s.type === 'html') {
     s.name = (typeof s.name === 'string' && s.name.trim()) ? s.name : 'HTML Slide';
     s.html = typeof s.html === 'string' ? s.html : '';
+    // Preserve song group metadata if present (backward compatible - old files won't have this)
+    if (s.songGroupId) {
+      s.songGroupId = s.songGroupId;
+      s.songGroupIndex = typeof s.songGroupIndex === 'number' ? s.songGroupIndex : 0;
+      s.songGroupTotal = typeof s.songGroupTotal === 'number' ? s.songGroupTotal : 1;
+      s.songGroupName = typeof s.songGroupName === 'string' ? s.songGroupName : '';
+    }
     return s;
   }
 
@@ -110,7 +117,15 @@ function scheduleSave() {
         const payload = slides.map(s => {
           const { id, type, name, bookmarked } = s;
           if (type === 'html') {
-            return { id, type, name, html: s.html || '', bookmarked: !!bookmarked };
+            const htmlSlide = { id, type, name, html: s.html || '', bookmarked: !!bookmarked };
+            // Include song group metadata if present
+            if (s.songGroupId) {
+              htmlSlide.songGroupId = s.songGroupId;
+              htmlSlide.songGroupIndex = s.songGroupIndex;
+              htmlSlide.songGroupTotal = s.songGroupTotal;
+              htmlSlide.songGroupName = s.songGroupName;
+            }
+            return htmlSlide;
           }
           if (type === 'media') {
             return {
@@ -4390,6 +4405,10 @@ function spCommitQueueToMain(queueItems, clearCurrentQueue = true) {
   const song = songContent[_spSongId];
   const songName = song ? song.title : 'Song';
   const songSlideBg = 'linear-gradient(180deg,#0b0f26 0%,#111936 52%,#1a2647 100%)';
+  
+  // Generate unique song group ID for this batch of slides
+  const songGroupId = 'song_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+  
   sourceQueue.forEach((item, i) => {
     const ref = songName + '  (Song #' + _spSongId + ')';
     const html = createSongLyricSlideHtml(item.text, ref, songSlideBg, '#f8fafc');
@@ -4398,7 +4417,11 @@ function spCommitQueueToMain(queueItems, clearCurrentQueue = true) {
       type: 'html', 
       name: songName + ' - ' + (i + 1), 
       html,
-      bookmarked: i === 0  // Auto-bookmark first slide only
+      bookmarked: i === 0,  // Auto-bookmark first slide only
+      songGroupId: songGroupId,  // Link all slides in this song together
+      songGroupIndex: i,  // Track position within the song
+      songGroupTotal: sourceQueue.length,  // Total slides in this song
+      songGroupName: songName  // Store song name for display
     };
     slides.push(slide);
   });
@@ -4487,6 +4510,11 @@ async function fetchRemoteUrl() {
 }
 
 async function showRemoteModalOnce() {
+  // Check if Phone Remote feature is enabled in config
+  if (typeof AI_CONFIG !== 'undefined' && AI_CONFIG.enablePhoneRemote === false) {
+    return; // Feature disabled, don't show QR modal
+  }
+  
   if (_remoteModalShown) return;
   _remoteModalShown = true;
   const modal = document.getElementById('remote-modal');
@@ -4595,6 +4623,7 @@ function showPresentSlide() {
   }
 
   renderPresentBookmarks();
+  renderSongNavBar(); // New: Show song group navigation if applicable
   markRemoteStateDirty();
 }
 
@@ -4631,6 +4660,96 @@ function renderPresentBookmarks() {
     listEl.appendChild(btn);
   });
   markRemoteStateDirty();
+}
+
+function renderSongNavBar() {
+  const navBar = document.getElementById('song-nav-bar');
+  const titleEl = document.getElementById('song-nav-title');
+  const slidesEl = document.getElementById('song-nav-slides');
+  
+  if (!navBar || !titleEl || !slidesEl) return;
+  
+  const currentSlide = slides[presentIdx];
+  
+  // Hide nav bar if current slide is not part of a song group
+  if (!currentSlide || !currentSlide.songGroupId) {
+    navBar.style.display = 'none';
+    return;
+  }
+  
+  // Show nav bar and populate with song group slides
+  navBar.style.display = 'block';
+  const groupId = currentSlide.songGroupId;
+  const groupName = currentSlide.songGroupName || 'Song';
+  
+  // Find all slides in this song group
+  const groupSlides = [];
+  slides.forEach((s, idx) => {
+    if (s && s.songGroupId === groupId) {
+      groupSlides.push({ slide: s, index: idx });
+    }
+  });
+  
+  // Sort by songGroupIndex to maintain correct order
+  groupSlides.sort((a, b) => {
+    const aIdx = typeof a.slide.songGroupIndex === 'number' ? a.slide.songGroupIndex : 0;
+    const bIdx = typeof b.slide.songGroupIndex === 'number' ? b.slide.songGroupIndex : 0;
+    return aIdx - bIdx;
+  });
+  
+  // Update title
+  titleEl.textContent = `🎵 ${groupName} (${groupSlides.length} slides)`;
+  
+  // Render slide thumbnails
+  slidesEl.innerHTML = '';
+  groupSlides.forEach(({ slide, index }) => {
+    const item = document.createElement('div');
+    item.className = 'song-nav-slide' + (index === presentIdx ? ' active' : '');
+    
+    const num = document.createElement('div');
+    num.className = 'song-nav-slide-num';
+    const groupPos = typeof slide.songGroupIndex === 'number' ? slide.songGroupIndex + 1 : '?';
+    num.textContent = `${groupPos}. ${slide.name || 'Slide ' + (index + 1)}`;
+    
+    const preview = document.createElement('div');
+    preview.className = 'song-nav-slide-preview';
+    // Extract actual lyrics from the HTML content
+    const lyricsPreview = extractLyricsFromSongHtml(slide.html);
+    preview.textContent = lyricsPreview || slide.name || 'Song Slide';
+    
+    item.appendChild(num);
+    item.appendChild(preview);
+    item.addEventListener('click', () => {
+      presentJumpTo(index);
+    });
+    
+    slidesEl.appendChild(item);
+  });
+}
+
+// Helper function to extract lyrics preview from song slide HTML
+function extractLyricsFromSongHtml(html) {
+  if (!html || typeof html !== 'string') return '';
+  
+  // Create a temporary div to parse HTML
+  const temp = document.createElement('div');
+  temp.innerHTML = html;
+  
+  // Try to find the lyrics element (common ID in song slides)
+  let lyricsEl = temp.querySelector('#lyrics') || temp.querySelector('.verse-text') || temp.querySelector('.lyrics');
+  
+  if (lyricsEl) {
+    return lyricsEl.textContent.trim().substring(0, 150);
+  }
+  
+  // Fallback: extract all text and clean it up
+  const allText = temp.textContent || '';
+  const cleaned = allText
+    .replace(/\s+/g, ' ')
+    .trim()
+    .substring(0, 150);
+  
+  return cleaned;
 }
 
 function presentJumpTo(idx) {

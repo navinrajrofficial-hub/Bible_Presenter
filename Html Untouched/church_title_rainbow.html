@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>நல்ல சமாரியன் இயேசு ஜெப வீடு</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Tamil:wght@400;600;700;900&family=Playfair+Display:ital,wght@1,400;0,700;0,900&family=IM+Fell+English:ital@1&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;}
+:root{
+--gold:#d4a843;
+--gold-light:#f0cc70;
+--cream:#fdf6e3;
+--amber:#c47a1e;
+--deep:#1a0a00;
+--warm-dark:#120800;
+}
+.stage{
+width:100vw;
+height:100vh;
+position:relative;
+overflow:hidden;
+background:linear-gradient(135deg,#1a0b2e 0%,#2d1b4e 8%,#16213e 16%,#0f3460 24%,#1a2b4e 32%,#1a1a2e 40%,#2a1845 48%,#16213e 56%,#0f3460 64%,#1b2f3a 72%,#1a0b2e 80%,#2d1b4e 88%,#16213e 96%,#1a1a2e 100%);
+background-size:400% 400%;
+animation:bgShift 15s ease infinite;
+}
+@keyframes bgShift{
+0%{background-position:0% 50%;}
+50%{background-position:100% 50%;}
+100%{background-position:0% 50%;}
+}
+/* ── LAYERED CANVASES ── */
+canvas{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+#cFlame{z-index:1;opacity:0.15;}
+#cDust{z-index:3;opacity:0.3;}
+/* ── VIGNETTE ── */
+.vignette{
+position:absolute;
+inset:0;
+z-index:4;
+background:radial-gradient(ellipse 85% 85% at 50% 50%,transparent 30%,rgba(10,4,20,.3) 60%,rgba(5,2,15,.7) 100%);
+pointer-events:none;
+}
+/* ── ORNAMENTAL FRAME - REMOVED ── */
+/* ── CONTENT CENTER ── */
+.content{
+position:absolute;
+inset:0;
+z-index:10;
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:center;
+padding:3vh 4vw;
+overflow:hidden;
+}
+/* ── HALO RING ── */
+.halo{
+position:relative;
+margin-bottom:1.8vh;
+opacity:0;
+animation:haloIn 1.5s cubic-bezier(.2,1,.4,1) forwards .2s;
+}
+@keyframes haloIn{
+0%{opacity:0;transform:scale(.5);filter:blur(30px)}
+60%{opacity:1;filter:blur(2px)}
+100%{opacity:1;transform:scale(1);filter:blur(0)}
+}
+.halo-ring{
+width:clamp(140px,16vw,230px);
+height:clamp(140px,16vw,230px);
+border-radius:50%;
+border:1px solid rgba(126,232,255,.25);
+display:flex;
+align-items:center;
+justify-content:center;
+position:relative;
+animation:rotateSlow 20s linear infinite;
+}
+@keyframes rotateSlow{to{transform:rotate(360deg)}}
+.halo-ring::before{
+content:'';
+position:absolute;
+inset:-6px;
+border-radius:50%;
+border:1px solid transparent;
+border-top-color:#7ee8ff;
+border-right-color:rgba(126,232,255,.4);
+animation:rotateFast 4s linear infinite;
+}
+@keyframes rotateFast{to{transform:rotate(-360deg)}}
+.halo-ring::after{
+content:'';
+position:absolute;
+inset:-14px;
+border-radius:50%;
+border:1px solid rgba(126,232,255,.15);
+border-bottom-color:rgba(162,89,255,.4);
+animation:rotateFast 7s linear infinite reverse;
+}
+.cross-symbol{
+font-size:clamp(110px,14vw,200px);
+line-height:1;
+animation:rotateSlow 20s linear infinite reverse;
+background:linear-gradient(90deg,#7ee8ff 0%,#ffdd57 18%,#72f5a8 36%,#a259ff 54%,#7ee8ff 72%,#ffdd57 90%,#72f5a8 100%);
+background-size:300% auto;
+-webkit-background-clip:text;
+-webkit-text-fill-color:transparent;
+background-clip:text;
+animation:rainbowShift 3s linear infinite, rotateSlow 20s linear infinite reverse;
+}
+@keyframes rainbowShift{
+0%{background-position:0% center;}
+100%{background-position:300% center;}
+}
+/* ── TOP TAG ── */
+.tag{
+font-family:'IM Fell English',serif;
+font-style:italic;
+font-size:clamp(14px,1.7vw,22px);
+letter-spacing:8px;
+text-transform:uppercase;
+color:rgba(126,232,255,.6);
+margin-bottom:1.2vh;
+opacity:0;
+animation:fadeUp .8s ease forwards 1.2s;
+}
+/* ── DIVIDER ── */
+.divider{
+display:flex;
+align-items:center;
+gap:1.5vw;
+margin-bottom:1.2vh;
+opacity:0;
+animation:fadeIn .8s ease forwards 1.5s;
+}
+.div-line{
+height:1px;
+width:clamp(45px,9vw,130px);
+background:linear-gradient(90deg,transparent,#7ee8ff);
+}
+.div-line.r{
+background:linear-gradient(90deg,#7ee8ff,transparent);
+}
+.div-gem{
+font-size:clamp(10px,1.3vw,16px);
+color:#7ee8ff;
+text-shadow:0 0 10px rgba(126,232,255,.8);
+}
+/* ── MAIN TITLE ── */
+.title-block{
+text-align:center;
+margin-bottom:1vh;
+max-width:90vw;
+}
+.t1{
+display:block;
+font-family:'Noto Serif Tamil',serif;
+font-size:clamp(42px,6.5vw,100px);
+font-weight:900;
+line-height:1.1;
+letter-spacing:3px;
+background:linear-gradient(90deg,#7ee8ff 0%,#ffdd57 18%,#72f5a8 36%,#a259ff 54%,#7ee8ff 72%,#ffdd57 90%,#72f5a8 100%);
+background-size:300% auto;
+-webkit-background-clip:text;
+-webkit-text-fill-color:transparent;
+background-clip:text;
+animation:rainbowShift 3s linear infinite, slideDown 1s cubic-bezier(.2,1.4,.4,1) forwards 1.8s;
+opacity:0;
+}
+.t2{
+display:block;
+font-family:'Noto Serif Tamil',serif;
+font-size:clamp(28px,4.2vw,62px);
+font-weight:600;
+letter-spacing:10px;
+background:linear-gradient(90deg,#7ee8ff 0%,#ffdd57 18%,#72f5a8 36%,#a259ff 54%,#7ee8ff 72%,#ffdd57 90%,#72f5a8 100%);
+background-size:300% auto;
+-webkit-background-clip:text;
+-webkit-text-fill-color:transparent;
+background-clip:text;
+animation:rainbowShift 3s linear infinite, slideDown 1s cubic-bezier(.2,1.4,.4,1) forwards 2.1s;
+opacity:0;
+}
+@keyframes slideDown{
+from{opacity:0;transform:translateY(-20px);filter:blur(8px)}
+to{opacity:1;transform:translateY(0);filter:blur(0)}
+}
+@keyframes slideUp{
+from{opacity:0;transform:translateY(20px);filter:blur(8px)}
+to{opacity:1;transform:translateY(0);filter:blur(0)}
+}
+/* ── DIVIDER 2 ── */
+.divider2{
+margin-bottom:1.2vh;
+opacity:0;
+animation:fadeIn .8s ease forwards 2.6s;
+display:flex;
+align-items:center;
+gap:1vw;
+}
+.div2-line{
+height:1px;
+width:clamp(35px,7vw,100px);
+background:linear-gradient(90deg,transparent,rgba(126,232,255,.3));
+}
+.div2-line.r{
+background:linear-gradient(90deg,rgba(126,232,255,.3),transparent);
+}
+.div2-dot{
+width:4px;
+height:4px;
+border-radius:50%;
+background:#7ee8ff;
+box-shadow:0 0 8px #7ee8ff;
+}
+/* ── VERSE ── */
+.verse{
+font-family:'Playfair Display',serif;
+font-style:italic;
+font-size:clamp(20px,2.5vw,36px);
+color:rgba(126,232,255,.65);
+letter-spacing:1.5px;
+text-align:center;
+padding:0 8vw;
+line-height:1.6;
+opacity:0;
+animation:fadeUp .8s ease forwards 2.9s;
+max-width:85vw;
+}
+.verse cite{
+display:block;
+font-style:normal;
+font-family:'IM Fell English',serif;
+font-size:.95em;
+color:rgba(126,232,255,.5);
+letter-spacing:3px;
+margin-top:.6em;
+text-transform:uppercase;
+}
+/* ── ANIMATIONS ── */
+@keyframes fadeUp{
+from{opacity:0;transform:translateY(12px)}
+to{opacity:1;transform:translateY(0)}
+}
+@keyframes fadeIn{to{opacity:1}}
+/* ── CANDLE GLOW BEHIND CROSS ── */
+.candle-glow{
+position:absolute;
+width:clamp(220px,32vw,450px);
+height:clamp(220px,32vw,450px);
+border-radius:50%;
+background:radial-gradient(circle,rgba(126,232,255,.08) 0%,rgba(162,89,255,.04) 40%,transparent 70%);
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+z-index:5;
+animation:candleGlow 3s ease-in-out infinite;
+}
+@keyframes candleGlow{
+0%,100%{opacity:.8;transform:translate(-50%,-50%) scale(1)}
+50%{opacity:1;transform:translate(-50%,-50%) scale(1.05)}
+}
+/* Responsive */
+@media (max-width: 768px) {
+.tag{font-size:clamp(12px,1.5vw,18px);letter-spacing:6px;}
+.t1{font-size:clamp(34px,5.8vw,85px);letter-spacing:2px;}
+.t2{font-size:clamp(24px,3.8vw,54px);letter-spacing:8px;}
+.cross-symbol{font-size:clamp(90px,12vw,170px);}
+.halo-ring{width:clamp(110px,14vw,180px);height:clamp(110px,14vw,180px);}
+.verse{font-size:clamp(18px,2.2vw,32px);padding:0 5vw;}
+.verse cite{font-size:.9em;}
+.content{padding:2vh 3vw;}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+<canvas id="cFlame"></canvas>
+<div class="vignette"></div>
+<div class="candle-glow"></div>
+<canvas id="cDust"></canvas>
+<!-- CONTENT -->
+<div class="content">
+<div class="halo">
+<div class="halo-ring">
+<span class="cross-symbol">✝</span>
+</div>
+</div>
+<div class="tag">Welcome to</div>
+<div class="divider">
+<div class="div-line"></div>
+<span class="div-gem">✦</span>
+<span class="div-gem" style="font-size:.6em;opacity:.5">✦</span>
+<span class="div-gem">✦</span>
+<div class="div-line r"></div>
+</div>
+<div class="title-block">
+<span class="t1">நல்ல சமாரியன் இயேசு</span>
+<span class="t2">ஜெப வீடு</span>
+</div>
+<div class="divider2">
+<div class="div2-line"></div>
+<div class="div2-dot"></div>
+<div class="div2-dot" style="opacity:.4;width:3px;height:3px"></div>
+<div class="div2-dot" style="opacity:.2;width:2px;height:2px"></div>
+<div class="div2-dot" style="opacity:.2;width:2px;height:2px"></div>
+<div class="div2-dot" style="opacity:.4;width:3px;height:3px"></div>
+<div class="div2-dot"></div>
+<div class="div2-line r"></div>
+</div>
+<div class="verse">
+என்னுடைய வீடு ஜெபவீடு என்னப்படும்
+<cite>— மத்தேயு 21:13</cite>
+</div>
+</div>
+</div>
+<script>
+/* ══════════════════════════════
+FLAME / EMBER BACKGROUND
+══════════════════════════════ */
+(function(){
+const cv = document.getElementById('cFlame');
+const cx = cv.getContext('2d');
+let W, H, t = 0;
+function resize(){
+W = cv.width  = window.innerWidth;
+H = cv.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+// Noise helper (simple smooth noise)
+function noise(x, y, t){
+return Math.sin(x * .012 + t * .008) * Math.cos(y * .009 - t * .006) * .5
++ Math.sin(x * .007 - t * .005) * Math.sin(y * .013 + t * .007) * .3
++ Math.sin((x+y) * .006 + t * .004) * .2;
+}
+function draw(){
+t++;
+cx.clearRect(0,0,W,H);
+// Deep cool base
+const bg = cx.createRadialGradient(W*.5, H*.7, 0, W*.5, H*.5, H*.9);
+bg.addColorStop(0,  'rgba(20,10,30,1)');
+bg.addColorStop(.3, 'rgba(15,10,25,1)');
+bg.addColorStop(.7, 'rgba(10,8,20,1)');
+bg.addColorStop(1,  'rgba(5,5,15,1)');
+cx.fillStyle = bg;
+cx.fillRect(0,0,W,H);
+// Slow ethereal columns
+const cols = 12;
+for(let i=0;i<cols;i++){
+const cx_ = (i/(cols-1)) * W;
+const height = H * (.3 + noise(i*80, 0, t) * .25 + .15);
+const baseX  = cx_ + noise(i*60, t, 0) * 40;
+const alpha  = (.04 + Math.abs(noise(i*40, t*1.2, i)) * .06) * (1 - Math.abs((i/(cols-1))-.5)*1.2);
+if(alpha <= 0) continue;
+const grd = cx.createLinearGradient(baseX, H, baseX + noise(i,t,0)*20, H - height);
+grd.addColorStop(0,   `rgba(80,150,200,${alpha})`);
+grd.addColorStop(.35, `rgba(100,180,220,${alpha*.8})`);
+grd.addColorStop(.65, `rgba(120,200,240,${alpha*.4})`);
+grd.addColorStop(1,   `rgba(150,220,255,0)`);
+cx.save();
+cx.beginPath();
+const w = W / cols * (.6 + Math.abs(noise(i*30,t,0)) * .8);
+cx.ellipse(baseX, H, w*.5, height*.6, 0, 0, Math.PI*2);
+cx.fillStyle = grd;
+cx.fill();
+cx.restore();
+}
+// Central glow
+const cg = cx.createRadialGradient(W*.5, H*.72, 0, W*.5, H*.65, H*.45);
+cg.addColorStop(0,   'rgba(126,232,255,.05)');
+cg.addColorStop(.3,  'rgba(100,180,255,.03)');
+cg.addColorStop(.6,  'rgba(80,150,220,.02)');
+cg.addColorStop(1,   'rgba(0,0,0,0)');
+cx.fillStyle = cg;
+cx.fillRect(0,0,W,H);
+requestAnimationFrame(draw);
+}
+draw();
+})();
+/* ══════════════════════════════
+GOLDEN DUST PARTICLES
+══════════════════════════════ */
+(function(){
+const cv = document.getElementById('cDust');
+const cx = cv.getContext('2d');
+let W, H, t = 0;
+function resize(){
+W = cv.width = window.innerWidth; H = cv.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+class Mote {
+constructor(){ this.reset(true) }
+reset(init){
+this.x  = Math.random();
+this.y  = init ? Math.random() : 1.02;
+this.r  = Math.random() * 1.8 + .4;
+this.vy = -(Math.random() * .0006 + .0001);
+this.vx = (Math.random() - .5) * .0003;
+this.a  = 0;
+this.maxA = Math.random() * .6 + .15;
+this.phase = Math.random() * Math.PI * 2;
+this.speed = Math.random() * .02 + .01;
+// colorful palette
+const palettes = [
+[126,232,255],[255,221,87],[114,245,168],[162,89,255],[180,200,255],[200,255,180]
+];
+this.color = palettes[Math.floor(Math.random()*palettes.length)];
+}
+update(){
+this.phase += this.speed;
+this.y  += this.vy;
+this.x  += this.vx + Math.sin(this.phase * .4) * .0001;
+// fade in/out
+if(this.y > .7) this.a = Math.min(this.maxA, this.a + .005);
+if(this.y < .2) this.a = Math.max(0, this.a - .003);
+if(this.y < -.03) this.reset(false);
+}
+draw(cx){
+if(this.a <= 0) return;
+const px = this.x * W, py = this.y * H;
+const [r,g,b] = this.color;
+const glow = (Math.sin(this.phase) * .5 + .5);
+cx.save();
+cx.globalAlpha = this.a * (.6 + glow * .4);
+cx.shadowColor = `rgba(${r},${g},${b},0.9)`;
+cx.shadowBlur  = this.r * 5;
+// alternating shape
+if(this.r > 1.5){
+// tiny cross-sparkle
+cx.strokeStyle = `rgba(${r},${g},${b},1)`;
+cx.lineWidth = .8;
+cx.beginPath();
+cx.moveTo(px - this.r*2, py); cx.lineTo(px + this.r*2, py);
+cx.moveTo(px, py - this.r*2); cx.lineTo(px, py + this.r*2);
+cx.stroke();
+} else {
+cx.beginPath();
+cx.arc(px, py, this.r, 0, Math.PI*2);
+cx.fillStyle = `rgba(${r},${g},${b},1)`;
+cx.fill();
+}
+cx.restore();
+}
+}
+// Slow drifting beam
+class LightBeam {
+constructor(){ this.reset() }
+reset(){
+this.x = Math.random();
+this.w = Math.random() * .06 + .02;
+this.a = 0;
+this.maxA = Math.random() * .04 + .01;
+this.phase = Math.random() * Math.PI * 2;
+this.speed = Math.random() * .003 + .001;
+this.vx = (Math.random() - .5) * .0002;
+}
+update(){
+this.phase += this.speed;
+this.x += this.vx;
+this.a = this.maxA * (Math.sin(this.phase) * .5 + .5);
+if(this.x < -.1 || this.x > 1.1) this.vx *= -1;
+}
+draw(cx){
+if(this.a <= 0) return;
+const px = this.x * W;
+const g = cx.createLinearGradient(px - this.w*W*.5, 0, px + this.w*W*.5, 0);
+g.addColorStop(0,   'rgba(126,232,255,0)');
+g.addColorStop(.5,  `rgba(126,232,255,${this.a})`);
+g.addColorStop(1,   'rgba(126,232,255,0)');
+cx.fillStyle = g;
+cx.fillRect(px - this.w*W*.5, 0, this.w*W, H);
+}
+}
+const motes = Array.from({length:160}, () => new Mote());
+const beams = Array.from({length:5},  () => new LightBeam());
+function draw(){
+t++;
+cx.clearRect(0,0,W,H);
+beams.forEach(b => { b.update(); b.draw(cx); });
+motes.forEach(m => { m.update(); m.draw(cx); });
+requestAnimationFrame(draw);
+}
+draw();
+})();
+</script>
+</body>
+</html>

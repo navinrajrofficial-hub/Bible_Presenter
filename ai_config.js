@@ -25,5 +25,14 @@ const AI_CONFIG = {
   openrouterApiKey: "",
   openrouterModel: "openai/gpt-5-image",
   openrouterReferer: "http://localhost",
-  openrouterTitle: "Bible Presenter"
+  openrouterTitle: "Bible Presenter",
+
+  // ══════════════════════════════════════════════════
+  // FEATURE FLAGS
+  // ══════════════════════════════════════════════════
+  
+  // Phone Remote QR Code Feature
+  // Set to true to show QR code for phone remote access
+  // Set to false to hide the QR code feature completely
+  enablePhoneRemote: false
 };

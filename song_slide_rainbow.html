@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+<meta charset="UTF-8">
+<style>
+@font-face{
+font-family:'Noto Serif Tamil';
+src:local('Noto Serif Tamil'),local('Nirmala UI'),local('Vijaya'),local('Latha'),local('Tamil Sangam MN');
+font-weight:400 900;
+}
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+}
+html,body{
+width:100%;
+height:100%;
+overflow:hidden;
+}
+body{
+background:linear-gradient(135deg,#1a0b2e 0%,#16213e 15%,#0f3460 30%,#1a1a2e 45%,#16213e 60%,#0f3460 75%,#1a0b2e 90%,#16213e 100%);
+background-size:400% 400%;
+animation:bgShift 15s ease infinite;
+font-family:'Noto Serif Tamil',serif;
+color:#f8fafc;
+}
+@keyframes bgShift{
+0%{background-position:0% 50%;}
+50%{background-position:100% 50%;}
+100%{background-position:0% 50%;}
+}
+.wrap{
+width:100%;
+height:100%;
+padding:2.4vw 2.6vw 1.6vw;
+display:flex;
+flex-direction:column;
+gap:0.8vh;
+}
+.lyrics-wrap{
+flex:1;
+display:flex;
+align-items:center;
+justify-content:center;
+min-height:0;
+}
+.lyrics{
+width:100%;
+text-align:center;
+line-height:1.2;
+white-space:pre-wrap;
+word-break:break-word;
+font-weight:900;
+background:linear-gradient(90deg,#7ee8ff 0%,#ffdd57 18%,#72f5a8 36%,#a259ff 54%,#7ee8ff 72%,#ffdd57 90%,#72f5a8 100%);
+background-size:300% auto;
+-webkit-background-clip:text;
+-webkit-text-fill-color:transparent;
+background-clip:text;
+animation:rainbowShift 3s linear infinite;
+-webkit-text-stroke:0.02em rgba(255,255,255,0.15);
+paint-order:stroke fill;
+}
+@keyframes rainbowShift{
+0%{background-position:0% center;}
+100%{background-position:300% center;}
+}
+.ref{
+font-size:1.9vh;
+opacity:0.78;
+text-align:right;
+letter-spacing:0.03em;
+}
+</style>
+</head>
+<body>
+<div class="wrap" id="wrap">
+<div class="lyrics-wrap" id="lyricsWrap">
+<div class="lyrics" id="lyrics">அன்பே கல்வாரி அன்பே
+உம்மைப் பார்க்கையிலே
+என் உள்ளம் உடையுது
+அப்பா</div>
+</div>
+<div class="ref" id="ref">அன்பே கல்வாரி  (Song #6766)</div>
+</div>
+<script>
+var MAX_FONT = 148;
+function autoFit() {
+var lyricsWrap = document.getElementById('lyricsWrap');
+var lyrics = document.getElementById('lyrics');
+var ref = document.getElementById('ref');
+if (!lyricsWrap || !lyrics) return;
+var availW = lyricsWrap.clientWidth || window.innerWidth;
+var availH = lyricsWrap.clientHeight || window.innerHeight;
+if (availH < 10 || availW < 10) { setTimeout(autoFit, 100); return; }
+var lo = 8, hi = Math.min(availH * 0.98, MAX_FONT);
+for (var i = 0; i < 28; i++) {
+var mid = (lo + hi) / 2;
+lyrics.style.fontSize = mid + 'px';
+if (ref) ref.style.fontSize = Math.max(12, mid * 0.18) + 'px';
+if (lyrics.scrollHeight > availH || lyrics.scrollWidth > availW) {
+hi = mid;
+} else {
+lo = mid;
+}
+}
+lyrics.style.fontSize = lo + 'px';
+if (ref) ref.style.fontSize = Math.max(12, lo * 0.18) + 'px';
+}
+document.fonts ? document.fonts.ready.then(autoFit) : window.addEventListener('load', autoFit);
+window.addEventListener('resize', autoFit);
+</script>
+</body>
+</html>
