@@ -224,7 +224,14 @@ function doExport() {
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
   a.href     = url;
-  a.download = 'presentation.prsn';
+  
+  // Generate filename with current date: presentation_dd_mm_yyyy.prsn
+  const now = new Date();
+  const dd = String(now.getDate()).padStart(2, '0');
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const yyyy = now.getFullYear();
+  a.download = `presentation_${dd}_${mm}_${yyyy}.prsn`;
+  
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -4246,13 +4253,13 @@ function spAutoGenerateQueue() {
   }
 
   stanzas.forEach((stz, i) => {
-    // Add Sub Chorus if it exists
-    if (subText) {
-      _spQueue.push({ text: subText, name: 'Sub Chorus' });
-    }
-    
     // Add the specific Stanza
     _spQueue.push({ text: _spVerses[stz.idx], name: 'Stanza ' + stz.order });
+    
+    // Add Sub Chorus after stanza (but NOT after the last stanza)
+    if (subText && i < stanzas.length - 1) {
+      _spQueue.push({ text: subText, name: 'Sub Chorus' });
+    }
     
     // If there's no sub chorus, we interleave the main chorus between stanzas
     if (!subText && mainText && i < stanzas.length - 1) {
@@ -4260,10 +4267,7 @@ function spAutoGenerateQueue() {
     }
   });
 
-  // End the sequence
-  if (subText) {
-    _spQueue.push({ text: subText, name: 'Sub Chorus' });
-  }
+  // End the sequence with Main Chorus only (no sub chorus before it)
   if (mainText) {
     _spQueue.push({ text: mainText, name: 'Main Chorus' });
   }

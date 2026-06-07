@@ -1,6 +1,6 @@
 
 
-song slide, full content is not shwi.
+song slide, full content is not showing => Done
 
 while adding sub chorus 
 
