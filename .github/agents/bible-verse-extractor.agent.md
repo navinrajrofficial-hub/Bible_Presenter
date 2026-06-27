@@ -17,9 +17,11 @@ Your primary job is to analyze images of handwritten or abbreviated Bible verses
    - Map "தீமோத்", "தீமோ" -> "தீமோத்தேயு"
    - Map "எபேசி" -> "எபேசியர்"
    - Map "கலாத்" -> "கலாத்தியர்"
+  - Map "புலம்" or "புலம்ப" or "புலம்பல்" -> "புலம்பல்"
    - Map "பிலிப்" -> "பிலிப்பியர்"
    - Map "நாளா" -> "நாளாகமம்"
    - Map "இராஜா" -> "இராஜாக்கள்"
+   - Map "வெளி" or "வெளிப்படுத்தின விசேஷம்" -> "வெளிப்படுத்தல்"
 3. **Parse Grouped References**: Often, a single book name will apply to multiple following references inside parentheses or comma-separated lists. 
    - For example: `சங்: 34:13 (5:9) (12:3)` should be expanded to:
      சங்கீதம் 34:13
