@@ -216,7 +216,141 @@ function updateExportRangeInfo() {
     valid ? `= ${count} slide${count !== 1 ? 's' : ''}` : '⚠ invalid range';
 }
 
-function doExport() {
+// ── File exists modal state ──
+let _pendingExportData = null;
+
+function closeFileExistsModal() {
+  document.getElementById('file-exists-modal').style.display = 'none';
+  document.getElementById('compare-result').style.display = 'none';
+  _pendingExportData = null;
+}
+
+async function confirmFileExistsAction(action) {
+  if (!_pendingExportData) return;
+  
+  if (action === 'compare') {
+    // Compare existing file with new content
+    try {
+      const existing = JSON.parse(_pendingExportData.existingContent);
+      const newData  = JSON.parse(_pendingExportData.content);
+      
+      const existingSlides = existing.slides || [];
+      const newSlides      = newData.slides || [];
+      
+      let isDuplicate = false;
+      if (existingSlides.length === newSlides.length) {
+        isDuplicate = JSON.stringify(existingSlides) === JSON.stringify(newSlides);
+      }
+      
+      const resultDiv = document.getElementById('compare-result');
+      resultDiv.style.display = 'block';
+      
+      if (isDuplicate) {
+        resultDiv.style.borderColor = '#22c55e';
+        resultDiv.style.background = '#0a1f0a';
+        resultDiv.innerHTML = `
+          <div style="color:#22c55e;font-weight:600;margin-bottom:4px;">✓ DUPLICATE</div>
+          <div style="color:#a1a1aa;">The existing file contains identical slides (${existingSlides.length} slides). No need to save again.</div>
+        `;
+      } else {
+        resultDiv.style.borderColor = '#f59e0b';
+        resultDiv.style.background = '#1f1508';
+        resultDiv.innerHTML = `
+          <div style="color:#f59e0b;font-weight:600;margin-bottom:4px;">⚠ DIFFERENT</div>
+          <div style="color:#a1a1aa;">
+            Existing: ${existingSlides.length} slides<br>
+            New: ${newSlides.length} slides<br>
+            Click "Save as New" to keep both versions.
+          </div>
+        `;
+      }
+    } catch(e) {
+      showToast('Error comparing files', 'error');
+    }
+    return;
+  }
+  
+  if (action === 'save') {
+    // Save with (1), (2), etc.
+    await performExport(_pendingExportData.fileName, _pendingExportData.content, true);
+    closeFileExistsModal();
+  }
+}
+
+async function performExport(fileName, content, forceSave = false) {
+  // ── TRY 1: POST to remote_control_server ──
+  try {
+    const resp = await fetch('http://127.0.0.1:8788/export', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename: fileName, content, forceSave })
+    });
+    const result = await resp.json();
+    
+    if (result.fileExists) {
+      // Show conflict modal
+      _pendingExportData = {
+        fileName,
+        content,
+        existingContent: result.existingContent
+      };
+      document.getElementById('file-exists-info').textContent = 
+        `The file "${result.filename}" already exists in Church Backup folder. What would you like to do?`;
+      document.getElementById('file-exists-modal').style.display = 'flex';
+      closeExportModal();
+      return;
+    }
+    
+    if (result.ok) {
+      showToast(`✓ Saved to Church Backup/${result.filename || fileName}`, 'success');
+      closeExportModal();
+      return;
+    }
+  } catch (err) {
+    // Server not running — continue to next method
+  }
+
+  // ── TRY 2: File System Access API ──
+  if (window.showSaveFilePicker) {
+    try {
+      let dirHandle = window._exportDirHandle;
+      if (!dirHandle) {
+        showToast('📁 Please navigate to and select the "Church Backup" folder', 'info');
+        dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+        window._exportDirHandle = dirHandle;
+      }
+      const perm = await dirHandle.queryPermission({ mode: 'readwrite' });
+      if (perm !== 'granted') await dirHandle.requestPermission({ mode: 'readwrite' });
+      
+      const fileHandle = await dirHandle.getFileHandle(fileName, { create: true });
+      const writable   = await fileHandle.createWritable();
+      await writable.write(content);
+      await writable.close();
+      
+      showToast(`✓ Saved to ${dirHandle.name}/${fileName}`, 'success');
+      closeExportModal();
+      return;
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+      window._exportDirHandle = null;
+    }
+  }
+
+  // ── FALLBACK: browser download ──
+  const blob = new Blob([content], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  showToast(`✓ Downloaded to browser's download folder`, 'info');
+  closeExportModal();
+}
+
+async function doExport() {
   const mode = document.querySelector('input[name="export-mode"]:checked').value;
   let subset;
   if (mode === 'all') {
@@ -230,29 +364,18 @@ function doExport() {
     subset = slides.slice(from - 1, Math.min(to, slides.length));
   }
   if (!subset.length) { showToast('No slides in selected range!', 'error'); return; }
+
   const bookmarks = [];
-  subset.forEach((s, i) => {
-    if (s && s.bookmarked) bookmarks.push(i + 1);
-  });
-  const payload = JSON.stringify({ version: 1, slides: subset, bookmarks }, null, 2);
-  const blob = new Blob([payload], { type: 'application/json' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  
-  // Generate filename with current date: presentation_dd_mm_yyyy.prsn
-  const now = new Date();
-  const dd = String(now.getDate()).padStart(2, '0');
-  const mm = String(now.getMonth() + 1).padStart(2, '0');
-  const yyyy = now.getFullYear();
-  a.download = `presentation_${dd}_${mm}_${yyyy}.prsn`;
-  
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
-  showToast(`✓ Exported ${subset.length} slide${subset.length > 1 ? 's' : ''}`, 'success');
-  closeExportModal();
+  subset.forEach((s, i) => { if (s && s.bookmarked) bookmarks.push(i + 1); });
+  const content = JSON.stringify({ version: 1, slides: subset, bookmarks }, null, 2);
+
+  const now      = new Date();
+  const dd       = String(now.getDate()).padStart(2, '0');
+  const mm       = String(now.getMonth() + 1).padStart(2, '0');
+  const yyyy     = now.getFullYear();
+  const fileName = `presentation_${dd}_${mm}_${yyyy}.prsn`;
+
+  await performExport(fileName, content, false);
 }
 
 // ══════════════════════════════════════════════════
@@ -726,7 +849,8 @@ function mediaToHtml(s) {
 html,body{width:100%;height:100%;overflow:hidden;background:#000;}
 body{display:grid;place-items:center;font-family:'Noto Sans Tamil','Nirmala UI',sans-serif;}
 .media-stage{width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;background:#000;overflow:hidden;}
-img,video{display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;background:#000;}
+.media-stage img{display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;background:#000;}
+.media-stage video{display:block;width:100%;height:100%;max-width:none;max-height:none;object-fit:cover;object-position:center center;background:#000;}
 .media-empty{max-width:80vw;padding:24px 28px;border:1px solid rgba(255,255,255,0.2);border-radius:12px;color:#e5e7eb;font-size:22px;line-height:1.55;text-align:center;background:rgba(17,24,39,0.45);}
 <\/style><\/head><body>
 ${mediaNode}
