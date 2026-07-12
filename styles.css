@@ -48,6 +48,13 @@
   25%  { transform: translate(3%,5%)  scale(1.07); }
   50%  { transform: translate(-4%,2%) scale(0.95); }
   75%  { transform: translate(2%,-4%) scale(1.04); }
+}
+
+/* ── RAINBOW GRADIENT ANIMATION ── */
+@keyframes rainbowShift {
+  0%   { background-position: 0% center; }
+  100% { background-position: 300% center; }
+}
   100% { transform: translate(-2%,3%) scale(0.98); }
 }
 
@@ -237,6 +244,113 @@ body.presenting #app-bg {
   color: #000;
   transform: translateY(-1px);
   box-shadow: 0 4px 15px rgba(167,139,250,0.3);
+}
+
+/* ── LEGACY DROPDOWN ── */
+.legacy-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.legacy-btn {
+  background: linear-gradient(135deg, #1a1a1a, #2d2d2d, #1a1a1a) !important;
+  border: 1px solid #666 !important;
+  color: #aaa !important;
+  padding: 6px 28px 6px 12px !important;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  position: relative;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.5), 0 1px 2px rgba(255,255,255,0.1);
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+}
+
+.legacy-btn::after {
+  content: '▼';
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 8px;
+  color: #888;
+  transition: transform 0.2s ease;
+}
+
+.legacy-dropdown:hover .legacy-btn::after {
+  transform: translateY(-50%) rotate(180deg);
+  color: #bbb;
+}
+
+.legacy-dropdown:hover .legacy-btn {
+  background: linear-gradient(135deg, #2d2d2d, #3a3a3a, #2d2d2d) !important;
+  border-color: #888 !important;
+  color: #ddd !important;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.6);
+}
+
+.legacy-menu {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 0;
+  padding-top: 2px;
+  background: linear-gradient(180deg, #1a1a1a, #252525);
+  border: 1px solid #666;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.05);
+  z-index: 1000;
+  min-width: 160px;
+}
+
+.legacy-menu::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: transparent;
+}
+
+.legacy-dropdown:hover .legacy-menu {
+  display: block;
+}
+
+.legacy-menu button {
+  display: block;
+  width: 100%;
+  padding: 10px 16px !important;
+  background: transparent !important;
+  border: none !important;
+  color: #aaa !important;
+  text-align: left;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: none !important;
+  text-shadow: 1px 1px 1px rgba(0,0,0,0.8);
+}
+
+.legacy-menu button:first-child {
+  padding-top: 12px !important;
+}
+
+.legacy-menu button:last-child {
+  padding-bottom: 12px !important;
+}
+
+.legacy-menu button:hover {
+  background: linear-gradient(90deg, rgba(255,255,255,0.08), rgba(255,255,255,0.12)) !important;
+  color: #fff !important;
+  padding-left: 20px !important;
+  transform: none !important;
+}
+
+.legacy-menu button.vasanam-btn {
+  border-top: 1px solid #333 !important;
+  margin-top: 4px;
 }
 
 #slide-counter {
@@ -975,7 +1089,7 @@ select.field-input { cursor: pointer; }
   right: 0;
   top: 0;
   height: 200px;
-  z-index: 10002;
+  z-index: 10003;
   pointer-events: none;
   display: none; /* Hidden by default, shown via JS when song slide is active */
 }
@@ -1783,7 +1897,7 @@ select.bp-select.tamil { font-family: 'Noto Serif Tamil', serif; font-size: 13px
   top: 48px;
   right: 0;
   bottom: 0;
-  width: 420px;
+  width: min(540px, 40vw);
   background: var(--surface);
   border-left: 2px solid rgba(52,211,153,0.5);
   z-index: 10003;
@@ -1799,25 +1913,26 @@ select.bp-select.tamil { font-family: 'Noto Serif Tamil', serif; font-size: 13px
 #song-panel-header {
   display: flex;
   align-items: center;
-  padding: 11px 14px;
+  padding: 14px 18px;
   background: rgba(52,211,153,0.08);
   border-bottom: 1px solid var(--border);
-  gap: 8px;
+  gap: 10px;
   flex-shrink: 0;
 }
 .sp-title {
   font-family: 'Playfair Display', serif;
-  font-size: 14px;
+  font-size: 17px;
   color: #34d399;
   flex: 1;
   letter-spacing: 0.04em;
+  font-weight: 600;
 }
 .sp-close {
   background: none;
   border: 1px solid var(--border);
   color: var(--muted);
-  font-size: 12px;
-  width: 24px; height: 24px;
+  font-size: 14px;
+  width: 32px; height: 32px;
   border-radius: 4px;
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
@@ -1828,16 +1943,16 @@ select.bp-select.tamil { font-family: 'Noto Serif Tamil', serif; font-size: 13px
 #song-panel-body {
   flex: 1;
   overflow-y: auto;
-  padding: 10px 13px 8px;
+  padding: 14px 18px 12px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
-#song-panel-body::-webkit-scrollbar { width: 3px; }
-#song-panel-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+#song-panel-body::-webkit-scrollbar { width: 5px; }
+#song-panel-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
-.sp-field { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
-.sp-label { font-size: 10px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
+.sp-field { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+.sp-label { font-size: 11px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; }
 
 /* Collapsible song picker */
 #sp-picker {
@@ -1853,7 +1968,7 @@ select.bp-select.tamil { font-family: 'Noto Serif Tamil', serif; font-size: 13px
 #sp-picker-header {
   display: flex;
   align-items: center;
-  padding: 8px 10px;
+  padding: 6px 8px;
   cursor: pointer;
   background: rgba(52,211,153,0.06);
   user-select: none;
@@ -1864,7 +1979,7 @@ select.bp-select.tamil { font-family: 'Noto Serif Tamil', serif; font-size: 13px
 #sp-picker-label {
   flex: 1;
   font-family: 'Noto Serif Tamil', serif;
-  font-size: 12px;
+  font-size: 11px;
   color: #34d399;
   white-space: nowrap;
   overflow: hidden;
@@ -1993,9 +2108,9 @@ select.bp-select.tamil { font-family: 'Noto Serif Tamil', serif; font-size: 13px
   border: 1px solid var(--border);
   color: var(--text);
   font-family: 'Noto Serif Tamil', serif;
-  font-size: 12px;
+  font-size: 11px;
   padding: 6px 10px;
-  border-radius: 5px;
+  border-radius: 6px;
   flex: 1;
   min-width: 0;
   outline: none;
@@ -2004,11 +2119,11 @@ select.bp-select.tamil { font-family: 'Noto Serif Tamil', serif; font-size: 13px
 }
 .sp-search:focus { 
   border-color: #34d399; 
-  box-shadow: 0 0 0 2px rgba(52,211,153,0.1);
+  box-shadow: 0 0 0 3px rgba(52,211,153,0.1);
 }
 .sp-search::placeholder { 
   color: var(--muted); 
-  font-size: 11px; 
+  font-size: 10px; 
 }
 
 select.sp-select {
@@ -2017,20 +2132,20 @@ select.sp-select {
   color: var(--text);
   font-family: 'DM Mono', monospace;
   font-size: 11px;
-  padding: 6px 20px 6px 8px;
-  border-radius: 5px;
+  padding: 6px 20px 6px 10px;
+  border-radius: 6px;
   width: 100%;
   cursor: pointer;
   outline: none;
   transition: border-color 0.15s;
   overflow-y: auto;
   flex-shrink: 0;
-  height: 350px;
+  height: 550px;
 }
 select.sp-select:focus { border-color: #34d399; }
 select.sp-select option {
-  padding: 5px 20px 5px 8px;
-  line-height: 1.3;
+  padding: 6px 20px 6px 10px;
+  line-height: 1.4;
 }
 select.sp-select option:checked {
   background: rgba(52,211,153,0.2);
@@ -2038,9 +2153,9 @@ select.sp-select option:checked {
 }
 select.sp-select.tamil { 
   font-family: 'Noto Serif Tamil', serif; 
-  font-size: 12px;
+  font-size: 11px;
   padding-right: 24px;
-  line-height: 1.4;
+  line-height: 1.3;
 }
 
 #sp-song-preview {
@@ -2059,10 +2174,10 @@ select.sp-select.tamil {
 #sp-song-preview::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 #sp-preview-title {
   font-family: 'Noto Serif Tamil', serif;
-  font-size: 15px;
+  font-size: 12px;
   font-weight: 600;
   color: #34d399;
-  padding-bottom: 6px;
+  padding-bottom: 4px;
   border-bottom: 1px solid rgba(52,211,153,0.2);
   flex-shrink: 0;
 }
@@ -2075,8 +2190,8 @@ select.sp-select.tamil {
 }
 #sp-preview-text {
   font-family: 'Noto Serif Tamil', serif;
-  font-size: 14px;
-  line-height: 2.0;
+  font-size: 10px;
+  line-height: 1.6;
   color: var(--text);
   word-break: break-word;
   white-space: pre-wrap;
@@ -2108,9 +2223,10 @@ select.sp-select.tamil {
 
 #song-panel-footer {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 6px 10px 8px;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 12px;
   border-top: 1px solid var(--border);
   flex-shrink: 0;
 }
@@ -2120,15 +2236,17 @@ select.sp-select.tamil {
   color: var(--text);
   font-family: 'DM Mono', monospace;
   font-size: 10px;
-  padding: 6px 8px;
-  border-radius: 5px;
+  padding: 8px 10px;
+  border-radius: 6px;
   cursor: pointer;
   letter-spacing: 0.02em;
   transition: all 0.2s;
   text-align: center;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   position: relative;
   overflow: hidden;
+  font-weight: 600;
 }
 .sp-btn:hover { transform: translateY(-1px); }
 .sp-btn:active { transform: translateY(0) scale(0.98); transition-duration: 0.08s; }
@@ -2221,14 +2339,58 @@ select.sp-select.tamil {
   -webkit-backdrop-filter: blur(14px);
   border-left: 1px solid rgba(52,211,153,0.18);
   z-index: 10002;
-  flex-direction: column;
   font-family: 'DM Mono', monospace;
   overflow: hidden;
 }
-#present-overlay.panel-fs #sp-fs-panel { display: flex; }
+#present-overlay.panel-fs #sp-fs-panel { display: block; }
 
-/* shrink the iframe so it doesn't go under the panel */
-#present-overlay.panel-fs #present-iframe { width: calc(100% - var(--sp-panel-width)); }
+/* 2-COLUMN PANEL: Queue | Verses (Panel takes 66.7%, iframe takes 33.3%) */
+#sp-fs-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  height: 100vh;
+  gap: 1px;
+  background: rgba(52,211,153,0.15);
+}
+
+#sp-fs-middle-col, #sp-fs-right-col {
+  background: rgba(10,10,16,0.95);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#sp-fs-middle-col {
+  border-right: 1px solid rgba(52,211,153,0.15);
+}
+
+/* Hide the song picker section completely */
+#sp-fs-picker-wrap {
+  display: none !important;
+}
+
+/* Panel takes 66.7vw (two 33.3% columns), iframe takes 33.3vw */
+#sp-fs-panel {
+  display: none;
+  position: fixed;
+  top: 0; right: 0;
+  width: 66.7vw;
+  height: 100vh;
+  background: rgba(10,10,16,0.95);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-left: 1px solid rgba(52,211,153,0.18);
+  z-index: 10002;
+  font-family: 'DM Mono', monospace;
+  overflow: hidden;
+}
+#present-overlay.panel-fs #sp-fs-panel { display: block; }
+
+/* shrink the iframe so it shows on left 33.3% and fill the space */
+#present-overlay.panel-fs #present-iframe { 
+  width: 33.3vw;
+  height: 100vh;
+}
 
 /* re-center the controls bar in the remaining (non-panel) area */
 #present-overlay.panel-fs #present-controls-zone {
@@ -2250,25 +2412,90 @@ select.sp-select.tamil {
 }
 
 #sp-fs-header {
-  padding: 14px 13px 10px;
+  padding: 6px 8px 5px;
   border-bottom: 1px solid rgba(52,211,153,0.15);
   flex-shrink: 0;
 }
 #sp-fs-title-text {
   color: #34d399;
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.04em;
   line-height: 1.4;
   word-break: break-word;
 }
 
+/* Left Column: Song Picker */
+#sp-fs-picker-wrap {
+  padding: 5px 7px;
+  border-bottom: 1px solid rgba(52,211,153,0.12);
+  flex-shrink: 0;
+}
+
+#sp-fs-picker-wrap .sp-search-row {
+  margin-bottom: 4px;
+}
+
+#sp-fs-picker-wrap .sp-search {
+  font-size: 9px;
+  padding: 4px 7px;
+}
+
+#sp-fs-picker-wrap .sp-select {
+  font-size: 9px;
+  height: 120px;
+  padding: 3px;
+}
+
+/* Left Column: Queue */
+#sp-fs-queue-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 4px 6px;
+  border-bottom: 1px solid rgba(52,211,153,0.12);
+}
+
+#sp-fs-queue-wrap .sp-fs-section-label {
+  flex-shrink: 0;
+  margin-bottom: 3px;
+  padding: 3px 5px 2px;
+}
+
+#sp-fs-queue {
+  flex: 1;
+  overflow-y: auto;
+  padding: 2px;
+  min-height: 0;
+}
+
+#sp-fs-queue::-webkit-scrollbar { width: 3px; }
+#sp-fs-queue::-webkit-scrollbar-thumb { background: rgba(52,211,153,0.25); border-radius: 2px; }
+
+/* Right Column: Editing */
 #sp-fs-db-edit {
-  padding: 10px 10px 8px;
+  padding: 5px 7px;
   border-bottom: 1px solid rgba(52,211,153,0.12);
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+#sp-fs-right-col {
+  overflow-y: auto;
+}
+
+#sp-fs-right-col::-webkit-scrollbar { width: 3px; }
+#sp-fs-right-col::-webkit-scrollbar-thumb { background: rgba(52,211,153,0.25); border-radius: 2px; }
+
+#sp-fs-verses {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 7px;
+  min-height: 100px;
+}
   flex-shrink: 0;
 }
 .sp-fs-db-row { display: flex; flex-direction: column; gap: 3px; }
@@ -2352,16 +2579,17 @@ select.sp-select.tamil {
 .sp-fs-db-btn.add  { background: linear-gradient(135deg, #38bdf8, #06b6d4); color: #021018; flex: 1; }
 
 .sp-fs-section-label {
-  padding: 8px 13px 5px;
-  font-size: 9px;
+  padding: 3px 5px 2px;
+  font-size: 7px;
   color: #6b6b75;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   flex-shrink: 0;
+  font-weight: 600;
 }
 .sp-fs-section-label .sp-fs-hint {
   color: #444;
-  font-size: 8px;
+  font-size: 6px;
   letter-spacing: 0;
   text-transform: none;
 }
@@ -2417,21 +2645,21 @@ select.sp-select.tamil {
 
 .sp-fs-verse {
   display: flex;
-  align-items: center; /* better alignment */
-  gap: 8px;
-  padding: 8px 6px;
-  border-radius: 5px;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 3px;
+  border-radius: 3px;
   border-bottom: 1px solid rgba(255,255,255,0.04);
   transition: background 0.15s;
 }
 .sp-fs-verse:hover { background: rgba(52,211,153,0.06); }
 .sp-fs-verse-text {
   flex: 1;
-  color: #e4e4e6; /* slightly brighter */
-  font-size: 13px; /* bigger text */
-  line-height: 1.5;
+  color: #e4e4e6;
+  font-size: 9px;
+  line-height: 1.3;
   word-break: break-word;
-    white-space: pre-line;
+  white-space: pre-line;
 }
 
 .sp-fs-verse-ctrls {
@@ -2449,12 +2677,12 @@ select.sp-select.tamil {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px; /* bigger click target */
-  height: 26px; /* bigger click target */
-  border-radius: 4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 3px;
   background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.15); /* better contrast */
-  font-size: 14px; /* bigger text */
+  border: 1px solid rgba(255,255,255,0.15);
+  font-size: 10px;
   cursor: pointer;
   color: #c4c4cc;
   font-weight: 800;
@@ -2471,14 +2699,14 @@ select.sp-select.tamil {
   border-color: #60a5fa;
 }
 .sp-ord-in {
-  width: 36px; /* wider for order input */
-  height: 26px; /* taller */
+  width: 28px;
+  height: 20px;
   background: rgba(0,0,0,0.5);
-  border: 1px solid rgba(255,255,255,0.15); /* better contrast */
+  border: 1px solid rgba(255,255,255,0.15);
   color: #fff;
-  border-radius: 4px;
+  border-radius: 3px;
   text-align: center;
-  font-size: 14px; /* readable */
+  font-size: 9px;
   padding: 0;
   -moz-appearance: textfield;
 }
@@ -2492,42 +2720,31 @@ select.sp-select.tamil {
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 14px;
-  padding: 2px 4px;
-  border-radius: 4px;
+  font-size: 12px;
+  padding: 1px 3px;
+  border-radius: 3px;
   flex-shrink: 0;
   line-height: 1;
   transition: transform 0.15s;
 }
-.sp-fs-verse-add:hover { transform: scale(1.25); }
-
-/* Queue list */
-#sp-fs-queue {
-  flex: 0 1 auto;
-  overflow-y: auto;
-  max-height: 46vh;
-  padding: 4px 8px;
-  min-height: 40px;
-}
-#sp-fs-queue::-webkit-scrollbar { width: 3px; }
-#sp-fs-queue::-webkit-scrollbar-thumb { background: rgba(52,211,153,0.25); border-radius: 2px; }
+.sp-fs-verse-add:hover { transform: scale(1.15); }
 
 .sp-fs-empty {
-  color: #444;
-  font-size: 10px;
+  color: #555;
+  font-size: 9px;
   text-align: center;
-  padding: 12px 6px;
+  padding: 10px 5px;
 }
 
 .sp-fs-item {
   background: rgba(52,211,153,0.06);
   border: 1px solid rgba(52,211,153,0.14);
-  border-radius: 6px;
-  padding: 6px 7px;
-  margin-bottom: 5px;
+  border-radius: 4px;
+  padding: 4px 6px;
+  margin-bottom: 3px;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 3px;
 }
 .sp-fs-item.editing {
   border-color: rgba(253,224,71,0.35);
@@ -2536,29 +2753,30 @@ select.sp-select.tamil {
 .sp-fs-item-row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 }
 .sp-fs-item-name {
   flex: 1;
-  color: #d0d0d8;
-  font-size: 10px;
-  line-height: 1.4;
+  color: #d8d8dd;
+  font-size: 9px;
+  line-height: 1.3;
   word-break: break-word;
+  font-weight: 500;
 }
 .sp-fs-item-btns {
   display: flex;
-  gap: 3px;
+  gap: 2px;
   flex-shrink: 0;
 }
 .sp-fs-item-btns button {
   background: rgba(255,255,255,0.05);
   border: 1px solid rgba(255,255,255,0.1);
   color: #9ca3af;
-  font-size: 11px;
-  width: 22px;
-  height: 22px;
+  font-size: 9px;
+  width: 20px;
+  height: 20px;
   display: flex; align-items: center; justify-content: center;
-  border-radius: 4px;
+  border-radius: 3px;
   cursor: pointer;
   padding: 0;
   transition: all 0.15s;
@@ -2608,44 +2826,44 @@ select.sp-select.tamil {
 
 /* Commit footer */
 #sp-fs-footer {
-  padding: 10px 10px 14px;
+  padding: 6px 8px 8px;
   border-top: 1px solid rgba(52,211,153,0.15);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 5px;
 }
 #sp-fs-history-wrap {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  padding: 7px;
+  gap: 4px;
+  padding: 5px 6px;
   border: 1px solid rgba(52,211,153,0.15);
-  border-radius: 7px;
+  border-radius: 5px;
   background: rgba(52,211,153,0.05);
 }
 .sp-fs-history-label {
   color: #6b6b75;
-  font-size: 9px;
+  font-size: 8px;
   letter-spacing: 0.09em;
   text-transform: uppercase;
 }
 .sp-fs-history-row {
   display: grid;
   grid-template-columns: 1fr auto auto auto auto;
-  gap: 6px;
+  gap: 4px;
   align-items: center;
 }
 .sp-fs-history-select {
   min-width: 0;
-  height: 30px;
+  height: 24px;
   background: rgba(0,0,0,0.5);
   border: 1px solid rgba(255,255,255,0.16);
   color: #e8eaee;
-  border-radius: 6px;
+  border-radius: 4px;
   font-family: 'DM Mono', monospace;
-  font-size: 10px;
-  padding: 0 8px;
+  font-size: 9px;
+  padding: 0 6px;
 }
 .sp-fs-history-select:focus {
   outline: none;
@@ -2655,13 +2873,13 @@ select.sp-select.tamil {
 #sp-history-load-btn,
 #sp-history-add-btn,
 #sp-history-delete-btn {
-  height: 30px;
+  height: 24px;
   border: none;
-  border-radius: 6px;
+  border-radius: 4px;
   font-family: 'DM Mono', monospace;
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 700;
-  padding: 0 9px;
+  padding: 0 7px;
   cursor: pointer;
   letter-spacing: 0.02em;
   transition: opacity 0.15s, transform 0.15s;
@@ -2698,20 +2916,21 @@ select.sp-select.tamil {
 }
 #sp-fs-present-controls {
   display: flex;
-  gap: 8px;
+  gap: 5px;
   width: 100%;
 }
 #sp-fs-add-song-btn {
   background: linear-gradient(135deg, #fbbf24, #d97706);
   border: none;
   font-family: 'DM Mono', monospace;
-  font-size: 13px;
+  font-size: 9px;
   font-weight: 700;
-  padding: 12px 10px;
+  padding: 7px 8px;
   cursor: pointer;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
   transition: all 0.2s;
   text-align: center;
+  border-radius: 5px;
 }
 #sp-fs-add-song-btn:hover { opacity: 0.87; transform: translateY(-1px); }
 #sp-fs-add-song-btn:active { transform: translateY(0); opacity: 1; }
@@ -2722,17 +2941,17 @@ select.sp-select.tamil {
   border: none;
   color: #000;
   font-family: 'DM Mono', monospace;
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 700;
-  padding: 10px 4px;
-  border-radius: 7px;
+  padding: 7px 3px;
+  border-radius: 5px;
   cursor: pointer;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
   transition: all 0.2s;
   text-align: center;
 }
 #sp-fs-temp-btn {
-  background: linear-gradient(135deg, #f5a623, #e05a2b); /* Distinguishable color for quick temp slide */
+  background: linear-gradient(135deg, #f5a623, #e05a2b);
   color: #fff;
 }
 #sp-fs-quick-btn {

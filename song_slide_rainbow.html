@@ -84,7 +84,7 @@ letter-spacing:0.03em;
 <div class="ref" id="ref">அன்பே கல்வாரி  (Song #6766)</div>
 </div>
 <script>
-var MAX_FONT = 148;
+var MAX_FONT = 16; // Very small text for song editor display
 function autoFit() {
 var lyricsWrap = document.getElementById('lyricsWrap');
 var lyrics = document.getElementById('lyrics');
@@ -93,11 +93,11 @@ if (!lyricsWrap || !lyrics) return;
 var availW = lyricsWrap.clientWidth || window.innerWidth;
 var availH = lyricsWrap.clientHeight || window.innerHeight;
 if (availH < 10 || availW < 10) { setTimeout(autoFit, 100); return; }
-var lo = 8, hi = Math.min(availH * 0.98, MAX_FONT);
+var lo = 8, hi = 16; // Fixed small size range - no scaling with screen height
 for (var i = 0; i < 28; i++) {
 var mid = (lo + hi) / 2;
 lyrics.style.fontSize = mid + 'px';
-if (ref) ref.style.fontSize = Math.max(12, mid * 0.18) + 'px';
+if (ref) ref.style.fontSize = Math.max(8, mid * 0.15) + 'px'; // Reduced multiplier
 if (lyrics.scrollHeight > availH || lyrics.scrollWidth > availW) {
 hi = mid;
 } else {
@@ -105,7 +105,7 @@ lo = mid;
 }
 }
 lyrics.style.fontSize = lo + 'px';
-if (ref) ref.style.fontSize = Math.max(12, lo * 0.18) + 'px';
+if (ref) ref.style.fontSize = Math.max(8, lo * 0.15) + 'px';
 }
 document.fonts ? document.fonts.ready.then(autoFit) : window.addEventListener('load', autoFit);
 window.addEventListener('resize', autoFit);

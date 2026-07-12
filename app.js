@@ -3644,22 +3644,22 @@ function _spBuildPageHtml() {
   const escaped = cleaned
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/\n/g, '<br>');
-  const artistLine = song.artist ? `<div style="font-size:14px;color:#6b6b75;margin-bottom:12px;">Artist: ${song.artist.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</div>` : '';
+  const artistLine = song.artist ? `<div style="font-size:10px;color:#6b6b75;margin-bottom:8px;">Artist: ${song.artist.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</div>` : '';
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+Tamil&display=swap');
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       background: linear-gradient(180deg,#0b0f26 0%,#111936 52%,#1a2647 100%); color: #f8fafc;
       font-family: 'Noto Serif Tamil', serif;
-      padding: 40px 60px 60px;
-      line-height: 2.2;
+      padding: 20px 30px 30px;
+      line-height: 1.5;
       overflow-y: auto;
     }
     body::-webkit-scrollbar { width: 6px; }
     body::-webkit-scrollbar-thumb { background: rgba(52,211,153,0.3); border-radius: 3px; }
-    h1 { color: #34d399; font-size: 28px; margin-bottom: 8px; line-height: 1.4; }
-    .content { font-size: 20px; }
-    .ref { text-align: right; color: #34d399; font-size: 13px; margin-top: 30px; padding-top: 12px; border-top: 1px solid rgba(52,211,153,0.25); font-family: monospace; }
+    h1 { color: #34d399; font-size: 14px; margin-bottom: 6px; line-height: 1.3; }
+    .content { font-size: 11px; }
+    .ref { text-align: right; color: #34d399; font-size: 9px; margin-top: 15px; padding-top: 8px; border-top: 1px solid rgba(52,211,153,0.25); font-family: monospace; }
   </style></head><body>
     <h1>${song.title.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</h1>
     ${artistLine}
@@ -5145,6 +5145,11 @@ function exitPresent() {
   renderPresentBookmarks();
   presentIdx = null; // Clear presentIdx when fully pushed out
   releaseWakeLock();
+  
+  // Turn off floating church name if active
+  if (_floatingChurchActive) {
+    toggleFloatingChurchName();
+  }
 }
 
 function _isEditableTarget(el) {
@@ -5251,14 +5256,22 @@ function handlePresentHotkeys(e) {
     showAmenGraphics();
   }
   if (!e.repeat && e.key.toLowerCase() === 's') {
-    showHotkeyDetector('S - Clap');
-    showClapGraphics();
+    showHotkeyDetector('S - Fireworks');
+    showFireworksGraphics();
   }
+  // Handle F key - trigger fireworks
   if (!e.repeat && e.key.toLowerCase() === 'f') {
     showHotkeyDetector('F - Fireworks');
     showFireworksGraphics();
   }
+  // L key for floating church name
+  if (!e.repeat && e.key.toLowerCase() === 'l') {
+    showHotkeyDetector('L - Floating Church');
+    toggleFloatingChurchName();
+  }
 }
+
+let _lastHotkeyWasF = false;
 
 document.addEventListener('keydown', handlePresentHotkeys, true);
 
@@ -6337,6 +6350,122 @@ function openShortcutsModal() {
 
 function closeShortcutsModal() {
   document.getElementById('shortcuts-modal').style.display = 'none';
+}
+
+// ══════════════════════════════════════════════════
+//  FLOATING CHURCH NAME (DVD Screensaver style)
+// ══════════════════════════════════════════════════
+let _floatingChurchActive = false;
+let _floatingChurchAnimFrame = null;
+let _floatingChurchX = 0;
+let _floatingChurchY = 0;
+let _floatingChurchVX = 1.5;  // velocity X - will be randomized on start
+let _floatingChurchVY = 1.2;  // velocity Y - will be randomized on start
+
+function toggleFloatingChurchName() {
+  console.log('Toggle called, current state:', _floatingChurchActive);
+  _floatingChurchActive = !_floatingChurchActive;
+  const el = document.getElementById('floating-church-name');
+  const backdrop = document.getElementById('floating-church-backdrop');
+  
+  if (!el || !backdrop) {
+    console.error('Floating church elements not found');
+    return;
+  }
+  
+  if (_floatingChurchActive) {
+    console.log('Activating floating church name');
+    // Show backdrop and text
+    backdrop.style.display = 'block';
+    el.style.display = 'block';
+    
+    // Wait for layout to calculate size
+    setTimeout(() => {
+      // Random starting position
+      const rect = el.getBoundingClientRect();
+      const maxW = window.innerWidth - rect.width;
+      const maxH = window.innerHeight - rect.height;
+      _floatingChurchX = Math.random() * Math.max(100, maxW);
+      _floatingChurchY = Math.random() * Math.max(100, maxH);
+      
+      // CRITICAL: Set BOTH velocities to non-zero values
+      const speedX = 1.2 + Math.random() * 0.8; // 1.2 to 2.0
+      const speedY = 1.0 + Math.random() * 0.6; // 1.0 to 1.6
+      _floatingChurchVX = Math.random() > 0.5 ? speedX : -speedX;
+      _floatingChurchVY = Math.random() > 0.5 ? speedY : -speedY;
+      
+      console.log('DVD Screensaver Started:', {
+        startPos: {x: _floatingChurchX.toFixed(1), y: _floatingChurchY.toFixed(1)},
+        velocity: {vx: _floatingChurchVX.toFixed(2), vy: _floatingChurchVY.toFixed(2)},
+        bounds: {maxW: maxW.toFixed(0), maxH: maxH.toFixed(0)}
+      });
+      
+      animateFloatingChurch();
+    }, 50);
+  } else {
+    console.log('Deactivating floating church name');
+    // Hide backdrop and text
+    backdrop.style.display = 'none';
+    el.style.display = 'none';
+    if (_floatingChurchAnimFrame) {
+      cancelAnimationFrame(_floatingChurchAnimFrame);
+      _floatingChurchAnimFrame = null;
+    }
+  }
+}
+
+function animateFloatingChurch() {
+  if (!_floatingChurchActive) return;
+  
+  const el = document.getElementById('floating-church-name');
+  if (!el) return;
+  
+  // Get actual rendered dimensions every frame
+  const rect = el.getBoundingClientRect();
+  const maxW = window.innerWidth - rect.width;
+  const maxH = window.innerHeight - rect.height;
+  
+  // CRITICAL: Update BOTH X and Y position every frame
+  _floatingChurchX += _floatingChurchVX;
+  _floatingChurchY += _floatingChurchVY;
+  
+  // DVD Screensaver bounce logic
+  let bounced = false;
+  
+  // Hit LEFT wall
+  if (_floatingChurchX < 0) {
+    _floatingChurchX = 0;
+    _floatingChurchVX = Math.abs(_floatingChurchVX); // Bounce right
+    bounced = true;
+  }
+  // Hit RIGHT wall
+  if (_floatingChurchX > maxW) {
+    _floatingChurchX = maxW;
+    _floatingChurchVX = -Math.abs(_floatingChurchVX); // Bounce left
+    bounced = true;
+  }
+  // Hit TOP wall
+  if (_floatingChurchY < 0) {
+    _floatingChurchY = 0;
+    _floatingChurchVY = Math.abs(_floatingChurchVY); // Bounce down
+    bounced = true;
+  }
+  // Hit BOTTOM wall
+  if (_floatingChurchY > maxH) {
+    _floatingChurchY = maxH;
+    _floatingChurchVY = -Math.abs(_floatingChurchVY); // Bounce up
+    bounced = true;
+  }
+  
+  if (bounced) {
+    console.log('BOUNCE! New velocity:', {vx: _floatingChurchVX.toFixed(2), vy: _floatingChurchVY.toFixed(2)});
+  }
+  
+  // Apply position to DOM
+  el.style.left = Math.round(_floatingChurchX) + 'px';
+  el.style.top = Math.round(_floatingChurchY) + 'px';
+  
+  _floatingChurchAnimFrame = requestAnimationFrame(animateFloatingChurch);
 }
 
 // ══════════════════════════════════════════════════
