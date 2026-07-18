@@ -1,4 +1,4 @@
-vasanum title in the top
+vasanum title in the top -> no need as already two pages is therel
 
 when add songs to main slide auto save in the log. -> done
 
@@ -10,8 +10,11 @@ make phone ui beautiful
 
 implement almost all the navigation features, without the adding stuff.
 
-in the song ddl for history, if any history is there, that should prepopulate first in the ddl. we just need to click load.
+in the song ddl for history, if any history is there, that should prepopulate first in the ddl. we just need to click load.  => Done.
 
-add bookmarks in the psrn file as well.
-currently only slides are being saved.
+add bookmarks in the psrn file as well.  
+currently only slides are being saved.  => done
+
+add ai features to add slide based on the verse screenshot?
+
 

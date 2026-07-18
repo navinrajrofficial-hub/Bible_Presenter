@@ -3,11 +3,12 @@
 song slide, full content is not showing => Done
 
 while adding sub chorus 
-
 add it inbetween the stance only 
-not after the main chorus.
+not after the main chorus.  => Done
 
 while exporting add the date in the file.
+
+sub slide menu for each songs  => Done
 
 make song content js file splitted and good performance?
 
