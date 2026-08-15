@@ -1,4 +1,4 @@
-// ══════════════════════════════════════════════════
+﻿// ══════════════════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════════════════
 let slides = [];
@@ -526,6 +526,7 @@ body{
 .flip-card-back {
   transform: rotateY(180deg);
   padding:1.2vw;
+  padding-top:5vh;
 }
 .front-title {
   font-size:15vh;
@@ -536,13 +537,13 @@ body{
 .front-graphics {
   font-family:'Caveat', cursive; font-size:8vh; color:${col}; opacity:0.8; margin-top:3vh;
 }
-.verse-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;gap:0.6vh;overflow:hidden;}
+.verse-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;gap:0.6vh;overflow:hidden;position:relative;}
 .verse-text{
   font-weight:900;color:${col};text-align:center;line-height:1.22;word-break:break-word;width:100%;white-space:pre-wrap;
   -webkit-text-stroke: 0.04em currentColor;
 }
 .verse-ref{
-  color:${col};opacity:0.9;font-style:italic;letter-spacing:2px;text-align:right;align-self:flex-end;padding-right:1vw;
+  color:${col};opacity:0.9;font-style:italic;letter-spacing:2px;text-align:right;position:absolute;top:0;right:1vw;
   font-weight:900;
 }
 <\/style><\/head><body>
@@ -569,11 +570,16 @@ function autoFit() {
   if (availH < 10 || availW < 10) { setTimeout(autoFit, 100); return; }
   vt.style.width = '100%';
   var lo = 8, hi = Math.min(availH, MAX_FONT);
+  var refHeight = 0;
+  if (vr) {
+    vr.style.fontSize = '18px';
+    refHeight = vr.offsetHeight + 10;
+  }
   for (var i = 0; i < 30; i++) {
     var mid = (lo + hi) / 2;
     vt.style.fontSize = mid + 'px';
     if (vr) vr.style.fontSize = (mid * 0.32) + 'px';
-    var needed = vt.scrollHeight + (vr ? vr.offsetHeight + mid * 0.2 : 0);
+    var needed = vt.scrollHeight + refHeight;
     if (needed > availH || vt.scrollWidth > availW) {
       hi = mid;
     } else {
@@ -709,12 +715,12 @@ body{background:linear-gradient(180deg,#020510 0%,#0a1628 40%,#162a50 70%,#1b3a5
 .flip-card.flipped {transform:rotateY(180deg);}
 .flip-card-front, .flip-card-back {position:absolute;width:100%;height:100%;backface-visibility:hidden;-webkit-backface-visibility:hidden;display:flex;align-items:center;justify-content:center;}
 .flip-card-front {flex-direction:column;}
-.flip-card-back {transform:rotateY(180deg);padding:1.2vw;}
+.flip-card-back {transform:rotateY(180deg);padding:1.2vw;padding-top:5vh;}
 .front-title {font-size:15vh;font-weight:900;color:#ffffff;text-align:center;padding:0 4vw;line-height:1.2;text-shadow:0 2px 10px rgba(0,0,0,0.8);-webkit-text-stroke: 0.04em currentColor;}
 .front-graphics {font-family:'Caveat', cursive;font-size:8vh;color:#ffffff;opacity:0.8;margin-top:3vh;text-shadow:0 2px 6px rgba(0,0,0,0.6);}
 .verse-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;gap:0.6vh;overflow:hidden;position:relative;}
 .verse-text{font-weight:900;color:#ffffff;text-align:center;line-height:1.22;word-break:break-word;width:100%;white-space:pre-wrap;text-shadow:0 2px 10px rgba(0,0,0,0.8);-webkit-text-stroke: 0.04em currentColor;}
-.verse-ref{color:#ffffff;opacity:0.9;font-style:italic;letter-spacing:2px;text-align:right;align-self:flex-end;padding-right:1vw;font-weight:900;text-shadow:0 2px 6px rgba(0,0,0,0.6);}
+.verse-ref{color:#ffffff;opacity:0.9;font-style:italic;letter-spacing:2px;text-align:right;position:absolute;top:0;right:1vw;font-weight:900;text-shadow:0 2px 6px rgba(0,0,0,0.6);}
 <\/style><\/head><body>
 <div class="sky"><\/div>
 <div class="flip-card${flippedClass}" id="flip-card" onclick="this.classList.toggle('flipped')">
@@ -740,11 +746,16 @@ function autoFit() {
   if (availH < 10 || availW < 10) { setTimeout(autoFit, 100); return; }
   vt.style.width = '100%';
   var lo = 8, hi = Math.min(availH, MAX_FONT);
+  var refHeight = 0;
+  if (vr) {
+    vr.style.fontSize = '18px';
+    refHeight = vr.offsetHeight + 10;
+  }
   for (var i = 0; i < 30; i++) {
     var mid = (lo + hi) / 2;
     vt.style.fontSize = mid + 'px';
     if (vr) vr.style.fontSize = (mid * 0.32) + 'px';
-    var needed = vt.scrollHeight + (vr ? vr.offsetHeight + mid * 0.2 : 0);
+    var needed = vt.scrollHeight + refHeight;
     if (needed > availH || vt.scrollWidth > availW) {
       hi = mid;
     } else {
@@ -1616,11 +1627,16 @@ function injectAutoFit(iframe) {
           vt.style.width = '100%';
           var MAX_FONT = 130;
           var lo = 8, hi = Math.min(availH, MAX_FONT);
-          for (var i = 0; i < 30; i++) {
-            var mid = (lo + hi) / 2;
-            vt.style.fontSize = mid + 'px';
-            if (vr) vr.style.fontSize = (mid * 0.32) + 'px';
-            var needed = vt.scrollHeight + (vr ? vr.offsetHeight + mid * 0.2 : 0);
+  var refHeight = 0;
+  if (vr) {
+    vr.style.fontSize = '18px';
+    refHeight = vr.offsetHeight + 10;
+  }
+  for (var i = 0; i < 30; i++) {
+    var mid = (lo + hi) / 2;
+    vt.style.fontSize = mid + 'px';
+    if (vr) vr.style.fontSize = (mid * 0.32) + 'px';
+    var needed = vt.scrollHeight + refHeight;
             if (needed > availH || vt.scrollWidth > vt.clientWidth + 1) { hi = mid; } else { lo = mid; }
           }
           vt.style.fontSize = lo + 'px';
@@ -4597,7 +4613,10 @@ document.addEventListener('visibilitychange', () => {
 
 function startPresent() {
   if (!slides.length) return;
-  _presentPrevIdx = null;
+  _navHistory = []; // Clear navigation history
+  _navSequenceStart = null; // Clear nav sequence tracking
+  _presentNavTimer = null;
+  _presentNavQueued = null;
   presentIdx = currentIdx;
   showPresentSlide();
   updateBackBtn();
@@ -4684,10 +4703,6 @@ function getPresentHtml(idx) {
   return s._presentHtml;
 }
 
-let _presentNavTimer = null;
-let _presentNavQueued = null;
-let _presentPrevIdx = null;
-
 function checkBibleVerseSlide(slide) {
   if (!slide) return null;
   if (slide.bibleBook) return { book: slide.bibleBook, chapter: slide.bibleChapter, verse: slide.bibleVerse || "1" };
@@ -4723,6 +4738,13 @@ function openCurrentSlideInBible() {
 function setPresentFrameHtml(html, force = false) {
   const pif = document.getElementById('present-iframe');
   if (!pif) return;
+  
+  // Validate that html is not empty or invalid
+  if (!html || typeof html !== 'string' || html.trim() === '') {
+    console.warn('Attempted to set empty or invalid HTML to presentation iframe');
+    return;
+  }
+  
   if (!force && pif._lastSrcdoc === html) return;
   pif._lastSrcdoc = html;
   pif.srcdoc = html;
@@ -4731,6 +4753,13 @@ function setPresentFrameHtml(html, force = false) {
 function showPresentSlide() {
   const pif = document.getElementById('present-iframe');
   injectAutoFit(pif);
+  
+  // Validate presentIdx before using it
+  if (typeof presentIdx !== 'number' || presentIdx < 0 || presentIdx >= slides.length) {
+    console.error('showPresentSlide called with invalid presentIdx:', presentIdx);
+    return;
+  }
+  
   const html = getPresentHtml(presentIdx);
   setPresentFrameHtml(html);
   const ind = document.getElementById('present-indicator');
@@ -4747,7 +4776,7 @@ function showPresentSlide() {
   }
 
   renderPresentBookmarks();
-  renderSongNavBar(); // New: Show song group navigation if applicable
+  renderSongNavBar(); // Show song group navigation if applicable
   markRemoteStateDirty();
 }
 
@@ -4791,7 +4820,17 @@ function renderSongNavBar() {
   const titleEl = document.getElementById('song-nav-title');
   const slidesEl = document.getElementById('song-nav-slides');
   
-  if (!navBar || !titleEl || !slidesEl) return;
+  if (!navBar || !titleEl || !slidesEl) {
+    console.warn('renderSongNavBar: Missing required DOM elements');
+    return;
+  }
+  
+  // Validate presentIdx
+  if (typeof presentIdx !== 'number' || presentIdx < 0 || presentIdx >= slides.length) {
+    console.warn('renderSongNavBar: Invalid presentIdx:', presentIdx);
+    navBar.style.display = 'none';
+    return;
+  }
   
   const currentSlide = slides[presentIdx];
   
@@ -4880,8 +4919,9 @@ function presentJumpTo(idx) {
   if (idx < 0 || idx >= slides.length) return;
   if (presentIdx === idx) return;
   
+  const fromIdx = presentIdx;
   applySlideTransition(() => {
-    _presentPrevIdx = presentIdx;
+    addToNavHistory(fromIdx);
     presentIdx = idx;
     showPresentSlide();
     updateBackBtn();
@@ -4925,8 +4965,9 @@ function goToSlide(val) {
     return;
   }
   
+  const fromIdx = presentIdx;
   applySlideTransition(() => {
-    _presentPrevIdx = presentIdx;
+    addToNavHistory(fromIdx);
     presentIdx = num - 1;
     showPresentSlide();
     updateBackBtn();
@@ -4935,12 +4976,34 @@ function goToSlide(val) {
 }
 
 function presentGoBack() {
-  if (_presentPrevIdx === null) return;
+  console.log(`[presentGoBack] History length: ${_navHistory.length}, History: [${_navHistory.join(', ')}]`);
   
+  if (_navHistory.length === 0) return;
+  
+  // Pop the previous position from history
+  const prevIdx = _navHistory.pop();
+  console.log(`[presentGoBack] Popped ${prevIdx} from history, going back from ${presentIdx}`);
+  
+  if (prevIdx === null || prevIdx === undefined || prevIdx < 0 || prevIdx >= slides.length) {
+    console.error(`[presentGoBack] Invalid prevIdx: ${prevIdx}`);
+    return;
+  }
+  
+  // Cancel any pending forward navigation
+  if (_presentNavTimer) {
+    console.log(`[presentGoBack] Cancelling pending forward navigation`);
+    clearTimeout(_presentNavTimer);
+    _presentNavTimer = null;
+    _presentNavQueued = null;
+    _navSequenceStart = null;
+  }
+  
+  // Navigate back immediately (no debounce for back navigation)
   applySlideTransition(() => {
-    const tmp = presentIdx;
-    presentIdx = _presentPrevIdx;
-    _presentPrevIdx = tmp;
+    // Don't add current position to history when going back
+    // This allows going forward again if needed
+    presentIdx = prevIdx;
+    console.log(`[presentGoBack] presentIdx now = ${presentIdx}`);
     showPresentSlide();
     updateBackBtn();
   });
@@ -4949,14 +5012,22 @@ function presentGoBack() {
 function updateBackBtn() {
   const btn = document.getElementById('present-back-btn');
   if (!btn) return;
-  btn.style.display = _presentPrevIdx !== null ? '' : 'none';
+  btn.style.display = _navHistory.length > 0 ? '' : 'none';
 }
 
 // ══════════════════════════════════════════════════
-//  SLIDE TRANSITION ANIMATIONS
+//  SLIDE TRANSITION ANIMATIONS & NAVIGATION
 // ══════════════════════════════════════════════════
 const TRANSITION_TYPES = ['fade', 'slide-left', 'slide-right', 'zoom', 'flip', 'rotate'];
 let _lastTransition = null;
+let _transitionInProgress = false;
+let _navHistory = [];
+const MAX_NAV_HISTORY = 50;
+
+// Navigation state
+let _presentNavTimer = null;
+let _presentNavQueued = null;
+let _navSequenceStart = null; // Track start of rapid nav sequence
 
 function getRandomTransition() {
   // Get a random transition different from the last one for variety
@@ -4975,6 +5046,14 @@ function applySlideTransition(callback) {
     return;
   }
 
+  // If a transition is already in progress, skip animation and execute callback immediately
+  // This ensures rapid navigation doesn't queue up unnecessary animations
+  if (_transitionInProgress) {
+    if (callback) callback();
+    return;
+  }
+
+  _transitionInProgress = true;
   const transition = getRandomTransition();
   
   // Remove any existing transition classes
@@ -4994,8 +5073,20 @@ function applySlideTransition(callback) {
     // Clean up after enter animation
     setTimeout(() => {
       pif.className = '';
+      _transitionInProgress = false;
     }, 350);
   }, transition === 'fade' || transition === 'zoom' ? 250 : 300);
+}
+
+function addToNavHistory(fromIdx) {
+  // Add to history stack for back navigation
+  if (fromIdx !== null && fromIdx !== undefined && fromIdx >= 0 && fromIdx < slides.length) {
+    _navHistory.push(fromIdx);
+    // Limit history size
+    if (_navHistory.length > MAX_NAV_HISTORY) {
+      _navHistory.shift();
+    }
+  }
 }
 
 function ensurePresentIndex() {
@@ -5012,10 +5103,12 @@ function ensurePresentIndex() {
 
 function presentNavImmediate(dir) {
   if (!ensurePresentIndex()) return;
+  const fromIdx = presentIdx;
   const target = presentIdx + dir;
   if (target < 0 || target >= slides.length) return;
   
   applySlideTransition(() => {
+    addToNavHistory(fromIdx);
     presentIdx = target;
     _presentNavQueued = null;
     clearTimeout(_presentNavTimer);
@@ -5026,24 +5119,56 @@ function presentNavImmediate(dir) {
 
 function presentNav(dir) {
   if (!ensurePresentIndex()) return;
-  // Coalesce rapid arrow-key repeats: only commit the final target index
+  
+  // Calculate target based on queued position or current position
   const base = (_presentNavQueued !== null ? _presentNavQueued : presentIdx);
   const target = base + dir;
   if (target < 0 || target >= slides.length) return;
+  
+  console.log(`[presentNav] dir=${dir}, base=${base}, target=${target}, presentIdx=${presentIdx}, queued=${_presentNavQueued}`);
+  
+  // Capture the ORIGINAL starting position for the first press in a sequence
+  if (_navSequenceStart === null) {
+    _navSequenceStart = presentIdx;
+    console.log(`[presentNav] Starting new sequence from ${_navSequenceStart}`);
+  }
+  
   _presentNavQueued = target;
 
   const veil = document.getElementById('transition-veil');
-  veil.classList.add('flash');
+  if (veil) veil.classList.add('flash');
 
+  // Use a VERY short debounce (10ms) just to coalesce same-frame events
   clearTimeout(_presentNavTimer);
   _presentNavTimer = setTimeout(() => {
+    const startPos = _navSequenceStart;
+    const targetPos = _presentNavQueued;
+    
+    console.log(`[presentNav] Executing: ${startPos} -> ${targetPos}`);
+    
+    // Clear navigation sequence state
+    _navSequenceStart = null;
+    _presentNavQueued = null;
+    _presentNavTimer = null;
+    
+    // Perform the navigation
     applySlideTransition(() => {
-      presentIdx = _presentNavQueued;
-      _presentNavQueued = null;
+      // Add history for starting position
+      if (startPos !== null && targetPos !== null && startPos !== targetPos) {
+        console.log(`[presentNav] Adding ${startPos} to history`);
+        addToNavHistory(startPos);
+      }
+      
+      presentIdx = targetPos;
+      console.log(`[presentNav] presentIdx now = ${presentIdx}`);
       showPresentSlide();
+      updateBackBtn();
     });
-    setTimeout(() => veil.classList.remove('flash'), 200);
-  }, 80); // wait 80 ms for burst key-presses to settle before loading iframe
+    
+    setTimeout(() => {
+      if (veil) veil.classList.remove('flash');
+    }, 200);
+  }, 10); // Very short 10ms debounce - just enough to coalesce rapid clicks
 }
 
 function spShowTempSlides() {
@@ -5115,7 +5240,7 @@ function exitPresent() {
     // Return back to the Song Panel presentation mode instead of full exit
     overlay.classList.add('panel-fs');
     presentIdx = null;
-    _presentPrevIdx = null;
+    _navHistory = []; // Clear navigation history
     updateBackBtn();
     
     const pif = document.getElementById('present-iframe');
