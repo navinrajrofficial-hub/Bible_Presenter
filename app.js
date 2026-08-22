@@ -1,4 +1,4 @@
-﻿// ══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════════════════
 let slides = [];
@@ -484,14 +484,57 @@ function confirmImport() {
   showToast(`\u2713 ${mode === 'replace' ? 'Replaced with' : 'Appended'} ${imported.length} slide${imported.length > 1 ? 's' : ''}`, 'success');
 }
 
+// Simple text splitter for long verses
+function splitVerse(text, maxLen) {
+  if (text.length <= maxLen) return [text];
+  const pages = [];
+  let remaining = text;
+  while (remaining.length > 0) {
+    if (remaining.length <= maxLen) {
+      pages.push(remaining);
+      break;
+    }
+    let split = maxLen;
+    for (let i = maxLen; i >= maxLen - 30 && i >= 0; i--) {
+      if (remaining[i] === ' ' || remaining[i] === ',' || remaining[i] === ';') {
+        split = i;
+        break;
+      }
+    }
+    pages.push(remaining.substring(0, split).trim());
+    remaining = remaining.substring(split).trim();
+  }
+  return pages;
+}
+
 // ══════════════════════════════════════════════════
 //  VASANAM SLIDE GENERATOR
 // ══════════════════════════════════════════════════
 function createVasanamHtml(verseText, verseRef, bgColor, textColor, fontSize, startFlipped = false) {
-  // fontSize param kept for compatibility but auto-fit handles sizing dynamically
+  // Split verse if too long
+  const pages = splitVerse(verseText, 100);
+  const multiPage = pages.length > 1;
+  
   const bg  = bgColor   || '#3c096c';
   const col = textColor || '#ffd700';
   const flippedClass = startFlipped ? ' flipped' : '';
+  
+  // Generate page HTML
+  let pagesHTML = '';
+  for (let i = 0; i < pages.length; i++) {
+    pagesHTML += `<div class="vpage" id="vpage${i}" style="display:${i === 0 ? 'flex' : 'none'};">
+      <div class="verse-text" id="vtext${i}">${pages[i]}</div>
+      ${verseRef ? `<div class="verse-ref" id="vref${i}">— ${verseRef}</div>` : ''}
+    </div>`;
+  }
+  
+  // Navigation controls (only if multiple pages)
+  const navHTML = multiPage ? `<div class="nav-controls">
+    <button class="nav-btn" id="prevBtn" onclick="navigatePage(-1)">‹</button>
+    <span class="page-indicator" id="pageIndicator">1/${pages.length}</span>
+    <button class="nav-btn" id="nextBtn" onclick="navigatePage(1)">›</button>
+  </div>` : '';
+  
   return `<!DOCTYPE html><html lang="ta"><head><meta charset="UTF-8">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap');
@@ -538,6 +581,7 @@ body{
   font-family:'Caveat', cursive; font-size:8vh; color:${col}; opacity:0.8; margin-top:3vh;
 }
 .verse-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;gap:0.6vh;overflow:hidden;position:relative;}
+.vpage{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;position:absolute;top:0;left:0;}
 .verse-text{
   font-weight:900;color:${col};text-align:center;line-height:1.22;word-break:break-word;width:100%;white-space:pre-wrap;
   -webkit-text-stroke: 0.04em currentColor;
@@ -546,6 +590,33 @@ body{
   color:${col};opacity:0.9;font-style:italic;letter-spacing:2px;text-align:right;position:absolute;top:0;right:1vw;
   font-weight:900;
 }
+.nav-controls{position:absolute;bottom:2vh;right:2vw;display:flex;align-items:center;gap:0.8vw;opacity:0;transition:opacity 0.3s ease;z-index:100;}
+.verse-wrap:hover .nav-controls{opacity:1;}
+.nav-btn{background:rgba(255,255,255,0.15);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.25);color:${col};font-size:2.5vh;width:4vh;height:4vh;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.3s ease;font-weight:bold;}
+.nav-btn:hover{background:rgba(255,255,255,0.3);transform:scale(1.1);}
+.nav-btn:active{transform:scale(0.95);}
+.page-indicator{color:${col};font-size:1.8vh;font-weight:bold;letter-spacing:1px;text-shadow:0 2px 4px rgba(0,0,0,0.3);}
+.verse-text.rainbow-active{
+  background:linear-gradient(90deg,#7ee8ff 0%,#ffdd57 18%,#72f5a8 36%,#a259ff 54%,#7ee8ff 72%,#ffdd57 90%,#72f5a8 100%);
+  background-size:300% auto;
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+  animation:rainbowShift 3s linear infinite;
+  -webkit-text-stroke:0;
+}
+.verse-ref.rainbow-active{
+  background:linear-gradient(90deg,#7ee8ff 0%,#ffdd57 18%,#72f5a8 36%,#a259ff 54%,#7ee8ff 72%,#ffdd57 90%,#72f5a8 100%);
+  background-size:300% auto;
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+  animation:rainbowShift 3s linear infinite;
+}
+@keyframes rainbowShift{
+  0%{background-position:0% center;}
+  100%{background-position:300% center;}
+}
 <\/style><\/head><body>
 <div class="flip-card${flippedClass}" id="flip-card" onclick="this.classList.toggle('flipped')">
   <div class="flip-card-front">
@@ -553,17 +624,35 @@ body{
   </div>
   <div class="flip-card-back">
     <div class="verse-wrap" id="vwrap">
-      <div class="verse-text" id="vtext">${verseText}<\/div>
-      ${verseRef ? `<div class="verse-ref" id="vref">— ${verseRef}<\/div>` : ''}
+      ${pagesHTML}
+      ${navHTML}
     </div>
   </div>
 </div>
 <script>
 var MAX_FONT = 130;
+var currentPage = 0;
+var totalPages = ${pages.length};
+
+function navigatePage(dir) {
+  event.stopPropagation();
+  var newPage = currentPage + dir;
+  if (newPage < 0 || newPage >= totalPages) return;
+  
+  document.getElementById('vpage' + currentPage).style.display = 'none';
+  currentPage = newPage;
+  document.getElementById('vpage' + currentPage).style.display = 'flex';
+  
+  var indicator = document.getElementById('pageIndicator');
+  if (indicator) indicator.textContent = (currentPage + 1) + '/' + totalPages;
+  
+  autoFit();
+}
+
 function autoFit() {
   var wrap = document.getElementById('vwrap');
-  var vt   = document.getElementById('vtext');
-  var vr   = document.getElementById('vref');
+  var vt   = document.getElementById('vtext' + currentPage);
+  var vr   = document.getElementById('vref' + currentPage);
   if (!wrap || !vt) return;
   var availW = wrap.clientWidth || window.innerWidth;
   var availH = wrap.clientHeight || window.innerHeight;
@@ -594,18 +683,40 @@ function autoFit() {
     fTitle.style.fontSize = '12vh';
   }
 }
+
 document.addEventListener("visibilitychange", function() {
     if (document.hidden) {
         var card = document.getElementById('flip-card');
         if (card) card.classList.remove('flipped');
+        currentPage = 0;
+        for (var i = 0; i < totalPages; i++) {
+          var pg = document.getElementById('vpage' + i);
+          if (pg) pg.style.display = i === 0 ? 'flex' : 'none';
+        }
+        var indicator = document.getElementById('pageIndicator');
+        if (indicator) indicator.textContent = '1/' + totalPages;
     }
 });
+
 if (typeof IntersectionObserver !== 'undefined') {
   let observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       if(!entry.isIntersecting) {
          var card = document.getElementById('flip-card');
          if (card) card.classList.remove('flipped');
+         currentPage = 0;
+         for (var i = 0; i < totalPages; i++) {
+           var pg = document.getElementById('vpage' + i);
+           if (pg) pg.style.display = i === 0 ? 'flex' : 'none';
+         }
+         var indicator = document.getElementById('pageIndicator');
+         if (indicator) indicator.textContent = '1/' + totalPages;
+         for (var j = 0; j < totalPages; j++) {
+           var vtReset = document.getElementById('vtext' + j);
+           var vrReset = document.getElementById('vref' + j);
+           if (vtReset) vtReset.classList.remove('rainbow-active');
+           if (vrReset) vrReset.classList.remove('rainbow-active');
+         }
       }
     });
   });
@@ -616,6 +727,15 @@ document.addEventListener('keydown', function(e) {
   if (e.key === 'Enter') {
       var card = document.getElementById('flip-card');
       if (card) card.classList.toggle('flipped');
+      e.preventDefault();
+  }
+  if (e.key === 'g' || e.key === 'G') {
+      for (var i = 0; i < totalPages; i++) {
+        var vt = document.getElementById('vtext' + i);
+        var vr = document.getElementById('vref' + i);
+        if (vt) vt.classList.toggle('rainbow-active');
+        if (vr) vr.classList.toggle('rainbow-active');
+      }
       e.preventDefault();
   }
 });
@@ -702,7 +822,28 @@ function createGoldenVasanamHtml(verseText, verseRef) {
 
 // ── ANIME (Static dark navy gradient) version of Vasanam slide ──
 function createAnimeVasanamHtml(verseText, verseRef, startFlipped = false) {
+  // Split verse if too long
+  const pages = splitVerse(verseText, 100);
+  const multiPage = pages.length > 1;
+  
   const flippedClass = startFlipped ? ' flipped' : '';
+  
+  // Generate page HTML
+  let pagesHTML = '';
+  for (let i = 0; i < pages.length; i++) {
+    pagesHTML += `<div class="vpage" id="vpage${i}" style="display:${i === 0 ? 'flex' : 'none'};">
+      <div class="verse-text" id="vtext${i}">${pages[i]}</div>
+      ${verseRef ? `<div class="verse-ref" id="vref${i}">— ${verseRef}</div>` : ''}
+    </div>`;
+  }
+  
+  // Navigation controls (only if multiple pages)
+  const navHTML = multiPage ? `<div class="nav-controls">
+    <button class="nav-btn" id="prevBtn" onclick="navigatePage(-1)">‹</button>
+    <span class="page-indicator" id="pageIndicator">1/${pages.length}</span>
+    <button class="nav-btn" id="nextBtn" onclick="navigatePage(1)">›</button>
+  </div>` : '';
+  
   return `<!DOCTYPE html><html lang="ta"><head><meta charset="UTF-8">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap');
@@ -719,8 +860,15 @@ body{background:linear-gradient(180deg,#020510 0%,#0a1628 40%,#162a50 70%,#1b3a5
 .front-title {font-size:15vh;font-weight:900;color:#ffffff;text-align:center;padding:0 4vw;line-height:1.2;text-shadow:0 2px 10px rgba(0,0,0,0.8);-webkit-text-stroke: 0.04em currentColor;}
 .front-graphics {font-family:'Caveat', cursive;font-size:8vh;color:#ffffff;opacity:0.8;margin-top:3vh;text-shadow:0 2px 6px rgba(0,0,0,0.6);}
 .verse-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;gap:0.6vh;overflow:hidden;position:relative;}
+.vpage{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;position:absolute;top:0;left:0;}
 .verse-text{font-weight:900;color:#ffffff;text-align:center;line-height:1.22;word-break:break-word;width:100%;white-space:pre-wrap;text-shadow:0 2px 10px rgba(0,0,0,0.8);-webkit-text-stroke: 0.04em currentColor;}
 .verse-ref{color:#ffffff;opacity:0.9;font-style:italic;letter-spacing:2px;text-align:right;position:absolute;top:0;right:1vw;font-weight:900;text-shadow:0 2px 6px rgba(0,0,0,0.6);}
+.nav-controls{position:absolute;bottom:2vh;right:2vw;display:flex;align-items:center;gap:0.8vw;opacity:0;transition:opacity 0.3s ease;z-index:100;}
+.verse-wrap:hover .nav-controls{opacity:1;}
+.nav-btn{background:rgba(255,255,255,0.15);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.25);color:#ffffff;font-size:2.5vh;width:4vh;height:4vh;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.3s ease;font-weight:bold;}
+.nav-btn:hover{background:rgba(255,255,255,0.3);transform:scale(1.1);}
+.nav-btn:active{transform:scale(0.95);}
+.page-indicator{color:#ffffff;font-size:1.8vh;font-weight:bold;letter-spacing:1px;text-shadow:0 2px 4px rgba(0,0,0,0.5);}
 <\/style><\/head><body>
 <div class="sky"><\/div>
 <div class="flip-card${flippedClass}" id="flip-card" onclick="this.classList.toggle('flipped')">
@@ -729,17 +877,35 @@ body{background:linear-gradient(180deg,#020510 0%,#0a1628 40%,#162a50 70%,#1b3a5
   </div>
   <div class="flip-card-back">
     <div class="verse-wrap" id="vwrap">
-      <div class="verse-text" id="vtext">${verseText}<\/div>
-      ${verseRef ? `<div class="verse-ref" id="vref">— ${verseRef}<\/div>` : ''}
+      ${pagesHTML}
+      ${navHTML}
     </div>
   </div>
 </div>
 <script>
 var MAX_FONT = 130;
+var currentPage = 0;
+var totalPages = ${pages.length};
+
+function navigatePage(dir) {
+  event.stopPropagation();
+  var newPage = currentPage + dir;
+  if (newPage < 0 || newPage >= totalPages) return;
+  
+  document.getElementById('vpage' + currentPage).style.display = 'none';
+  currentPage = newPage;
+  document.getElementById('vpage' + currentPage).style.display = 'flex';
+  
+  var indicator = document.getElementById('pageIndicator');
+  if (indicator) indicator.textContent = (currentPage + 1) + '/' + totalPages;
+  
+  autoFit();
+}
+
 function autoFit() {
   var wrap = document.getElementById('vwrap');
-  var vt   = document.getElementById('vtext');
-  var vr   = document.getElementById('vref');
+  var vt   = document.getElementById('vtext' + currentPage);
+  var vr   = document.getElementById('vref' + currentPage);
   if (!wrap || !vt) return;
   var availW = wrap.clientWidth || window.innerWidth;
   var availH = wrap.clientHeight || window.innerHeight;
@@ -770,18 +936,40 @@ function autoFit() {
     fTitle.style.fontSize = '12vh';
   }
 }
+
 document.addEventListener("visibilitychange", function() {
     if (document.hidden) {
         var card = document.getElementById('flip-card');
         if (card) card.classList.remove('flipped');
+        currentPage = 0;
+        for (var i = 0; i < totalPages; i++) {
+          var pg = document.getElementById('vpage' + i);
+          if (pg) pg.style.display = i === 0 ? 'flex' : 'none';
+        }
+        var indicator = document.getElementById('pageIndicator');
+        if (indicator) indicator.textContent = '1/' + totalPages;
     }
 });
+
 if (typeof IntersectionObserver !== 'undefined') {
   let observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       if(!entry.isIntersecting) {
          var card = document.getElementById('flip-card');
          if (card) card.classList.remove('flipped');
+         currentPage = 0;
+         for (var i = 0; i < totalPages; i++) {
+           var pg = document.getElementById('vpage' + i);
+           if (pg) pg.style.display = i === 0 ? 'flex' : 'none';
+         }
+         var indicator = document.getElementById('pageIndicator');
+         if (indicator) indicator.textContent = '1/' + totalPages;
+         for (var j = 0; j < totalPages; j++) {
+           var vtReset = document.getElementById('vtext' + j);
+           var vrReset = document.getElementById('vref' + j);
+           if (vtReset) vtReset.classList.remove('rainbow-active');
+           if (vrReset) vrReset.classList.remove('rainbow-active');
+         }
       }
     });
   });
@@ -792,6 +980,15 @@ document.addEventListener('keydown', function(e) {
   if (e.key === 'Enter') {
       var card = document.getElementById('flip-card');
       if (card) card.classList.toggle('flipped');
+      e.preventDefault();
+  }
+  if (e.key === 'g' || e.key === 'G') {
+      for (var i = 0; i < totalPages; i++) {
+        var vt = document.getElementById('vtext' + i);
+        var vr = document.getElementById('vref' + i);
+        if (vt) vt.classList.toggle('rainbow-active');
+        if (vr) vr.classList.toggle('rainbow-active');
+      }
       e.preventDefault();
   }
 });
@@ -3614,7 +3811,28 @@ body{background:${bg};font-family:'Noto Serif Tamil',serif;color:${col};}
   width:100%;text-align:center;line-height:1.2;white-space:pre-wrap;word-break:break-word;
   text-shadow:0 3px 12px rgba(0,0,0,0.62);font-weight:900;-webkit-text-stroke:0.04em currentColor;
 }
+.lyrics.rainbow-active{
+  background:linear-gradient(90deg,#7ee8ff 0%,#ffdd57 18%,#72f5a8 36%,#a259ff 54%,#7ee8ff 72%,#ffdd57 90%,#72f5a8 100%);
+  background-size:300% auto;
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+  animation:rainbowShift 3s linear infinite;
+  -webkit-text-stroke:0;
+}
 .ref{font-size:1.9vh;opacity:0.78;text-align:right;letter-spacing:0.03em;}
+.ref.rainbow-active{
+  background:linear-gradient(90deg,#7ee8ff 0%,#ffdd57 18%,#72f5a8 36%,#a259ff 54%,#7ee8ff 72%,#ffdd57 90%,#72f5a8 100%);
+  background-size:300% auto;
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+  animation:rainbowShift 3s linear infinite;
+}
+@keyframes rainbowShift{
+  0%{background-position:0% center;}
+  100%{background-position:300% center;}
+}
 </style></head><body>
   <div class="wrap" id="wrap">
     <div class="lyrics-wrap" id="lyricsWrap"><div class="lyrics" id="lyrics">${lyricsText}</div></div>
@@ -3644,6 +3862,15 @@ function autoFit() {
   lyrics.style.fontSize = lo + 'px';
   if (ref) ref.style.fontSize = Math.max(12, lo * 0.18) + 'px';
 }
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'g' || e.key === 'G') {
+    var lyrics = document.getElementById('lyrics');
+    var ref = document.getElementById('ref');
+    if (lyrics) lyrics.classList.toggle('rainbow-active');
+    if (ref) ref.classList.toggle('rainbow-active');
+    e.preventDefault();
+  }
+});
 document.fonts ? document.fonts.ready.then(autoFit) : window.addEventListener('load', autoFit);
 window.addEventListener('resize', autoFit);
 </script>
@@ -4751,6 +4978,11 @@ function setPresentFrameHtml(html, force = false) {
 }
 
 function showPresentSlide() {
+  // Reset rainbow mode when navigating slides
+  _rainbowActive = false;
+  const rbBtn = document.getElementById('present-rainbow-toggle');
+  if (rbBtn) { rbBtn.style.opacity = '0.6'; rbBtn.style.borderColor = 'rgba(255,200,87,0.3)'; }
+
   const pif = document.getElementById('present-iframe');
   injectAutoFit(pif);
   
@@ -5117,6 +5349,76 @@ function presentNavImmediate(dir) {
   });
 }
 
+let _rainbowActive = false;
+
+function toggleRainbowEffect() {
+  const iframe = document.getElementById('present-iframe');
+  if (!iframe) return;
+
+  try {
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+    if (!iframeDoc || !iframeDoc.body) return;
+
+    // Inject rainbow CSS into iframe if not already present
+    if (!iframeDoc.getElementById('_rb_css')) {
+      const style = iframeDoc.createElement('style');
+      style.id = '_rb_css';
+      style.textContent = [
+        '.rainbow-active {',
+        '  background-image: linear-gradient(90deg, white 0%, white 33%, #7ee8ff 38%, #ffdd57 43%, #72f5a8 48%, #a259ff 53%, white 58%, white 100%) !important;',
+        '  background-size: 300% auto !important;',
+        '  -webkit-background-clip: text !important;',
+        '  -webkit-text-fill-color: transparent !important;',
+        '  background-clip: text !important;',
+        '  color: transparent !important;',
+        '  text-shadow: none !important;',
+        '  animation: rainbowSweep 1s linear infinite !important;',
+        '}',
+        '@keyframes rainbowSweep {',
+        '  0%   { background-position: 100% center; }',
+        '  100% { background-position: 0% center; }',
+        '}'
+      ].join('\n');
+      (iframeDoc.head || iframeDoc.documentElement).appendChild(style);
+    }
+
+    // Collect all text elements (Bible verse + Song slides)
+    const targets = [];
+
+    // Bible verse elements
+    iframeDoc.querySelectorAll('.verse-text, .verse-ref').forEach(el => targets.push(el));
+
+    // Song slide elements
+    const lyrics = iframeDoc.getElementById('lyrics');
+    const ref = iframeDoc.getElementById('ref');
+    if (lyrics) targets.push(lyrics);
+    if (ref) targets.push(ref);
+
+    // Fallback for other slide types
+    if (targets.length === 0) {
+      iframeDoc.querySelectorAll('.t1, .t2, .main-word, .subtitle, h1, h2, p').forEach(el => targets.push(el));
+    }
+
+    // Toggle rainbow-active class on all targets
+    targets.forEach(el => el.classList.toggle('rainbow-active'));
+
+    // Track state
+    _rainbowActive = targets.length > 0 && targets[0].classList.contains('rainbow-active');
+
+    // Button feedback
+    const btn = document.getElementById('present-rainbow-toggle');
+    if (btn) {
+      btn.style.opacity = _rainbowActive ? '1' : '0.6';
+      btn.style.borderColor = _rainbowActive ? 'rgba(126,232,255,0.7)' : 'rgba(255,200,87,0.3)';
+      btn.style.transform = 'translateY(-50%) scale(1.1)';
+      setTimeout(() => { btn.style.transform = 'translateY(-50%) scale(1)'; }, 200);
+    }
+  } catch (e) {
+    console.log('Rainbow toggle error:', e);
+  }
+}
+
+
 function presentNav(dir) {
   if (!ensurePresentIndex()) return;
   
@@ -5393,6 +5695,13 @@ function handlePresentHotkeys(e) {
   if (!e.repeat && e.key.toLowerCase() === 'l') {
     showHotkeyDetector('L - Floating Church');
     toggleFloatingChurchName();
+  }
+  // G key for rainbow text effect
+  if (!e.repeat && e.key.toLowerCase() === 'g') {
+    e.preventDefault();
+    e.stopPropagation();
+    showHotkeyDetector('G - Rainbow');
+    toggleRainbowEffect();
   }
 }
 
