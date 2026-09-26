@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Presenter Remote</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: radial-gradient(circle at top, #111827, #0b0f1a 60%);
+      color: #e5e7eb;
+      min-height: 100vh;
+      display: flex;
+      align-items: stretch;
+      justify-content: flex-start;
+      padding: 12px 12px 28px;
+    }
+    .wrap {
+      width: min(760px, 100%);
+      display: grid;
+      gap: 14px;
+    }
+    .layout {
+      display: grid;
+      gap: 14px;
+    }
+    @media (min-width: 700px) {
+      .layout { grid-template-columns: 260px 1fr; align-items: start; }
+    }
+        .tab-row {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+          margin-top: 8px;
+        }
+        .tab-btn {
+          border: 1px solid rgba(148, 163, 184, 0.2);
+          background: rgba(15, 23, 42, 0.6);
+          color: #e5e7eb;
+          padding: 8px;
+          border-radius: 10px;
+          font-weight: 700;
+          cursor: pointer;
+          font-size: 12px;
+          letter-spacing: 0.04em;
+        }
+        .tab-btn.active {
+          border-color: rgba(245, 158, 11, 0.7);
+          color: #fef3c7;
+          background: rgba(120, 53, 15, 0.35);
+        }
+        .list-panel {
+          display: none;
+          gap: 8px;
+          max-height: 60vh;
+          overflow-y: auto;
+          margin-top: 10px;
+        }
+        .list-panel.active { display: grid; }
+        .bookmark-list,
+        .slides-list {
+          display: grid;
+          gap: 8px;
+          max-height: 60vh;
+          overflow-y: auto;
+        }
+        .bookmark-item {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          padding: 10px 12px;
+          border-radius: 10px;
+          background: rgba(15, 23, 42, 0.7);
+          border: 1px solid rgba(148, 163, 184, 0.18);
+          font-size: 13px;
+          color: #e5e7eb;
+          cursor: pointer;
+        }
+        .bookmark-item.active {
+          border-color: rgba(245, 158, 11, 0.7);
+          box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.35), 0 10px 22px rgba(0,0,0,0.35);
+        }
+        .bookmark-meta {
+          font-size: 11px;
+          color: #94a3b8;
+          margin-top: 6px;
+        }
+    .card {
+      background: rgba(17, 24, 39, 0.75);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+    }
+    h1 {
+      font-size: 20px;
+      letter-spacing: 0.04em;
+    }
+    .status {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-top: 6px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .effects-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .preview-grid {
+      display: grid;
+      gap: 10px;
+    }
+    @media (min-width: 700px) {
+      .preview-grid { grid-template-columns: 1fr 1fr 1fr; }
+    }
+    @media (max-width: 699px) {
+      body { padding: 10px 10px 22px; }
+      .wrap { gap: 12px; }
+      .card { padding: 12px; border-radius: 12px; }
+      h1 { font-size: 18px; }
+      .status { font-size: 11px; }
+      .grid { grid-template-columns: 1fr; }
+      .wide { grid-column: span 1; }
+      .row { grid-template-columns: 1fr; }
+      .preview-grid { grid-template-columns: 1fr; }
+      button { padding: 14px 12px; font-size: 14px; min-height: 44px; }
+      input { padding: 10px; font-size: 13px; }
+      .tab-row { grid-template-columns: 1fr 1fr; }
+      .bookmark-item { font-size: 12px; padding: 9px 10px; }
+      .strip { grid-auto-columns: minmax(140px, 1fr); }
+      .controls-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .effects-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .effects-grid button:last-child { grid-column: 1 / -1; }
+    }
+    .preview-card {
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      background: rgba(30, 41, 59, 0.8);
+      border-radius: 12px;
+      padding: 12px;
+      min-height: 96px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+      text-align: center;
+      transition: background 0.2s ease, border-color 0.2s ease;
+    }
+    .preview-card:active {
+      background: rgba(51, 65, 85, 0.9);
+    }
+    .preview-title {
+      font-size: 11px;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-weight: bold;
+    }
+    .preview-name {
+      font-size: 15px;
+      font-weight: 800;
+      color: #ffffff;
+    }
+    .preview-snippet {
+      font-size: 12px;
+      color: #93c5fd;
+      opacity: 0.9;
+      line-height: 1.3;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .strip {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: 1fr;
+      max-height: 480px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding-right: 6px;
+    }
+    .strip::-webkit-scrollbar { width: 6px; }
+    .strip::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.4); border-radius: 4px; }
+    .strip-item {
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      background: rgba(30, 41, 59, 0.8);
+      border-radius: 12px;
+      padding: 10px 12px;
+      min-height: 90px;
+      display: grid !important;
+      gap: 6px;
+      cursor: pointer;
+      text-align: left;
+      color: inherit;
+    }
+    .strip-item.active {
+      border-color: rgba(245, 158, 11, 0.9);
+      background: rgba(120, 53, 15, 0.4);
+      box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.5), 0 8px 20px rgba(0,0,0,0.4);
+    }
+    .strip-title {
+      font-size: 11px;
+      color: #fca5a5;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: bold;
+    }
+    .strip-name {
+      font-size: 14px;
+      font-weight: 800;
+      color: #ffffff;
+    }
+    .strip-snippet {
+      font-size: 12px;
+      color: #bfdbfe;
+      opacity: 0.9;
+      line-height: 1.35;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    button.nav-btn, button.primary, button.secondary, button.danger, button.action, button.effect {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      border: 1px solid rgba(255,255,255,0.15);
+      padding: 16px 12px;
+      border-radius: 12px;
+      font-weight: 800;
+      font-size: 15px;
+      cursor: pointer;
+      background: rgba(55, 65, 81, 0.95);
+      color: #ffffff;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      transition: transform 0.1s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+      display: block;
+      text-align: center;
+    }
+    button.nav-btn:active, button.primary:active, button.secondary:active, button.danger:active, button.action:active, button.effect:active { 
+      transform: scale(0.96); 
+      background: rgba(75, 85, 99, 1);
+      border-color: rgba(255,255,255,0.4);
+    }
+    .primary { 
+      background: linear-gradient(135deg, #f59e0b, #ea580c); 
+      color: #ffffff; 
+      border-color: rgba(255,255,255,0.3);
+      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    }
+    .secondary { 
+      background: linear-gradient(135deg, #2563eb, #3b82f6); 
+      color: #ffffff; 
+      border-color: rgba(255,255,255,0.3);
+      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    }
+    .danger { 
+      background: linear-gradient(135deg, #dc2626, #ef4444); 
+      color: #ffffff; 
+      border-color: rgba(255,255,255,0.3);
+      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    }
+    .action {
+      background: linear-gradient(135deg, #059669, #10b981);
+      color: #ffffff;
+      border-color: rgba(255,255,255,0.3);
+      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    }
+    .effect {
+      background: linear-gradient(135deg, #7c3aed, #8b5cf6);
+      color: #ffffff;
+      border-color: rgba(255,255,255,0.3);
+      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    }
+    .nav-btn {
+      background: linear-gradient(135deg, #334155, #475569);
+      color: #ffffff;
+      border-color: rgba(255,255,255,0.25);
+    }
+    .wide { grid-column: span 2; }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 120px;
+      gap: 10px;
+    }
+    .preview-grid {
+      display: flex;
+      gap: 8px;
+    }
+    .preview-card {
+      flex: 1;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      background: rgba(30, 41, 59, 0.8);
+      border-radius: 12px;
+      padding: 12px 6px;
+      min-height: 96px;
+      display: flex !important;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+      text-align: center;
+      transition: background 0.2s ease, border-color 0.2s ease;
+    }
+    .controls-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .controls-grid > button {
+      flex: 1 1 calc(25% - 10px);
+      min-width: 60px;
+    }
+    .effects-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .effects-grid > button {
+      flex: 1 1 calc(33.333% - 10px);
+      min-width: 80px;
+    }
+    input {
+      width: 100%;
+      padding: 14px 12px;
+      border-radius: 12px;
+      border: 2px solid rgba(148, 163, 184, 0.4);
+      background: rgba(15, 23, 42, 0.9);
+      color: #ffffff;
+      font-size: 16px;
+      font-weight: 600;
+      text-align: center;
+    }
+    input::placeholder {
+      color: #94a3b8;
+      font-weight: 500;
+    }
+    
+    @media (max-width: 699px) {
+      body { padding: 8px 8px 24px; }
+      .wrap { gap: 14px; }
+      .card { padding: 12px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.1); }
+      h1 { font-size: 18px; color: #ffffff; font-weight: 800; }
+      .status { font-size: 13px; color: #cbd5e1; font-weight: 500; }
+      
+      .grid { grid-template-columns: 1fr; gap: 12px; }
+      .wide { grid-column: span 1; }
+      
+      .preview-grid { 
+        flex-wrap: nowrap;
+        margin-bottom: 4px;
+      }
+      .preview-card {
+        flex: 1 1 0;
+        min-height: 85px;
+        padding: 8px 4px;
+        border-width: 2px;
+      }
+      .preview-title { font-size: 10px; }
+      .preview-name { font-size: 12px; }
+      .preview-snippet { font-size: 10px; }
+      
+      .controls-grid > button {
+        flex: 1 1 calc(50% - 10px); 
+      }
+      .effects-grid > button {
+        flex: 1 1 calc(33.333% - 10px); 
+      }
+      
+      button.nav-btn, button.primary, button.secondary, button.danger, button.action, button.effect { padding: 18px 10px; font-size: 15px; border-width: 2px; display: block; }
+      .tab-btn { padding: 12px; font-size: 14px; border-width: 2px; }
+      
+      .row { grid-template-columns: 1fr 100px; gap: 10px; }
+      input { padding: 16px 12px; font-size: 16px; }
+      
+      .bookmark-item { font-size: 14px; padding: 12px 14px; margin-bottom: 6px; border-width: 2px;}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="layout">
+      <div class="card">
+        <h1 style="font-size:16px;">Bookmarks</h1>
+        <div class="bookmark-meta" style="color: #cbd5e1; margin-bottom: 8px;">Tap a bookmark to jump</div>
+        <div class="bookmark-list" id="bookmark-list" style="max-height: 480px; overflow-y: auto; padding-right: 6px;">
+          <div class="bookmark-meta">No bookmarks yet</div>
+        </div>
+      </div>
+        </div>
+      </div>
+
+      <div class="card grid">
+        <button class="secondary wide" style="margin-bottom: 4px;" onclick="sendCmd('start')">Start Present</button>
+        <div class="controls-grid wide">
+          <button class="nav-btn" onclick="sendCmd('prev')">Prev</button>
+          <button class="nav-btn" onclick="sendCmd('next')">Next</button>
+          <button class="nav-btn" onclick="sendCmd('back')">Back</button>
+          <button class="danger" onclick="sendCmd('exit')">Exit</button>
+        </div>
+        <div class="row wide" style="margin-top: 4px;">
+          <input id="goto" type="number" min="1" placeholder="Go to slide #" />
+          <button class="primary" onclick="goToSlide()">Go</button>
+        </div>
+        <button class="action wide" onclick="sendCmd('open_bible')">Open Bible for Current</button>
+        <div class="effects-grid wide">
+          <button class="effect" onclick="sendCmd('clap')">Clap</button>
+          <button class="effect" onclick="sendCmd('amen')">Amen</button>
+          <button class="effect" onclick="sendCmd('fireworks')">Fireworks</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h1 style="font-size:16px;">All Slides</h1>
+      <div class="bookmark-meta">Swipe left/right, tap to jump</div>
+      <div class="strip" id="slides-strip"></div>
+    </div>
+  </div>
+
+  <script>
+    const host = location.hostname || '127.0.0.1';
+    const base = 'http://' + host + ':8788';
+    const statusEl = document.getElementById('status');
+    const bookmarkList = document.getElementById('bookmark-list');
+    const deckMeta = document.getElementById('deck-meta');
+    const slidesStrip = document.getElementById('slides-strip');
+    const prevName = document.getElementById('prev-name');
+    const prevSnippet = document.getElementById('prev-snippet');
+    const nowName = document.getElementById('now-name');
+    const nowSnippet = document.getElementById('now-snippet');
+    const nextName = document.getElementById('next-name');
+    const nextSnippet = document.getElementById('next-snippet');
+
+    async function ping() {
+      try {
+        const res = await fetch(base + '/status', { cache: 'no-store' });
+        if (!res.ok) throw new Error('bad');
+        statusEl.textContent = 'Connected to ' + base;
+      } catch (e) {
+        statusEl.textContent = 'Remote server not reachable: ' + base;
+      }
+    }
+
+    async function sendCmd(cmd, arg) {
+      try {
+        await fetch(base + '/cmd', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cmd, arg })
+        });
+      } catch (e) {
+        statusEl.textContent = 'Send failed. Check server.';
+      }
+    }
+
+    function renderBookmarks(state) {
+      if (!bookmarkList) return;
+      bookmarkList.innerHTML = '';
+      const items = (state && Array.isArray(state.bookmarks)) ? state.bookmarks : [];
+      if (!items.length) {
+        const empty = document.createElement('div');
+        empty.className = 'bookmark-meta';
+        empty.textContent = 'No bookmarks yet';
+        bookmarkList.appendChild(empty);
+        return;
+      }
+      items.forEach(item => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'bookmark-item' + (item.index === state.current ? ' active' : '');
+        btn.innerHTML = '<span>' + item.name + '</span><span>#' + item.index + '</span>';
+        btn.addEventListener('click', () => sendCmd('goto', String(item.index)));
+        bookmarkList.appendChild(btn);
+      });
+    }
+
+    function renderSlides(state) {
+      const items = (state && Array.isArray(state.slides)) ? state.slides : [];
+      if (slidesStrip) {
+        slidesStrip.innerHTML = '';
+        items.forEach(item => {
+          const card = document.createElement('button');
+          card.type = 'button';
+          card.className = 'strip-item' + (item.index === state.current ? ' active' : '');
+          const snippet = item.snippet ? item.snippet : '';
+          const name = item.name && item.name.length > 46 ? item.name.slice(0, 46) + '…' : item.name;
+          card.innerHTML =
+            '<div class="strip-title">#' + item.index + '</div>' +
+            '<div class="strip-name">' + name + '</div>' +
+            '<div class="strip-snippet">' + snippet + '</div>';
+          card.addEventListener('click', () => sendCmd('goto', String(item.index)));
+          slidesStrip.appendChild(card);
+        });
+      }
+    }
+
+    function renderPreviews(state) {
+      const prev = state && state.prev ? state.prev : null;
+      const now = state && state.now ? state.now : null;
+      const next = state && state.next ? state.next : null;
+      if (prevName) prevName.textContent = prev ? (prev.name + ' #' + prev.index) : '—';
+      if (prevSnippet) prevSnippet.textContent = prev && prev.snippet ? prev.snippet : '';
+      if (nowName) nowName.textContent = now ? (now.name + ' #' + now.index) : '—';
+      if (nowSnippet) nowSnippet.textContent = now && now.snippet ? now.snippet : '';
+      if (nextName) nextName.textContent = next ? (next.name + ' #' + next.index) : '—';
+      if (nextSnippet) nextSnippet.textContent = next && next.snippet ? next.snippet : '';
+    }
+
+    window.jumpPreview = function(which) {
+      if (which === 'prev') sendCmd('prev');
+      if (which === 'next') sendCmd('next');
+    };
+
+    async function pollState() {
+      try {
+        const res = await fetch(base + '/state', { cache: 'no-store' });
+        if (!res.ok) throw new Error('bad');
+        const state = await res.json();
+        if (deckMeta && state) {
+          const current = state.current || 0;
+          const total = state.total || 0;
+          deckMeta.textContent = total ? ('Slide ' + current + ' / ' + total) : '';
+        }
+        renderBookmarks(state);
+        renderSlides(state);
+        renderPreviews(state);
+      } catch (e) {
+        // Ignore errors.
+      }
+    }
+
+    function goToSlide() {
+      const val = document.getElementById('goto').value.trim();
+      if (!val) return;
+      sendCmd('goto', val);
+    }
+
+    ping();
+    setInterval(ping, 4000);
+    pollState();
+    setInterval(pollState, 700);
+  </script>
+</body>
+</html>

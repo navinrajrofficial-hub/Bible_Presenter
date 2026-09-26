@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>நல்ல சமாரியன் இயேசு ஜெப வீடு</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Tamil:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Serif Tamil',serif}
+
+/* ── WHITE GRID BACKGROUND ── */
+body{
+  background-color:#f4f7fc;
+  background-image:
+    linear-gradient(rgba(170, 195, 235, 0.3) 1.2px, transparent 1.2px),
+    linear-gradient(90deg, rgba(170, 195, 235, 0.3) 1.2px, transparent 1.2px);
+  background-size:44px 44px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  perspective:1400px;
+}
+
+/* ── SUBTLE AMBIENT BLUE RADIAL GLOW ── */
+body::before{
+  content:'';
+  position:fixed;
+  inset:0;
+  background:radial-gradient(circle 600px at 50% 45%, rgba(0, 162, 255, 0.12) 0%, rgba(20, 110, 245, 0.04) 50%, transparent 80%);
+  pointer-events:none;
+  z-index:0;
+}
+
+/* ── MAIN 3D SCENE ── */
+.scene{
+  position:relative;
+  z-index:1;
+  transform-style:preserve-3d;
+  will-change:transform;
+}
+
+/* ── CARD CONTAINER ── */
+.card{
+  transform-style:preserve-3d;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:1.8vh;
+  padding:5vh 7vw;
+  position:relative;
+}
+
+/* ── 3D SOFT FLOOR SHADOW ── */
+.floor-shadow{
+  position:absolute;
+  bottom:-45px;
+  left:50%;
+  transform:translateX(-50%) rotateX(90deg);
+  width:380px;
+  height:130px;
+  background:radial-gradient(ellipse, rgba(15, 65, 170, 0.18) 0%, rgba(15, 65, 170, 0.05) 50%, transparent 75%);
+  filter:blur(10px);
+  pointer-events:none;
+}
+
+/* ── 3D UPRIGHT CROSS (NO ROTATION / STABLE) ── */
+.cross-container{
+  transform-style:preserve-3d;
+  position:relative;
+  width:clamp(130px, 15vw, 210px);
+  height:clamp(160px, 19vw, 260px);
+  margin-bottom:1.5vh;
+  transform:translateZ(45px);
+}
+
+/* 3D Extruded cross bars */
+.cross-h, .cross-v{
+  position:absolute;
+  transform-style:preserve-3d;
+  border-radius:12px;
+}
+.cross-v{
+  width:24%;
+  height:100%;
+  left:38%;
+  top:0;
+}
+.cross-h{
+  width:76%;
+  height:20%;
+  left:12%;
+  top:18%;
+}
+
+/* Front face: glossy rich blue gradient */
+.cross-h .face-front, .cross-v .face-front{
+  position:absolute;
+  inset:0;
+  background:linear-gradient(135deg, #00d2ff 0%, #0088ff 45%, #0051d4 100%);
+  border-radius:12px;
+  transform:translateZ(16px);
+  box-shadow:
+    inset 0 3px 8px rgba(255,255,255,0.7),
+    inset 0 -3px 8px rgba(0,25,90,0.3),
+    0 0 25px rgba(0, 160, 255, 0.4);
+}
+
+/* Back face */
+.cross-h .face-back, .cross-v .face-back{
+  position:absolute;
+  inset:0;
+  background:linear-gradient(180deg, #0044b3 0%, #002b80 100%);
+  border-radius:12px;
+  transform:translateZ(-16px) rotateY(180deg);
+}
+
+/* Top edge - highlight */
+.cross-h .face-top, .cross-v .face-top{
+  position:absolute;
+  top:0;left:0;right:0;
+  height:32px;
+  background:linear-gradient(180deg, #70e1ff, #00aeff);
+  transform-origin:top;
+  transform:rotateX(90deg) translateY(-16px);
+  border-radius:12px 12px 0 0;
+  box-shadow:inset 0 1px 4px rgba(255,255,255,0.8);
+}
+
+/* Bottom edge - deep shade */
+.cross-h .face-bottom, .cross-v .face-bottom{
+  position:absolute;
+  bottom:0;left:0;right:0;
+  height:32px;
+  background:linear-gradient(180deg, #0037a3, #001f66);
+  transform-origin:bottom;
+  transform:rotateX(-90deg) translateY(16px);
+  border-radius:0 0 12px 12px;
+}
+
+/* Left edge */
+.cross-h .face-left, .cross-v .face-left{
+  position:absolute;
+  top:0;bottom:0;left:0;
+  width:32px;
+  background:linear-gradient(90deg, #00bfff, #0077ee);
+  transform-origin:left;
+  transform:rotateY(-90deg) translateX(-16px);
+  border-radius:12px 0 0 12px;
+}
+
+/* Right edge */
+.cross-h .face-right, .cross-v .face-right{
+  position:absolute;
+  top:0;bottom:0;right:0;
+  width:32px;
+  background:linear-gradient(90deg, #0055cc, #003399);
+  transform-origin:right;
+  transform:rotateY(90deg) translateX(16px);
+  border-radius:0 12px 12px 0;
+}
+
+/* ── AMBIENT GLOW BEHIND CROSS ── */
+.cross-glow{
+  position:absolute;
+  top:50%;left:50%;
+  width:clamp(190px, 24vw, 340px);
+  height:clamp(190px, 24vw, 340px);
+  transform:translate(-50%,-50%) translateZ(-10px);
+  border-radius:50%;
+  background:radial-gradient(circle, rgba(0, 180, 255, 0.22) 0%, rgba(0, 100, 255, 0.08) 45%, transparent 70%);
+  filter:blur(8px);
+  pointer-events:none;
+}
+
+/* ── 3D THICK WORDS (EXACT MATCH WITH CROSS BLUE) ── */
+.title-group{
+  transform-style:preserve-3d;
+  text-align:center;
+  transform:translateZ(50px);
+}
+
+.title-line1{
+  font-size:clamp(42px, 6.2vw, 86px);
+  font-weight:900;
+  line-height:1.22;
+  letter-spacing:3px;
+  background:linear-gradient(135deg, #00d2ff 0%, #0088ff 45%, #0051d4 100%);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 2px 0 #0077ee)
+         drop-shadow(0 4px 0 #0055cc)
+         drop-shadow(0 6px 0 #0037a3)
+         drop-shadow(0 8px 16px rgba(0, 80, 210, 0.4));
+}
+
+.title-line2{
+  font-size:clamp(30px, 4.6vw, 66px);
+  font-weight:900;
+  line-height:1.22;
+  letter-spacing:8px;
+  margin-top:0.8vh;
+  background:linear-gradient(135deg, #00d2ff 0%, #0088ff 45%, #0051d4 100%);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 2px 0 #0077ee)
+         drop-shadow(0 4px 0 #0055cc)
+         drop-shadow(0 6px 14px rgba(0, 80, 210, 0.35));
+}
+
+/* ── SUBTITLE / BIBLE VERSE ── */
+.verse{
+  transform:translateZ(30px);
+  font-size:clamp(18px, 2.3vw, 30px);
+  font-weight:900;
+  color:#0077ee;
+  -webkit-text-stroke: 0.022em #0055cc;
+  font-style:normal;
+  letter-spacing:2px;
+  text-align:center;
+  margin-top:2.5vh;
+  text-shadow:0 2px 8px rgba(0, 110, 240, 0.25);
+}
+.verse cite{
+  display:block;
+  margin-top:0.6em;
+  font-style:normal;
+  font-size:0.88em;
+  font-weight:900;
+  color:#0055cc;
+  letter-spacing:4px;
+  text-shadow:0 1px 4px rgba(0, 85, 204, 0.2);
+}
+
+/* ── DECORATIVE GEMS ── */
+.dots{
+  display:flex;
+  gap:14px;
+  align-items:center;
+  transform:translateZ(35px);
+  margin-top:0.6vh;
+}
+.dot{
+  width:6px;height:6px;border-radius:50%;
+  background:linear-gradient(135deg, #00d2ff, #0066ff);
+  box-shadow:0 0 8px rgba(0, 160, 255, 0.7);
+}
+.dot.sm{width:4px;height:4px;opacity:0.6}
+.dot.xs{width:3px;height:3px;opacity:0.35}
+
+/* ── FLOATING PARTICLES ── */
+.particle{
+  position:fixed;
+  border-radius:50%;
+  pointer-events:none;
+  z-index:0;
+  opacity:0;
+  animation:particleFloat linear infinite;
+}
+@keyframes particleFloat{
+  0%{transform:translateY(100vh) scale(0.2);opacity:0}
+  15%{opacity:0.75}
+  85%{opacity:0.75}
+  100%{transform:translateY(-10vh) scale(1.1);opacity:0}
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width:768px){
+  .cross-container{
+    width:110px;height:140px;
+  }
+  .card{padding:4vh 5vw;gap:1.4vh}
+  .title-line2{letter-spacing:5px;}
+}
+</style>
+</head>
+<body>
+
+<div class="scene" id="scene3d">
+  <div class="card">
+
+    <!-- 3D UPRIGHT CROSS -->
+    <div class="cross-container">
+      <div class="cross-glow"></div>
+      <!-- Vertical bar -->
+      <div class="cross-v">
+        <div class="face-front"></div>
+        <div class="face-back"></div>
+        <div class="face-top"></div>
+        <div class="face-bottom"></div>
+        <div class="face-left"></div>
+        <div class="face-right"></div>
+      </div>
+      <!-- Horizontal bar -->
+      <div class="cross-h">
+        <div class="face-front"></div>
+        <div class="face-back"></div>
+        <div class="face-top"></div>
+        <div class="face-bottom"></div>
+        <div class="face-left"></div>
+        <div class="face-right"></div>
+      </div>
+    </div>
+
+    <!-- DECORATIVE DOTS -->
+    <div class="dots">
+      <div class="dot xs"></div>
+      <div class="dot sm"></div>
+      <div class="dot"></div>
+      <div class="dot sm"></div>
+      <div class="dot xs"></div>
+    </div>
+
+    <!-- 3D THICK TAMIL WORDS -->
+    <div class="title-group">
+      <div class="title-line1">நல்ல சமாரியன் இயேசு</div>
+      <div class="title-line2">ஜெப வீடு</div>
+    </div>
+
+    <!-- BIBLE VERSE -->
+    <div class="verse">
+      என்னுடைய வீடு ஜெபவீடு என்னப்படும்
+      <cite>— மத்தேயு 21:13</cite>
+    </div>
+
+    <!-- 3D FLOOR SHADOW -->
+    <div class="floor-shadow"></div>
+
+  </div>
+</div>
+
+<script>
+/* ── FLOATING PARTICLES ── */
+(function(){
+  const colors = ['#00d2ff','#00a6ff','#38bdf8','#7dd3fc','#0284c7','#bae6fd'];
+  const body = document.body;
+  
+  function createParticle(){
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = Math.random() * 6 + 2.5;
+    const x = Math.random() * 100;
+    const dur = Math.random() * 10 + 12;
+    const delay = Math.random() * 8;
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    
+    p.style.cssText = `
+      width:${size}px;height:${size}px;
+      left:${x}vw;
+      background:${color};
+      box-shadow:0 0 ${size*2.5}px ${color};
+      animation-duration:${dur}s;
+      animation-delay:${delay}s;
+    `;
+    body.appendChild(p);
+  }
+  
+  for(let i = 0; i < 28; i++) createParticle();
+})();
+
+/* ── SMOOTH AUTOMATIC 3D SLOW ORBIT (LEFT / TOP / RIGHT / BOTTOM) ── */
+(function(){
+  const scene = document.getElementById('scene3d');
+  if(!scene) return;
+  
+  let mouseX = 0, mouseY = 0;
+  let curMouseX = 0, curMouseY = 0;
+  let startTime = performance.now();
+  
+  // Optional mouse parallax offset
+  document.addEventListener('mousemove', (e) => {
+    const cx = window.innerWidth / 2;
+    const cy = window.innerHeight / 2;
+    mouseX = (e.clientX - cx) / cx * 7;
+    mouseY = (e.clientY - cy) / cy * -5;
+  });
+
+  function render(time){
+    const elapsed = (time - startTime) * 0.0008; // slow elegant time factor
+    
+    // Smooth parametric 3D motion: slowly tilts Top, Right, Bottom, Left
+    // rotateY oscillates left (-12deg) to right (+12deg)
+    // rotateX oscillates top (-8deg) to bottom (+8deg)
+    const autoRotY = Math.sin(elapsed) * 13;
+    const autoRotX = Math.cos(elapsed * 0.8) * 8.5;
+    const autoTransY = Math.sin(elapsed * 1.2) * 10;
+    
+    // Interpolate mouse parallax
+    curMouseX += (mouseX - curMouseX) * 0.05;
+    curMouseY += (mouseY - curMouseY) * 0.05;
+    
+    const finalRotY = autoRotY + curMouseX;
+    const finalRotX = autoRotX + curMouseY;
+    
+    scene.style.transform = `translateY(${autoTransY}px) rotateX(${finalRotX.toFixed(2)}deg) rotateY(${finalRotY.toFixed(2)}deg)`;
+    
+    requestAnimationFrame(render);
+  }
+  
+  requestAnimationFrame(render);
+})();
+</script>
+</body>
+</html>

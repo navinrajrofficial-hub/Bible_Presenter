@@ -1,0 +1,41 @@
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background: #020617;
+}
+
+.main-workspace {
+  display: grid;
+  grid-template-columns: 240px 1fr 580px;
+  flex: 1;
+  overflow: hidden;
+}
+
+.left-pane {
+  background: #0b1329;
+  border-right: 1px solid #1e293b;
+  overflow: hidden;
+  height: 100%;
+}
+
+.center-pane {
+  background: #020617;
+  overflow: hidden;
+  height: 100%;
+}
+
+.right-pane {
+  background: #0f172a;
+  border-left: 1px solid #1e293b;
+  overflow: hidden;
+  height: 100%;
+}
+
+@media (max-width: 1200px) {
+  .main-workspace {
+    grid-template-columns: 200px 1fr 480px;
+  }
+}

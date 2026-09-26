@@ -1,0 +1,31 @@
+<div class="app-layout">
+  <!-- Top Navigation Bar -->
+  <app-header
+    [activeTab]="activeTab()"
+    (tabChange)="onTabChange($event)"
+  ></app-header>
+
+  <!-- 3-Pane Main Application Workspace -->
+  <main class="main-workspace">
+    <!-- Left Pane: Slide List -->
+    <aside class="left-pane">
+      <app-slide-list></app-slide-list>
+    </aside>
+
+    <!-- Center Pane: Live Slide Preview -->
+    <section class="center-pane">
+      <app-slide-preview></app-slide-preview>
+    </section>
+
+    <!-- Right Pane: Active Feature Tab -->
+    <aside class="right-pane">
+      <app-bible-panel *ngIf="activeTab() === 'bible'"></app-bible-panel>
+      <app-song-panel *ngIf="activeTab() === 'songs'"></app-song-panel>
+      <app-song-history-manager *ngIf="activeTab() === 'history'"></app-song-history-manager>
+      <app-slide-editor *ngIf="activeTab() === 'editor'"></app-slide-editor>
+    </aside>
+  </main>
+
+  <!-- Fullscreen Presentation Overlay -->
+  <app-presentation-overlay></app-presentation-overlay>
+</div>

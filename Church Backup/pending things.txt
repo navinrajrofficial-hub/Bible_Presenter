@@ -1,31 +1,34 @@
+திராட்சைச் செடியே இயேசு ராஜா
+உம்மோடு இணைந்திருக்கும் கிளை நாங்கள்
+உமக்காய் 
+***படுகின்ற*** கொடி => done
 
+நீர் வரும்பும் உம் நல்ல
 
-song slide, full content is not showing => Done
+அன்பின் சிகரமே ஆரயிரே
 
-while adding sub chorus 
-add it inbetween the stance only 
-not after the main chorus.  => Done
+நீர் விரும்பும் உல் நல்ல பாதைகளை
+தினந்தோறும் காட்ட வேண்டும் திவ்யநாதரே
 
-while exporting add the date in the file.
+IF big verse, in that particular page have two mini pages => DONE
+add color motivation shortcut => done
+like sql 50 add graphics for church name => done
 
-sub slide menu for each songs  => Done
+paul Ramesh
+vyasar Lawrence
+moses Rajasekar
+joseph karikalan
+vunakuruvar irukirai nanasekar
+lucas sekar
+
 
 make song content js file splitted and good performance?
-
 =======================
-
 GITHUB:
 publish it to the free tier web application?
-
 ========================
-
-
-song add feature , make it dynamic minimize, maximize, scrolling  -> Done
-
 
 AI Feature?
 bible verse partially included?
-
 prayer time one image?
-
 fix the html with correct font size?

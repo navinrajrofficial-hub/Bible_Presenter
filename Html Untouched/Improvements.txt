@@ -4,9 +4,7 @@ when add songs to main slide auto save in the log. -> done
 
 Remote Control + Mobile Viewer: a phone controller for next/prev, black screen, jump‑to, and a separate low‑latency “viewer” mode for TVs or overflow rooms.
 
-one toggle to disable remote control
 
-make phone ui beautiful
 
 implement almost all the navigation features, without the adding stuff.
 
@@ -16,5 +14,20 @@ add bookmarks in the psrn file as well.
 currently only slides are being saved.  => done
 
 add ai features to add slide based on the verse screenshot?
+
+TOP MARGIN MAKE IT MORE TO AVID THE SCREEN. => done
+
+split big verse iNOT MULTIPLE PAGES
+
+motiviation fire color moving in the text?
+
+
+
+SONGs
+======
+VUMAKOPANAVAR YAR MAIN STANCE TOO BIG
+அடைக்கலமே உமதடிமை நானே
+
+
 
 
