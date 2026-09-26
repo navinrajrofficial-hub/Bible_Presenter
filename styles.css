@@ -1964,6 +1964,15 @@ select.bp-select.tamil { font-family: 'Noto Serif Tamil', serif; font-size: 13px
 .sp-field { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
 .sp-label { font-size: 11px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; }
 
+/* Universal search container - always visible */
+.sp-search-container {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
 /* Collapsible song picker */
 #sp-picker {
   flex-shrink: 0;

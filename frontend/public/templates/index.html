@@ -357,6 +357,19 @@
     <button class="sp-close" onclick="toggleSongPanel()">✕</button>
   </div>
   <div id="song-panel-body">
+    <!-- Universal search - always visible -->
+    <div class="sp-search-container">
+      <div class="sp-search-row">
+        <input type="text" class="sp-search" id="sp-search" placeholder="பாடல் பெயர் / எண் தேடுக..." oninput="spOnSearch()">
+        <button type="button" id="sp-tamil-btn" title="Tamil letters" onclick="spToggleTamilKeys()">
+          <span class="sp-tamil-icon">கீ</span>
+          <span class="sp-tamil-label">தமிழ்</span>
+        </button>
+      </div>
+      <div id="sp-tamil-keys" aria-label="Tamil letters" style="display:none;">
+        <div id="sp-tamil-combos" style="display:none;"></div>
+      </div>
+    </div>
     <!-- Collapsible song picker -->
     <div id="sp-picker">
       <div id="sp-picker-header" onclick="spTogglePicker()">
@@ -364,16 +377,6 @@
         <span id="sp-picker-arrow">▼</span>
       </div>
       <div id="sp-picker-body">
-        <div class="sp-search-row">
-          <input type="text" class="sp-search" id="sp-search" placeholder="பாடல் பெயர் / எண் தேடுக..." oninput="spOnSearch()">
-          <button type="button" id="sp-tamil-btn" title="Tamil letters" onclick="spToggleTamilKeys()">
-            <span class="sp-tamil-icon">கீ</span>
-            <span class="sp-tamil-label">தமிழ்</span>
-          </button>
-        </div>
-        <div id="sp-tamil-keys" aria-label="Tamil letters" style="display:none;">
-          <div id="sp-tamil-combos" style="display:none;"></div>
-        </div>
         <select class="sp-select tamil" id="sp-song" size="6" onchange="spOnSongChange()">
         </select>
       </div>
